@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "526139496135",
+    "project_id": "assetyug-da946",
+    "storage_bucket": "assetyug-da946.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:526139496135:android:a9d9f9120cb47d942c10e2",
+        "android_client_info": {
+          "package_name": "com.example.asset_yug_debugging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoo5452ayxMjyJi3SVsvx8GBqwMkiG5ew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

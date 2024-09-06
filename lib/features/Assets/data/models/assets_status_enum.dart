@@ -1,0 +1,1 @@
+enum AssetsStatusEnum {active, inactive}

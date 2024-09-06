@@ -1,0 +1,1 @@
+const QUICK_ACTIONS = ["Inventory", "Locations", "Add WO", ];
