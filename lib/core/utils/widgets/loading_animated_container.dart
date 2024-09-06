@@ -24,8 +24,8 @@ class _LoadingAnimatedContainerState extends State<LoadingAnimatedContainer>
     _controller = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
-      lowerBound: 0.2,
-      upperBound: 0.6,
+      lowerBound: 0.4,
+      upperBound: 0.8,
     )..repeat(reverse: true);
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
   }
