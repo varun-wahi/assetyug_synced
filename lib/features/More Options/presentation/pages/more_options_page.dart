@@ -25,7 +25,7 @@ class MoreOptionsPage extends StatelessWidget {
   MoreOptionsPage({super.key});
   
   late Box box;
-  String companyImageAddress = "https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg";
+  String companyImageAddress = "https://image.shutterstock.com/image-photo/image-260nw-452062024.jpg";
   @override
   Widget build(BuildContext context) {
     Future<Map<String, dynamic>?> fetchCompanyInfo() async {
@@ -110,7 +110,7 @@ class MoreOptionsPage extends StatelessWidget {
               radius: 60.0,
               // backgroundImage: data.companyImage,
               backgroundImage: NetworkImage(companyImageAddress)),
-          // const SizedBox(height: dGap),
+          const SizedBox(height: dGap),
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -159,8 +159,11 @@ class MoreOptionsPage extends StatelessWidget {
                         radius: 60.0,
                         // backgroundImage: data.companyImage,
                         // backgroundImage: MemoryImage(imageData)),
-                        backgroundImage: NetworkImage(companyImageAddress)),
-                    // const SizedBox(height: dGap),
+                        backgroundColor: tGreyLight,
+                        foregroundImage: NetworkImage(companyImageAddress)
+
+                        ),
+                    const SizedBox(height: dGap),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
