@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'dart:convert';
 
+import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
@@ -32,6 +33,7 @@ import '../../../../core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import '../riverpod/asset_sorting_notifier.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/icon_text_row.dart';
 
 class AssetsPage extends ConsumerWidget {
   const AssetsPage({super.key});
@@ -446,10 +448,11 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(dPadding),
+      // padding: const EdgeInsets.all(dPadding),
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(dBorderRadius),
+        // boxShadow: dBoxShadow(),
         border: Border.all(color: tGreyLight),
       ),
       child: (isLoading) ?  const SingleChildScrollView(
@@ -509,22 +512,33 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           vertical: dPadding * 2,
         ),
         child: ListTile(
+          contentPadding: const EdgeInsets.only(left: dPadding*2, right: 0),
           title: Text(
             data.name,
-            style: boldHeading(size: 17),
+            style: boldHeading(size: 19),
           ),
+
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const DGap(gap: dGap / 2),
+              
+              const DGap(gap: 2),
               Text(
                 "Serial No: ${data.serialNumber}",
                 style: containerText(weight: FontWeight.w400),
               ),
-              const DGap(gap: dGap / 2),
+              
+              const DGap(gap: 2),
               Text(
-                "Customer: ${data.customer}",
+                "Category: ${data.category}",
                 style: containerText(weight: FontWeight.w400),
+              ),
+              
+              const DGap(gap:8),
+              IconTextRow(
+                icon: Icons.person,
+                text: data.customer ?? "No Customer",
+                fontWeight: FontWeight.w400,
               ),
             ],
           ),

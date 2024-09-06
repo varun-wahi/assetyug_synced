@@ -39,6 +39,7 @@ class AssetsDetailsCard extends ConsumerWidget {
           horizontal: dPadding,
         ),
         child: ListTile(
+          isThreeLine: true,
           title: Text(
             data.name,
             style: boldHeading(size: 17),
@@ -48,12 +49,17 @@ class AssetsDetailsCard extends ConsumerWidget {
             children: [
               const DGap(gap: dGap / 2),
               Text(
-                "Serial No: ${data.serialNumber}",
+                "Seral No: ${data.serialNumber}",
                 style: containerText(weight: FontWeight.w400),
               ),
               const DGap(gap: dGap / 2),
               Text(
                 "Customer: ${data.customer}",
+                style: containerText(weight: FontWeight.w400),
+              ),
+              const DGap(gap: dGap / 2),
+              Text(
+                "Category: ${data.category}",
                 style: containerText(weight: FontWeight.w400),
               ),
             ],

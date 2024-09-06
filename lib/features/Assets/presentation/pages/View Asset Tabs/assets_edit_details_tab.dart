@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../widgets/details_row_widget_assets.dart';
+import '../../../../../core/utils/widgets/details_row_widget_assets.dart';
 
 class AssetEditDetailsPage extends ConsumerWidget {
   final AssetsModel assetData;
@@ -63,39 +63,39 @@ class AssetEditDetailsPage extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BuildDetailsRowAssets(
+                      DDetailsRow(
                           title: "Asset Name", value: assetData.name),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Asset ID: ", value: assetData.assetId.toString()),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Serial No: ", value: assetData.serialNumber),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Category: ",
                           value:
                               assetData.category.isNotEmpty ? assetData.category : "--"),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Customer: ",
                           value: (assetData.customer?.isNotEmpty ?? false)
                               ? assetData.customer!
                               : "--"),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Location: ",
                           value: assetData.location.isNotEmpty
                               ? assetData.location
                               : "No location data"),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                           title: "Status: ",
                           value: assetData.status.isNotEmpty
                               ? assetData.status
                               : "No status data"),
-                      const DDivider(),
-                      BuildDetailsRowAssets(
+                      // const DDivider(),
+                      DDetailsRow(
                         title: "Checking Status: ",
                         value: _getCheckingStatusValue(snapshot),
                       ),

@@ -26,7 +26,7 @@ import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 // };
 const Map<String, Map<String, String>> assetsFilters = {
   "Sort by": {
-    'Asset Name': 'name',
+    'Name': 'name',
     'Status': 'status',
     'Category': 'category',
     'Location': 'location',

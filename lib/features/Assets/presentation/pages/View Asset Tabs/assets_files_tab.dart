@@ -216,9 +216,11 @@ class _buildFileContainer extends StatelessWidget {
           Flexible(
 
             child: Text(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               data.fileName.isNotEmpty ? data.fileName : "Unnamed File",
               textAlign: TextAlign.start,
-              style: body(weight: FontWeight.w500, size: 16, color: tWhite),
+              style: body(weight: FontWeight.w400, size: 15, color: tWhite),
             ),
           ),
           IconButton(

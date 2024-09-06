@@ -28,7 +28,7 @@ class MainPage extends ConsumerWidget {
       const AssetsPage(),
       WorkOrdersPage(),
       const CustomersPage(),
-      const MoreOptionsPage(),
+      MoreOptionsPage(),
     ];
 
     return PopScope(

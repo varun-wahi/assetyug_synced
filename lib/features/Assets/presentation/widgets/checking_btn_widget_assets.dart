@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_names_data.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
@@ -82,22 +85,18 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
         } else if (snapshot.hasData) {
           final assetCheckingStatus = snapshot.data;
           print("assetCheckingStatus: $assetCheckingStatus for widget ${widget.data.id!}");
-          return ElevatedButton(
-            style: (assetCheckingStatus == checkInString)
-                ? ElevatedButton.styleFrom(
-                    backgroundColor: tCheckOutColor,
-                    foregroundColor: tWhite,
-                  )
-                : ElevatedButton.styleFrom(
-                    backgroundColor: tCheckInColor,
-                    foregroundColor: tWhite,
-                  ),
+
+          return DElevatedButton(
+            borderRadius: 30,
+            buttonColor: (assetCheckingStatus == checkInString)
+                ? tCheckOutColor
+                : tCheckInColor,
             onPressed: () async {
               await showCheckInOutDialog(context, assetCheckingStatus);
             },
             child: (assetCheckingStatus == checkInString)
-                ? const Text("Check Out")
-                : const Text("Check In"),
+                ?  Text("Check Out", style: subtitle(weight: FontWeight.w500, color: tWhite))
+                : Text("Check In", style: subtitle(weight: FontWeight.w500, color: tWhite)),
           );
         }
         return const SizedBox();

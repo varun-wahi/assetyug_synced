@@ -4,12 +4,12 @@ import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 
 
 
-class BuildDetailsRowAssets extends StatelessWidget {
+class DDetailsRow extends StatelessWidget {
   final String title;
   final String value;
   final double? titleFontSize;
   final double? valueFontSize;
-  const BuildDetailsRowAssets({
+  const DDetailsRow({
     super.key,
     required this.title,
     required this.value,

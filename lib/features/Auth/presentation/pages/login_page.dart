@@ -118,6 +118,10 @@ Future<void> fetchUserCompanyDetails(String email) async{
   final companyDetails = await userRepo.getCompanyId(email);
   box.put('companyId', companyDetails['id']);
   box.put('companyName', companyDetails['companyName']);
+  //!TEMPORARY PRINT STATEMENTS
+  if(mounted){
+    dSnackBar(context, "recieved companyId: ${companyDetails['id']}", TypeSnackbar.success);
+  }
   print("recieved companyId: ${companyDetails['id']}" );
   print("recieved companyName: ${companyDetails['companyName']}" );
 } 

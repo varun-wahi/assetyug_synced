@@ -19,12 +19,34 @@ import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 
 class MoreOptionsPage extends StatelessWidget {
-  const MoreOptionsPage({super.key});
-
+  MoreOptionsPage({super.key});
+  
+  late Box box;
+  String companyImageAddress = "https://www.shutterstock.com/image-vector/circle-line-simple-design-logo-600nw-2174926871.jpg";
   @override
   Widget build(BuildContext context) {
+    Future<Map<String, dynamic>?> fetchCompanyInfo() async {
+      print("Fetching company info");
+      box = await Hive.openBox("auth_data");
+      String? companyID = box.get("companyId") as String?;
+      String? companyName = box.get("companyName") as String?;
+      String? companyEmail = box.get("email") as String?;
+      print(companyID);
+      print(companyName);
+      // Return a Map with the company data
+      return {
+        "companyID": companyID ?? '',
+        "companyName": companyName ?? '',
+        "companyEmail": companyEmail ?? '',
+      };
+    }
+    // Box box = Hive.box("auth_data");
+    // String companyID = box.get("companyID");
+    // print(companyID);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: tWhite,
@@ -35,7 +57,7 @@ class MoreOptionsPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             FutureBuilder(
-              future: CustomerMongoDb.fetchCompanyInfo("3214"),
+              future: fetchCompanyInfo(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
@@ -59,7 +81,7 @@ class MoreOptionsPage extends StatelessWidget {
                   if (companyData == null) {
                     return const NoDataFoundPage();
                   }
-                  return _buildUserProfileSection(companyData, context);
+                  return _buildUserProfileSection(companyData, companyImageAddress, context);
                 }
               },
             ),
@@ -76,10 +98,10 @@ class MoreOptionsPage extends StatelessWidget {
   }
 
   Widget _buildUserProfileSection(
-      Map<String, dynamic> companyData, BuildContext context) {
+      Map<String, dynamic> companyData, String companyImageAddress, BuildContext context) {
     var data = CompanyInfoModel.fromJson(companyData);
     // Convert the binary string to Uint8List
-    Uint8List imageData = base64Decode(data.companyImage);
+    // Uint8List imageData = base64Decode(data.companyImage);
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -87,8 +109,8 @@ class MoreOptionsPage extends StatelessWidget {
           CircleAvatar(
               radius: 60.0,
               // backgroundImage: data.companyImage,
-              backgroundImage: MemoryImage(imageData)),
-          const SizedBox(height: dGap),
+              backgroundImage: NetworkImage(companyImageAddress)),
+          // const SizedBox(height: dGap),
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -116,7 +138,8 @@ class MoreOptionsPage extends StatelessWidget {
   }
 
   void showCustomSizedPopup(BuildContext context, CompanyInfoModel data) {
-    Uint8List imageData = base64Decode(data.companyImage);
+    // Uint8List imageData = base64Decode(data.companyImage);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -135,8 +158,9 @@ class MoreOptionsPage extends StatelessWidget {
                     CircleAvatar(
                         radius: 60.0,
                         // backgroundImage: data.companyImage,
-                        backgroundImage: MemoryImage(imageData)),
-                    const SizedBox(height: dGap),
+                        // backgroundImage: MemoryImage(imageData)),
+                        backgroundImage: NetworkImage(companyImageAddress)),
+                    // const SizedBox(height: dGap),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -169,7 +193,7 @@ class MoreOptionsPage extends StatelessWidget {
                           data.companyID,
                           style: body(size: 16),
                         ),
-                        const DGap(),
+                        const DGap(gap: dGap*2),
                         //CLOSE BUTTON
                         DElevatedButton(
                             onPressed: Navigator.of(context).pop,
