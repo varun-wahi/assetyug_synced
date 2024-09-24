@@ -9,6 +9,7 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/loading_animated_container.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
@@ -28,6 +29,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../../core/utils/widgets/d_dropdown.dart';
+import '../../../Customers/data/data_sources/customer_names_data.dart';
+import '../../data/data_sources/asset_category_data.dart';
+import '../../data/data_sources/asset_status_data.dart';
 import '../riverpod/asset_filter_notifier.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
@@ -54,9 +59,24 @@ class AssetsPage extends ConsumerWidget {
   }
 
   AppBar _buildAppBar(BuildContext context) {
+    void searchAsset(String serialNumber) {
+    // Add your search logic here
+    print('Searching asset with serial number: $serialNumber');
+    // You can navigate to a new page with the search result if needed
+  }
     return AppBar(
       title: const Text("Assets"),
       actions: [
+        IconButton(
+          onPressed: () async {
+              // Show the serial search dialog
+              String? serialNumber = await SerialSearchDialog.show(context);
+              if (serialNumber != null && serialNumber.isNotEmpty) {
+                searchAsset(serialNumber);
+              }
+            },
+          icon: const Icon(Icons.numbers),
+        ),
         IconButton(
           onPressed: () {
             Navigator.push(
@@ -86,7 +106,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   bool isLoading = true;
   bool hasMore = true;
   int currentPage = 0;
-  static const int pageSize = 5;
+  static const int pageSize = 4;
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
   String? companyId;
@@ -100,6 +120,15 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   final categoryController = TextEditingController();
   final locationController = TextEditingController();
   final statusController = TextEditingController();
+
+
+    void _changeStatusValue(String? option) => _assetStatus = option;
+    void _changeCustomerValue(String? option) => _customer = option;
+    void _changeCategoryValue(String? option) => _assetCategory = option;
+
+    String? _assetStatus;
+    String? _assetCategory;
+    String? _customer;
 
   @override
   void initState() {
@@ -172,11 +201,14 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       final Map<String, dynamic> filterForm = {
         'assetId': assetIdController.text,
         'name': assetNameController.text,
-        'customer': customerController.text,
+        // 'customer': customerController.text,
+        'customer': _customer ?? '',
         'serialNumber': serialNumberController.text,
-        'category': categoryController.text,
+        // 'category': categoryController.text,
+        'category': _assetCategory ?? '',
         'location': locationController.text,
-        'status': statusController.text,
+        // 'status': statusController.text,
+        'status': _assetStatus ?? '',
         'email': '',
         'companyId': companyId!,
       };
@@ -368,6 +400,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   Widget _buildFilterModalBody() {
     return SizedBox(
+      
       height: 350,
       child: SingleChildScrollView(
         child: Column(
@@ -376,11 +409,38 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
               children: [
                 DTextField(icon: const Icon(Icons.tag), hintText: "Asset ID", controller: assetIdController),
                 DTextField(icon: const Icon(Icons.person), hintText: "Asset Name", controller: assetNameController),
-                DTextField(icon: const Icon(Icons.business), hintText: "Customer", controller: customerController),
+                // DTextField(icon: const Icon(Icons.business), hintText: "Customer", controller: customerController),
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                          label: "Customer",
+                          items: customerNamesMenuItems,
+                          onChanged: (value) => _changeCustomerValue(value),
+                          isMandatory: true,
+                          value: _customer,
+                        ),
                 DTextField(icon: const Icon(Icons.confirmation_number), hintText: "Serial Number", controller: serialNumberController),
-                DTextField(icon: const Icon(Icons.category), hintText: "Category", controller: categoryController),
+                // DTextField(icon: const Icon(Icons.category), hintText: "Category", controller: categoryController),
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+
+                  
+                          label: "Category",
+                          items: assetCategoryTypeMenuItems,
+                          onChanged: (value) => _changeCategoryValue(value),
+                          value: _assetCategory,
+                        ),
+                
                 DTextField(icon: const Icon(Icons.location_on), hintText: "Location", controller: locationController),
-                DTextField(icon: const Icon(Icons.info), hintText: "Status", controller: statusController),
+                // DTextField(icon: const Icon(Icons.info), hintText: "Status", controller: statusController),
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+
+                          label: "Status",
+                          items: assetStatusMenuItems,
+                          value: _assetStatus,
+                          onChanged: (value) => _changeStatusValue(value),
+                          isMandatory: true,
+                        ),
               ],
             ),
             const DGap(),
@@ -420,11 +480,23 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     // Clear all text fields
     assetIdController.clear();
     assetNameController.clear();
-    customerController.clear();
+    // customerController.clear();
+    _customer = '';
+    _changeCustomerValue(null);
+    
     serialNumberController.clear();
-    categoryController.clear();
+    // categoryController.clear();
+    _assetCategory == '';
+    _changeCategoryValue(null);
+
     locationController.clear();
-    statusController.clear();
+    // statusController.clear();
+    _assetStatus = '';
+    _changeStatusValue(null);
+    setState(() {
+      
+    });
+
     
     // Optionally, you can also clear the search field
     searchTextFieldController.clear();

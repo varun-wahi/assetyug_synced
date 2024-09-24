@@ -1,10 +1,10 @@
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/pages/customers_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Work%20Orders/data/repository/work_orders_mongodb.dart';
 import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
@@ -42,6 +42,7 @@ class _HomePageState extends State<HomePage> {
     _fetchCompanyName();
     _connectToDb();
   }
+
   Future<void> _fetchCompanyName() async {
     box = await Hive.openBox('auth_data');
     companyName = box.get('companyName');
@@ -65,7 +66,7 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       if (mounted) {
-        dSnackBar(context, "Failed to connect to DB",TypeSnackbar.error);
+        dSnackBar(context, "Failed to connect to DB", TypeSnackbar.error);
       }
       print("Failed to connect to DB: $e");
     }
@@ -231,6 +232,9 @@ class _HomePageState extends State<HomePage> {
 
               //Scan or Add Asset Container
               _buildOptionsSection(context),
+              const DGap(gap: dGap * 2),
+
+              const BuildCheckOutAssetsContainer(),
 
               const DGap(gap: dGap * 2),
 
@@ -238,7 +242,6 @@ class _HomePageState extends State<HomePage> {
               _buildWoCategorisedSection(),
 
               //Checked Out Assets
-              const BuildCheckOutAssetsContainer(),
 
               const DGap(gap: dGap * 2),
             ],
@@ -250,21 +253,21 @@ class _HomePageState extends State<HomePage> {
 
   Container _buildGreetingsSection() {
     return Container(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Welcome $companyName",
-                      style: boldHeading(size: 24),
-                    ),
-                    const DGap(),
-                    Text(
-                        DateFormat('MMMM d, y').format(DateTime
-                            .now()), //Update Date and Time whenever user logs in
-                        style: body(size: 18)),
-                  ],
-                ));
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Welcome $companyName",
+              style: boldHeading(size: 24),
+            ),
+            const DGap(),
+            Text(
+                DateFormat('MMMM d, y').format(DateTime
+                    .now()), //Update Date and Time whenever user logs in
+                style: body(size: 18)),
+          ],
+        ));
   }
 
   Padding _buildWoCategorisedSection() {
@@ -340,6 +343,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Container _buildOptionsSection(BuildContext context) {
+    void searchAsset(String serialNumber) {
+      // Add your search logic here
+      print('Searching asset with serial number: $serialNumber');
+      // You can navigate to a new page with the search result if needed
+    }
+
     return Container(
       decoration: BoxDecoration(
           color: tWhite,
@@ -379,6 +388,40 @@ class _HomePageState extends State<HomePage> {
               ),
               Text(
                 "Scan Asset",
+                style: body(),
+              )
+            ],
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: tWhite,
+                      foregroundColor: tBlack,
+                      elevation: 2.0),
+                  onPressed: () async {
+                    // Show the serial search dialog
+                    String? serialNumber =
+                        await SerialSearchDialog.show(context);
+                    if (serialNumber != null && serialNumber.isNotEmpty) {
+                      searchAsset(serialNumber);
+                    }
+                  },
+                  child: const Icon(
+                    Icons.search,
+                    size: 28,
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: dPadding,
+              ),
+              Text(
+                "Search Asset",
                 style: body(),
               )
             ],
@@ -434,9 +477,9 @@ class _HomePageState extends State<HomePage> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(dBorderRadius * 2),
-                      ),
-                  backgroundColor: tPrimary,// Background color
+                    borderRadius: BorderRadius.circular(dBorderRadius * 2),
+                  ),
+                  backgroundColor: tPrimary, // Background color
                   // backgroundColor: tWhite,// Background color
                   foregroundColor: tWhite, // Text color
                   // foregroundColor: tPrimary, // Text color
@@ -449,7 +492,8 @@ class _HomePageState extends State<HomePage> {
                           builder: (context) => const InventoryPage(),
                         ));
                   } else {
-                    dSnackBar(context, "Feature coming to mobile later.",TypeSnackbar.info);
+                    dSnackBar(context, "Feature coming to mobile later.",
+                        TypeSnackbar.info);
                   }
                 },
                 child: Text(
@@ -468,6 +512,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-
-
