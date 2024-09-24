@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:asset_yug_debugging/config/api_config.dart';
+import 'package:asset_yug_debugging/features/Assets/data/models/asset_by_serial_dto_model.dart';
 import 'package:asset_yug_debugging/features/Main/data/data_sources/api_user_data.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -313,4 +314,37 @@ class AssetsRepositoryImpl {
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
+
+
+      // Adding new APIs
+
+
+  Future<dynamic> checkInCheckOutCount(String companyId) async {
+    final response = await http.get(
+      Uri.parse('${assetEndpoint}checkInOutCount/$companyId'),
+      headers: await getHeaders(),
+    );
+    return response;
+  }
+
+  // API to get assets by serial number
+  
+  Future<http.Response> assetFromSerialNumber(AssetBySerialDTO assetBySerialDTO) async {
+    final url = "${assetEndpoint}assetBySerialNumber";
+    var headers = await getHeaders();
+    return await http.post(
+      Uri.parse(url),
+      headers: headers,
+      body: json.encode(assetBySerialDTO.toJson()),  // Convert the DTO object to JSON
+    );
+  }
+
+  // API to get check-in/check-out assets based on companyId and checkedIn status
+  
+  Future<http.Response> checkInOutAsset(String companyId, bool checkedIn) async {
+    final url = "${assetEndpoint}checkInOutAsset/$companyId/$checkedIn";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
 }

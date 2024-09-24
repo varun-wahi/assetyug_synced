@@ -33,35 +33,81 @@ PODS:
   - file_picker (0.0.1):
     - DKImagePickerController/PhotoGallery
     - Flutter
-  - Firebase/Auth (10.29.0):
+  - Firebase/Auth (10.19.0):
     - Firebase/CoreOnly
-    - FirebaseAuth (~> 10.29.0)
-  - Firebase/CoreOnly (10.29.0):
-    - FirebaseCore (= 10.29.0)
-  - firebase_auth (5.1.3):
-    - Firebase/Auth (= 10.29.0)
+    - FirebaseAuth (~> 10.19.0)
+  - Firebase/Core (10.19.0):
+    - Firebase/CoreOnly
+    - FirebaseAnalytics (~> 10.19.0)
+  - Firebase/CoreOnly (10.19.0):
+    - FirebaseCore (= 10.19.0)
+  - firebase_auth (5.3.0):
+    - Firebase/Auth (= 10.19.0)
     - firebase_core
     - Flutter
-  - firebase_core (3.3.0):
-    - Firebase/CoreOnly (= 10.29.0)
+  - firebase_core (3.5.0):
+    - Firebase/CoreOnly (= 10.19.0)
     - Flutter
+  - FirebaseAnalytics (10.19.0):
+    - FirebaseAnalytics/AdIdSupport (= 10.19.0)
+    - FirebaseCore (~> 10.0)
+    - FirebaseInstallations (~> 10.0)
+    - GoogleUtilities/AppDelegateSwizzler (~> 7.11)
+    - GoogleUtilities/MethodSwizzler (~> 7.11)
+    - GoogleUtilities/Network (~> 7.11)
+    - "GoogleUtilities/NSData+zlib (~> 7.11)"
+    - nanopb (< 2.30910.0, >= 2.30908.0)
+  - FirebaseAnalytics/AdIdSupport (10.19.0):
+    - FirebaseCore (~> 10.0)
+    - FirebaseInstallations (~> 10.0)
+    - GoogleAppMeasurement (= 10.19.0)
+    - GoogleUtilities/AppDelegateSwizzler (~> 7.11)
+    - GoogleUtilities/MethodSwizzler (~> 7.11)
+    - GoogleUtilities/Network (~> 7.11)
+    - "GoogleUtilities/NSData+zlib (~> 7.11)"
+    - nanopb (< 2.30910.0, >= 2.30908.0)
   - FirebaseAppCheckInterop (10.29.0)
-  - FirebaseAuth (10.29.0):
+  - FirebaseAuth (10.19.0):
     - FirebaseAppCheckInterop (~> 10.17)
     - FirebaseCore (~> 10.0)
     - GoogleUtilities/AppDelegateSwizzler (~> 7.8)
     - GoogleUtilities/Environment (~> 7.8)
     - GTMSessionFetcher/Core (< 4.0, >= 2.1)
     - RecaptchaInterop (~> 100.0)
-  - FirebaseCore (10.29.0):
+  - FirebaseCore (10.19.0):
     - FirebaseCoreInternal (~> 10.0)
     - GoogleUtilities/Environment (~> 7.12)
     - GoogleUtilities/Logger (~> 7.12)
   - FirebaseCoreInternal (10.29.0):
     - "GoogleUtilities/NSData+zlib (~> 7.8)"
+  - FirebaseInstallations (10.29.0):
+    - FirebaseCore (~> 10.0)
+    - GoogleUtilities/Environment (~> 7.8)
+    - GoogleUtilities/UserDefaults (~> 7.8)
+    - PromisesObjC (~> 2.1)
   - Flutter (1.0.0)
   - flutter_native_splash (0.0.1):
     - Flutter
+  - GoogleAppMeasurement (10.19.0):
+    - GoogleAppMeasurement/AdIdSupport (= 10.19.0)
+    - GoogleUtilities/AppDelegateSwizzler (~> 7.11)
+    - GoogleUtilities/MethodSwizzler (~> 7.11)
+    - GoogleUtilities/Network (~> 7.11)
+    - "GoogleUtilities/NSData+zlib (~> 7.11)"
+    - nanopb (< 2.30910.0, >= 2.30908.0)
+  - GoogleAppMeasurement/AdIdSupport (10.19.0):
+    - GoogleAppMeasurement/WithoutAdIdSupport (= 10.19.0)
+    - GoogleUtilities/AppDelegateSwizzler (~> 7.11)
+    - GoogleUtilities/MethodSwizzler (~> 7.11)
+    - GoogleUtilities/Network (~> 7.11)
+    - "GoogleUtilities/NSData+zlib (~> 7.11)"
+    - nanopb (< 2.30910.0, >= 2.30908.0)
+  - GoogleAppMeasurement/WithoutAdIdSupport (10.19.0):
+    - GoogleUtilities/AppDelegateSwizzler (~> 7.11)
+    - GoogleUtilities/MethodSwizzler (~> 7.11)
+    - GoogleUtilities/Network (~> 7.11)
+    - "GoogleUtilities/NSData+zlib (~> 7.11)"
+    - nanopb (< 2.30910.0, >= 2.30908.0)
   - GoogleDataTransport (9.4.1):
     - GoogleUtilities/Environment (~> 7.7)
     - nanopb (< 2.30911.0, >= 2.30908.0)
@@ -86,6 +132,9 @@ PODS:
     - PromisesObjC (< 3.0, >= 1.2)
   - GoogleUtilities/Logger (7.13.3):
     - GoogleUtilities/Environment
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/MethodSwizzler (7.13.3):
+    - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - GoogleUtilities/Network (7.13.3):
     - GoogleUtilities/Logger
@@ -123,14 +172,14 @@ PODS:
     - GTMSessionFetcher/Core (< 4.0, >= 3.3.2)
     - MLImage (= 1.0.0-beta5)
     - MLKitCommon (~> 11.0)
-  - mobile_scanner (5.1.1):
+  - mobile_scanner (5.2.3):
     - Flutter
     - GoogleMLKit/BarcodeScanning (~> 6.0.0)
-  - nanopb (2.30910.0):
-    - nanopb/decode (= 2.30910.0)
-    - nanopb/encode (= 2.30910.0)
-  - nanopb/decode (2.30910.0)
-  - nanopb/encode (2.30910.0)
+  - nanopb (2.30909.1):
+    - nanopb/decode (= 2.30909.1)
+    - nanopb/encode (= 2.30909.1)
+  - nanopb/decode (2.30909.1)
+  - nanopb/encode (2.30909.1)
   - open_file_plus (1.0.0):
     - Flutter
   - path_provider_foundation (0.0.1):
@@ -138,13 +187,15 @@ PODS:
     - FlutterMacOS
   - PromisesObjC (2.4.0)
   - RecaptchaInterop (100.0.0)
-  - SDWebImage (5.19.6):
-    - SDWebImage/Core (= 5.19.6)
-  - SDWebImage/Core (5.19.6)
+  - SDWebImage (5.19.7):
+    - SDWebImage/Core (= 5.19.7)
+  - SDWebImage/Core (5.19.7)
   - SwiftyGif (5.4.5)
 
 DEPENDENCIES:
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
+  - Firebase/Auth (= 10.19.0)
+  - Firebase/Core (= 10.19.0)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
@@ -159,10 +210,13 @@ SPEC REPOS:
     - DKImagePickerController
     - DKPhotoGallery
     - Firebase
+    - FirebaseAnalytics
     - FirebaseAppCheckInterop
     - FirebaseAuth
     - FirebaseCore
     - FirebaseCoreInternal
+    - FirebaseInstallations
+    - GoogleAppMeasurement
     - GoogleDataTransport
     - GoogleMLKit
     - GoogleToolboxForMac
@@ -203,15 +257,18 @@ SPEC CHECKSUMS:
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
   file_picker: 09aa5ec1ab24135ccd7a1621c46c84134bfd6655
-  Firebase: cec914dab6fd7b1bd8ab56ea07ce4e03dd251c2d
-  firebase_auth: 6a09851aca5fcbb1f3745bed7ec88f221c52c3e9
-  firebase_core: 57aeb91680e5d5e6df6b888064be7c785f146efb
+  Firebase: 63ce8ece0d43743dc28eacac0c6867a2d7fd5a9d
+  firebase_auth: 7cac47acc03da50f883257987d6cb97092bdd86f
+  firebase_core: 3b02d50cd74dce95d8bc94d87ab694d5ad60e989
+  FirebaseAnalytics: 87513010b13b7c8610164d3602ea10571f76afc1
   FirebaseAppCheckInterop: 6a1757cfd4067d8e00fccd14fcc1b8fd78cfac07
-  FirebaseAuth: e2ebfaf9fb4638a1c9a3b0efd17d1b90943987cd
-  FirebaseCore: 30e9c1cbe3d38f5f5e75f48bfcea87d7c358ec16
+  FirebaseAuth: 2492acdcd1245d841fabdf58a050d6aa07dfce3f
+  FirebaseCore: dc5c7badf99d47613c52b2e3a57a64cd187f8554
   FirebaseCoreInternal: df84dd300b561c27d5571684f389bf60b0a5c934
+  FirebaseInstallations: 913cf60d0400ebd5d6b63a28b290372ab44590dd
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_native_splash: edf599c81f74d093a4daf8e17bd7a018854bc778
+  GoogleAppMeasurement: 68afe759316673c6554dac35a0c7ae8f5d6cb4ed
   GoogleDataTransport: 6c09b596d841063d76d4288cc2d2f42cc36e1e2a
   GoogleMLKit: 97ac7af399057e99182ee8edfa8249e3226a4065
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
@@ -223,15 +280,15 @@ SPEC CHECKSUMS:
   MLKitBarcodeScanning: 10ca0845a6d15f2f6e911f682a1998b68b973e8b
   MLKitCommon: afec63980417d29ffbb4790529a1b0a2291699e1
   MLKitVision: e858c5f125ecc288e4a31127928301eaba9ae0c1
-  mobile_scanner: 8564358885a9253c43f822435b70f9345c87224f
-  nanopb: 438bc412db1928dac798aa6fd75726007be04262
+  mobile_scanner: 96e91f2e1fb396bb7df8da40429ba8dfad664740
+  nanopb: d4d75c12cd1316f4a64e3c6963f879ecd4b5e0d5
   open_file_plus: 05737718530c14cf02868e3b7754d7fe4df76d8b
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
-  SDWebImage: a79252b60f4678812d94316c91da69ec83089c9f
+  SDWebImage: 8a6b7b160b4d710e2a22b6900e25301075c34cb3
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
 
-PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
+PODFILE CHECKSUM: b16bfecfaf2b853418d90f268bceb9b27120250c
 
 COCOAPODS: 1.15.2

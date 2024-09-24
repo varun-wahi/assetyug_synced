@@ -104,6 +104,9 @@ class AssetModuleRepositoryImpl implements AssetModuleRepository {
       headers: headers,
     );
     _handleResponse(response);
+    
+    }
+
   }
 
   // Helper function to handle API response
@@ -121,4 +124,4 @@ class AssetModuleRepositoryImpl implements AssetModuleRepository {
     
     return 'your-auth-token';
   }
-}
+
