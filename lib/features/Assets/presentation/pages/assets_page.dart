@@ -1,7 +1,5 @@
 import 'dart:async';
-
 import 'dart:convert';
-
 import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
@@ -9,9 +7,8 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/loading_animated_container.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
-import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/asset_card.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
@@ -25,10 +22,10 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_searchbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_selected_filter.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_text_field.dart';
+import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
 import '../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../Customers/data/data_sources/customer_names_data.dart';
 import '../../data/data_sources/asset_category_data.dart';
@@ -60,21 +57,20 @@ class AssetsPage extends ConsumerWidget {
 
   AppBar _buildAppBar(BuildContext context) {
     void searchAsset(String serialNumber) {
-    // Add your search logic here
-    print('Searching asset with serial number: $serialNumber');
-    // You can navigate to a new page with the search result if needed
-  }
+      print('Searching asset with serial number: $serialNumber');
+      // Your search logic here
+    }
+
     return AppBar(
       title: const Text("Assets"),
       actions: [
         IconButton(
           onPressed: () async {
-              // Show the serial search dialog
-              String? serialNumber = await SerialSearchDialog.show(context);
-              if (serialNumber != null && serialNumber.isNotEmpty) {
-                searchAsset(serialNumber);
-              }
-            },
+            String? serialNumber = await SerialSearchDialog.show(context);
+            if (serialNumber != null && serialNumber.isNotEmpty) {
+              searchAsset(serialNumber);
+            }
+          },
           icon: const Icon(Icons.numbers),
         ),
         IconButton(
@@ -106,13 +102,12 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   bool isLoading = true;
   bool hasMore = true;
   int currentPage = 0;
-  static const int pageSize = 4;
+  static const int pageSize = 10; // Increased page size for better performance
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
   String? companyId;
   Timer? _debounce;
 
-  // Add these controllers
   final assetIdController = TextEditingController();
   final assetNameController = TextEditingController();
   final customerController = TextEditingController();
@@ -121,14 +116,9 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   final locationController = TextEditingController();
   final statusController = TextEditingController();
 
-
-    void _changeStatusValue(String? option) => _assetStatus = option;
-    void _changeCustomerValue(String? option) => _customer = option;
-    void _changeCategoryValue(String? option) => _assetCategory = option;
-
-    String? _assetStatus;
-    String? _assetCategory;
-    String? _customer;
+  String? _assetStatus;
+  String? _assetCategory;
+  String? _customer;
 
   @override
   void initState() {
@@ -143,8 +133,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     _scrollController.dispose();
     searchTextFieldController.dispose();
     _debounce?.cancel();
-    
-    // Dispose the new controllers
     assetIdController.dispose();
     assetNameController.dispose();
     customerController.dispose();
@@ -152,7 +140,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     categoryController.dispose();
     locationController.dispose();
     statusController.dispose();
-    
     super.dispose();
   }
 
@@ -163,11 +150,11 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   }
 
   void _scrollListener() {
-    if (_scrollController.offset >=
-            _scrollController.position.maxScrollExtent &&
+    if (_scrollController.offset >= _scrollController.position.maxScrollExtent &&
         !_scrollController.position.outOfRange &&
         hasMore &&
         !isLoading) {
+      print("Fetching more assets...");
       _fetchMoreAssets();
     }
   }
@@ -192,22 +179,21 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   Future<void> _fetchAssetsPage() async {
     try {
+      print("Fetching assets for page: $currentPage");
       final assetsRepo = AssetsRepositoryImpl();
       final searchTerm = searchTextFieldController.text;
 
       if (companyId == null) {
         throw Exception("Company ID not found");
       }
+
       final Map<String, dynamic> filterForm = {
         'assetId': assetIdController.text,
         'name': assetNameController.text,
-        // 'customer': customerController.text,
         'customer': _customer ?? '',
         'serialNumber': serialNumberController.text,
-        // 'category': categoryController.text,
         'category': _assetCategory ?? '',
         'location': locationController.text,
-        // 'status': statusController.text,
         'status': _assetStatus ?? '',
         'email': '',
         'companyId': companyId!,
@@ -222,11 +208,11 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       );
 
       if (response.statusCode == 200) {
+        print("Assets fetched successfully");
         final responseBody = json.decode(response.body);
         if (responseBody is Map<String, dynamic>) {
           final newAssets = responseBody['data'] as List<dynamic>;
           final totalRecords = responseBody['totalRecords'] as int;
-          
           setState(() {
             assets.addAll(newAssets);
             isLoading = false;
@@ -239,6 +225,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         throw Exception("Failed to load assets. Status code: ${response.statusCode}");
       }
     } catch (e) {
+      print("Error fetching assets: $e");
       if (mounted) {
         _showErrorSnackBar(e.toString());
         setState(() {
@@ -261,31 +248,28 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch both refreshProvider and assetSortingProvider
     ref.watch(refreshProvider);
     final sortingCategory = ref.watch(assetSortingProvider);
 
-    // Update sortingCategory when it changes
     if (sortingCategory != this.sortingCategory) {
       this.sortingCategory = sortingCategory;
       _fetchAssets();
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          children: [
-            _buildSearchBar(),
-            Container(
+    return LayoutBuilder(builder: (context, constraints) {
+      return Column(
+        children: [
+          _buildSearchBar(),
+          Container(
               padding: const EdgeInsets.all(dPadding),
-              height: 70, child: _buildFiltersSection()),
-            Expanded(
-              child: _buildAssetsList(),
-            ),
-          ],
-        );
-      }
-    );
+              height: 70,
+              child: _buildFiltersSection()),
+          Expanded(
+            child: _buildAssetsList(),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildSearchBar() {
@@ -297,7 +281,8 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   }
 
   Widget _buildFiltersSection() {
-    final selectedFilters = ref.watch(assetFiltersProvider.notifier).selectedFilters;
+    final selectedFilters =
+        ref.watch(assetFiltersProvider.notifier).selectedFilters;
     return SizedBox(
       height: 70,
       child: Row(
@@ -317,8 +302,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     );
   }
 
-
-  //!TO FIX
   Widget _buildSelectedFilters(Map<String, dynamic> selectedFilters) {
     return ListView.separated(
       padding: const EdgeInsets.all(dPadding),
@@ -345,7 +328,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     );
   }
 
-//ADVANCE FILTERS
   void _buildAdvancedFilters() {
     showModalBottomSheet(
       context: context,
@@ -400,47 +382,55 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   Widget _buildFilterModalBody() {
     return SizedBox(
-      
       height: 350,
       child: SingleChildScrollView(
         child: Column(
           children: [
             Column(
               children: [
-                DTextField(icon: const Icon(Icons.tag), hintText: "Asset ID", controller: assetIdController),
-                DTextField(icon: const Icon(Icons.person), hintText: "Asset Name", controller: assetNameController),
-                // DTextField(icon: const Icon(Icons.business), hintText: "Customer", controller: customerController),
+                DTextField(
+                    icon: const Icon(Icons.tag),
+                    hintText: "Asset ID",
+                    controller: assetIdController),
+                DTextField(
+                    icon: const Icon(Icons.person),
+                    hintText: "Asset Name",
+                    controller: assetNameController),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
-                          label: "Customer",
-                          items: customerNamesMenuItems,
-                          onChanged: (value) => _changeCustomerValue(value),
-                          isMandatory: true,
-                          value: _customer,
-                        ),
-                DTextField(icon: const Icon(Icons.confirmation_number), hintText: "Serial Number", controller: serialNumberController),
-                // DTextField(icon: const Icon(Icons.category), hintText: "Category", controller: categoryController),
+                  label: "Customer",
+                  items: customerNamesMenuItems,
+                  onChanged: (value) => setState(() {
+                    _customer = value;
+                  }),
+                  value: _customer,
+                ),
+                DTextField(
+                    icon: const Icon(Icons.confirmation_number),
+                    hintText: "Serial Number",
+                    controller: serialNumberController),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
-
-                  
-                          label: "Category",
-                          items: assetCategoryTypeMenuItems,
-                          onChanged: (value) => _changeCategoryValue(value),
-                          value: _assetCategory,
-                        ),
-                
-                DTextField(icon: const Icon(Icons.location_on), hintText: "Location", controller: locationController),
-                // DTextField(icon: const Icon(Icons.info), hintText: "Status", controller: statusController),
+                  label: "Category",
+                  items: assetCategoryTypeMenuItems,
+                  onChanged: (value) => setState(() {
+                    _assetCategory = value;
+                  }),
+                  value: _assetCategory,
+                ),
+                DTextField(
+                    icon: const Icon(Icons.location_on),
+                    hintText: "Location",
+                    controller: locationController),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
-
-                          label: "Status",
-                          items: assetStatusMenuItems,
-                          value: _assetStatus,
-                          onChanged: (value) => _changeStatusValue(value),
-                          isMandatory: true,
-                        ),
+                  label: "Status",
+                  items: assetStatusMenuItems,
+                  value: _assetStatus,
+                  onChanged: (value) => setState(() {
+                    _assetStatus = value;
+                  }),
+                ),
               ],
             ),
             const DGap(),
@@ -452,7 +442,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   }
 
   Widget _buildAdditionalFilters() {
-    //TODO: Show extra fields
     return Container(
       decoration: dBoxDecoration(color: tBackground),
       child: Text("Extra fields to be added soon", style: subtitle()),
@@ -476,95 +465,80 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   void _clearFilters() {
     ref.read(assetFiltersProvider.notifier).clearFilters();
-    
-    // Clear all text fields
+
     assetIdController.clear();
     assetNameController.clear();
-    // customerController.clear();
     _customer = '';
-    _changeCustomerValue(null);
-    
     serialNumberController.clear();
-    // categoryController.clear();
-    _assetCategory == '';
-    _changeCategoryValue(null);
-
+    _assetCategory = '';
     locationController.clear();
-    // statusController.clear();
     _assetStatus = '';
-    _changeStatusValue(null);
-    setState(() {
-      
-    });
 
-    
-    // Optionally, you can also clear the search field
+    setState(() {});
+
     searchTextFieldController.clear();
-
-    // Refresh the asset list with cleared filters
     _fetchAssets();
-
     Navigator.pop(context);
   }
 
-
-//*         ASSETS LIST         *//
-//
-//
   Widget _buildAssetsList() {
-    // Add this line to watch the refreshProvider
     ref.watch(refreshProvider);
-    
+
     if (assets.isEmpty && !isLoading) {
       return const NoDataFoundPage();
     }
 
     return Container(
-      // padding: const EdgeInsets.all(dPadding),
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(dBorderRadius),
-        // boxShadow: dBoxShadow(),
         border: Border.all(color: tGreyLight),
       ),
-      child: (isLoading) ?  const SingleChildScrollView(
-        child: Column(
-          children: [
-            LoadingAnimatedContainer(height: 130,width: double.infinity),
-            DGap(gap: 10),
-            LoadingAnimatedContainer(height: 130,width: double.infinity),
-            DGap(gap: 10),
-            LoadingAnimatedContainer(height: 130,width: double.infinity),
-
-            DGap(gap: 10),
-            LoadingAnimatedContainer(height: 130,width: double.infinity),
-
-            DGap(gap: 10),
-            LoadingAnimatedContainer(height: 130,width: double.infinity),
-            
-          ],
-        ),
-      ) : ListView.separated(
-        controller: _scrollController,
-        padding: EdgeInsets.zero,
-        itemCount: assets.length + (hasMore ? 1 : 0),
-        separatorBuilder: (context, index) => const DGap(gap:8),
-        scrollDirection: Axis.vertical,
-        itemBuilder: (context, index) {
-          if (index < assets.length) {
-            var assetData = AssetsModel.fromJson(jsonDecode(assets.reversed.toList()[index]));
-            return AssetsDetailsCard(data: assetData, ref: ref);
-          } else if (hasMore) {
-            return const Expanded(child: Center(child: CircularProgressIndicator()));
-          } else {
-            return const SizedBox.shrink();
-          }
-        },
-      ),
+      child: isLoading
+          ? const SingleChildScrollView(
+              child: Column(
+                children: [
+                  LoadingAnimatedContainer(
+                      height: 130, width: double.infinity),
+                  DGap(gap: 10),
+                  LoadingAnimatedContainer(
+                      height: 130, width: double.infinity),
+                  DGap(gap: 10),
+                  LoadingAnimatedContainer(
+                      height: 130, width: double.infinity),
+                  DGap(gap: 10),
+                  LoadingAnimatedContainer(
+                      height: 130, width: double.infinity),
+                  DGap(gap: 10),
+                  LoadingAnimatedContainer(
+                      height: 130, width: double.infinity),
+                ],
+              ),
+            )
+          : ListView.separated(
+              controller: _scrollController,
+              padding: EdgeInsets.zero,
+              itemCount: assets.length + (hasMore ? 1 : 0),
+              separatorBuilder: (context, index) => const DGap(gap: 8),
+              scrollDirection: Axis.vertical,
+              itemBuilder: (context, index) {
+                if (index < assets.length) {
+                  var assetData = AssetsModel.fromJson(
+                      jsonDecode(assets.reversed.toList()[index]));
+                  return AssetsDetailsCard(data: assetData, ref: ref);
+                } else if (hasMore) {
+                  return const Expanded(
+                      child: Center(child: CircularProgressIndicator()));
+                } else {
+                  return const SizedBox.shrink();
+                }
+              },
+            ),
     );
   }
 
-  Widget AssetsDetailsCard({required AssetsModel data, required WidgetRef ref}) {
+  Widget AssetsDetailsCard(
+      {required AssetsModel data, required WidgetRef ref}) {
     return GestureDetector(
       onTap: () async {
         final assetRepo = AssetsRepositoryImpl();
@@ -584,29 +558,25 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           vertical: dPadding * 2,
         ),
         child: ListTile(
-          contentPadding: const EdgeInsets.only(left: dPadding*2, right: 0),
+          contentPadding: const EdgeInsets.only(left: dPadding * 2, right: 0),
           title: Text(
             data.name,
             style: boldHeading(size: 19),
           ),
-
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
               const DGap(gap: 2),
               Text(
                 "Serial No: ${data.serialNumber}",
                 style: containerText(weight: FontWeight.w400),
               ),
-              
               const DGap(gap: 2),
               Text(
                 "Category: ${data.category}",
                 style: containerText(weight: FontWeight.w400),
               ),
-              
-              const DGap(gap:8),
+              const DGap(gap: 8),
               IconTextRow(
                 icon: Icons.person,
                 text: data.customer ?? "No Customer",
@@ -628,9 +598,8 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                       assets.remove(data);
                     });
                     print("deleted asset: ${data.id.toString()}");
-                    // Trigger the refresh
-                    ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
-                    // Add this line to fetch assets after deletion
+                    ref.read(refreshProvider.notifier).state =
+                        !ref.read(refreshProvider);
                     await _fetchAssets();
                   }
                 },
