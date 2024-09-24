@@ -174,11 +174,11 @@ class AssetsRepositoryImpl {
   // Advance filter
   //*MAIN
   Future<http.Response> advanceFilter(dynamic data, int pageIndex, int pageSize,
-      String category, String searchData) async {
+      String category, String searchData, {String isAsc = 'true'}) async {
     final url =
         // "http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/5/cycle?category='Name'";
 
-        "${assetEndpoint}advanceFilter/$pageIndex/$pageSize/$searchData?category=$category";
+        "${assetEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData&asc=$isAsc";
     var headers = await getHeaders();
     print("");
 
