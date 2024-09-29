@@ -1,5 +1,6 @@
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
@@ -489,7 +490,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const InventoryPage(),
+                          builder: (context) =>  AddCustomerPage(),
                         ));
                   } else {
                     dSnackBar(context, "Feature coming to mobile later.",

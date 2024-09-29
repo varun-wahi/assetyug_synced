@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:asset_yug_debugging/config/api_config.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/asset_by_serial_dto_model.dart';
-import 'package:asset_yug_debugging/features/Main/data/data_sources/api_user_data.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
@@ -331,7 +330,11 @@ class AssetsRepositoryImpl {
   
   Future<http.Response> assetFromSerialNumber(AssetBySerialDTO assetBySerialDTO) async {
     final url = "${assetEndpoint}assetBySerialNumber";
+
     var headers = await getHeaders();
+    print("URL: $url");
+    print("Headers: $headers");
+    print("body: ${json.encode(assetBySerialDTO.toJson())}");
     return await http.post(
       Uri.parse(url),
       headers: headers,

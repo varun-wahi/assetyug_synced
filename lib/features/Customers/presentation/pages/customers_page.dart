@@ -92,7 +92,7 @@ class BuildFiltersSection extends ConsumerWidget {
                     isDropdown: true,
                     title: filterKey,
                     onPressed: () {
-                      onTap:
+                      // onTap:
                       // () => FocusScope.of(context).unfocus();
                       CustomerShowFiltersModalSheet.showFilterOptions(context, filterKey, selectedFilters[filterKey],customerFilters, ref);
                       //SEND REQUEST TO ASSETS MONGODB
@@ -109,13 +109,11 @@ class BuildFiltersSection extends ConsumerWidget {
           ),
         ),
         //FILTER BUTTON
-         Expanded(
+         const Expanded(
           child: IconButton(
-            
-            
               // onPressed: () => _buildAdvancedFilters(context, ref),
               onPressed: null,
-              icon: const Icon(
+              icon: Icon(
                 Icons.filter_alt,
                 // size: 40,
                 // color: darkGrey,

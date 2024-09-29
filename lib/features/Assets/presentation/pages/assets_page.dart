@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/loading_animated_container.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
@@ -10,9 +8,7 @@ import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repos
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/widgets/asset_card.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/riverpod/asset_search_notifier.dart';
 import 'package:asset_yug_debugging/config/theme/container_styles.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
