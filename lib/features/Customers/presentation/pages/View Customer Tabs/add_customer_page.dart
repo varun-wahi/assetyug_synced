@@ -1,4 +1,6 @@
+import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_category_data.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../../../../../config/theme/snackbar__types_enum.dart';
 import '../../../../../core/utils/constants/colors.dart';
 import '../../../../../core/utils/constants/sizes.dart';
@@ -30,12 +32,25 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   String? _category;
   String? _status;
 
+  late final String companyId;
   bool loadingCustomerInsertion = false;
 
   final CompanyCustomerRepositoryImpl _customerRepo = CompanyCustomerRepositoryImpl();
 
   void _changeCategoryValue(String? option) => _category = option;
   void _changeStatusValue(String? option) => _status = option;
+
+
+  @override
+  void initState(){
+    super.initState();
+    getCompanyId();
+  }
+
+   Future<void> getCompanyId() async {
+    var box = await Hive.openBox('auth_data');
+    companyId = box.get('companyId');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +78,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                       const DGap(),
                       DDropdown(
                         label: "Category",
-                        items: const [
-                          DropdownMenuItem(value: 'A', child: Text('Category A')),
-                          DropdownMenuItem(value: 'B', child: Text('Category B')),
-                        ],
+                        items: customerCategoryTypeMenuItems,
                         onChanged: (value) => _changeCategoryValue(value),
                         value: _category,
                       ),
@@ -75,7 +87,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         label: "Status",
                         items: const [
                           DropdownMenuItem(value: 'Active', child: Text('Active')),
-                          DropdownMenuItem(value: 'Inactive', child: Text('Inactive')),
+                          DropdownMenuItem(value: 'InActive', child: Text('Inactive')),
                         ],
                         onChanged: (value) => _changeStatusValue(value),
                         value: _status,
@@ -143,7 +155,9 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     }
 
     Map<String, dynamic> customerData = {
+
       'name': _nameField.text,
+      'companyId': companyId,
       'category': _category,
       'status': _status,
       'phone': _phoneField.text,
@@ -154,10 +168,14 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       'zipCode': _zipCodeField.text,
     };
 
+    print(customerData);
+
+    print('{"name":"Varun","companyId":"66d366272304213be64ebd81","category":"Employee","status":"inActive","phone":"7610144793","email":"wahivarun02@gmail.com","address":"wewew","apartment":"","city":"22","state":"33d","zipCode":"482009"}') ;
+
     try {
       http.Response response =
           await _customerRepo.addCompanyCustomer(customerData);
-      print("REsponse code: ${response.statusCode}");
+      print("Response code: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         dSnackBar(context, "Customer Added Successfully", TypeSnackbar.success);

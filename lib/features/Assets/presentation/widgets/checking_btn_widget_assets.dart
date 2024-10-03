@@ -84,7 +84,6 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
           return Text('Error: ${snapshot.error}');
         } else if (snapshot.hasData) {
           final assetCheckingStatus = snapshot.data;
-          print("assetCheckingStatus: $assetCheckingStatus for widget ${widget.data.id!}");
 
           return DElevatedButton(
             borderRadius: 30,

@@ -391,7 +391,7 @@ class AssetsMongoDB {
 
   //*         FUNCTION TO FETCH INDIVIDUAL ASSET CHECK IN/OUT TAB DATA
   static Future<List<Map<String, dynamic>>?> fetchCustomerAssets(
-      int customerId) async {
+      String customerId) async {
     try {
       var assetsCollection = assetDb.collection(ASSETS_COLLECTION);
       final filter = {'customerId': customerId.toString()};

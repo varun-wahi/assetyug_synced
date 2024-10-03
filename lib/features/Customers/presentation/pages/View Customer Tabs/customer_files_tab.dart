@@ -25,7 +25,7 @@ class CustomerFilesPage extends ConsumerWidget {
       children: [
         _buildAddFileRow(context),
         Expanded(
-          child: _buildFilesList(context, ref, data.companyCustomerId),
+          child: _buildFilesList(context, ref, data.companyCustomerId!),
         ),
       ],
     );
@@ -53,9 +53,9 @@ class CustomerFilesPage extends ConsumerWidget {
     );
   }
 
-  _buildFilesList(BuildContext context, WidgetRef ref, int customerID) {
+  _buildFilesList(BuildContext context, WidgetRef ref, String customerID) {
     return FutureBuilder(
-        future: AssetsMongoDB.fetchCustomerFiles(customerID),
+        future: AssetsMongoDB.fetchCustomerFiles(int.parse(customerID)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

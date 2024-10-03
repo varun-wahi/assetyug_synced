@@ -1,4 +1,5 @@
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
@@ -17,10 +18,12 @@ import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../Auth/data/repository/firebase_authentication.dart';
+import '../../../Main/presentation/riverpod/tab_notifier.dart';
 import '../widgets/home_checkedout_out_home.dart';
 import '../widgets/wo_tile_widget_home.dart';
 
@@ -232,7 +235,7 @@ class _HomePageState extends State<HomePage> {
               _buildQuickActionsSection(),
 
               //Scan or Add Asset Container
-              _buildOptionsSection(context),
+              BuildOptionsSection(context: context,),
               const DGap(gap: dGap * 2),
 
               const BuildCheckOutAssetsContainer(),
@@ -343,11 +346,71 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Container _buildOptionsSection(BuildContext context) {
+  Container _buildQuickActionsSection() {
+    return Container(
+      padding: const EdgeInsets.all(dPadding),
+      height: 75,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(dPadding),
+        itemBuilder: (context, index) {
+          return SizedBox(
+              height: 60,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(dBorderRadius * 2),
+                  ),
+                  backgroundColor: tPrimary, // Background color
+                  // backgroundColor: tWhite,// Background color
+                  foregroundColor: tWhite, // Text color
+                  // foregroundColor: tPrimary, // Text color
+                ),
+                onPressed: () {
+                  if (index == 0) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>  AddCustomerPage(),
+                        ));
+                  } else {
+                    dSnackBar(context, "Feature coming to mobile later.",
+                        TypeSnackbar.info);
+                  }
+                },
+                child: Text(
+                  QUICK_ACTIONS[index],
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w500, fontSize: 13.0),
+                ),
+              ));
+        },
+        itemCount: QUICK_ACTIONS.length,
+        separatorBuilder: (context, index) {
+          return const DGap(vertical: false);
+        },
+        scrollDirection: Axis.horizontal,
+      ),
+    );
+  }
+}
+
+class BuildOptionsSection extends ConsumerWidget {
+  const BuildOptionsSection({
+    super.key,
+    required this.context,
+  });
+
+  final BuildContext context;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     void searchAsset(String serialNumber) {
       // Add your search logic here
-      print('Searching asset with serial number: $serialNumber');
       // You can navigate to a new page with the search result if needed
+          // ref.read(tabProvider.notifier).setTab(1);
+      //!TO FIX: TAKE THEM STRAIGHT TO ASSET
+// 
+      Navigator.push(context, MaterialPageRoute(builder: (context) => AssetsPage(serialNumber: serialNumber,),));
     }
 
     return Container(
@@ -462,53 +525,6 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Container _buildQuickActionsSection() {
-    return Container(
-      padding: const EdgeInsets.all(dPadding),
-      height: 75,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(dPadding),
-        itemBuilder: (context, index) {
-          return SizedBox(
-              height: 60,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(dBorderRadius * 2),
-                  ),
-                  backgroundColor: tPrimary, // Background color
-                  // backgroundColor: tWhite,// Background color
-                  foregroundColor: tWhite, // Text color
-                  // foregroundColor: tPrimary, // Text color
-                ),
-                onPressed: () {
-                  if (index == 0) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>  AddCustomerPage(),
-                        ));
-                  } else {
-                    dSnackBar(context, "Feature coming to mobile later.",
-                        TypeSnackbar.info);
-                  }
-                },
-                child: Text(
-                  QUICK_ACTIONS[index],
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 13.0),
-                ),
-              ));
-        },
-        itemCount: QUICK_ACTIONS.length,
-        separatorBuilder: (context, index) {
-          return const DGap(vertical: false);
-        },
-        scrollDirection: Axis.horizontal,
       ),
     );
   }

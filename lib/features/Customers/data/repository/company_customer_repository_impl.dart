@@ -26,7 +26,7 @@ class CompanyCustomerRepositoryImpl {
 
   Future<http.Response> addCompanyCustomer(Map<String, dynamic> data) async {
     // final url = Uri.parse('${companyCustomerEndpoint}addCompanyCustomer');
-    final url = Uri.parse('${customerEndpoint}addCompanyCustomer');
+    final url = Uri.parse('${companyCustomerEndpoint}addCompanyCustomer');
     return await http.post(url, headers: await getHeaders(), body: jsonEncode(data));
   }
 
@@ -36,8 +36,8 @@ class CompanyCustomerRepositoryImpl {
   }
 
   Future<http.Response> deleteCompanyCustomer(String id) async {
-    final url = Uri.parse('${customerEndpoint}deleteCompanyCustomer/$id');
-    return await http.get(url, headers: await getHeaders());
+    final url = Uri.parse('${companyCustomerEndpoint}deleteCompanyCustomer/$id');
+    return await http.delete(url, headers: await getHeaders());
   }
 
   Future<http.Response> getAllMandatoryFields(String companyId) async {
@@ -81,13 +81,16 @@ class CompanyCustomerRepositoryImpl {
   }
 
   Future<http.Response> advanceFilter(
-    Map<String, dynamic> data,
+    dynamic data,
     int pageIndex,
     int pageSize,
     String category,
     String searchData,
+    {String isAsc = 'true'}
   ) async {
-    final url = Uri.parse('${customerEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData');
+    final url = Uri.parse('${companyCustomerEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData&asc=$isAsc');
+    print("ORIGINAL: http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/companycustomer/advanceFilter/0/10?category=&search=&asc=true");
+    print(url);
     return await http.post(url, headers: await getHeaders(), body: jsonEncode(data));
   }
 

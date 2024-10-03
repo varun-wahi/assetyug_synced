@@ -25,12 +25,12 @@ class _CustomerAssetsPageState extends State<CustomerAssetsPage> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: _buildCustomerAssetList(widget.data.companyCustomerId),
+      child: _buildCustomerAssetList(widget.data.companyCustomerId!),
     );
   }
 }
 
-FutureBuilder _buildCustomerAssetList(int customerId) {
+FutureBuilder _buildCustomerAssetList(String customerId) {
   return FutureBuilder(
       future: AssetsMongoDB.fetchCustomerAssets(customerId),
       builder: (context, snapshot) {

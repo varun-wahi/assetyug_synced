@@ -1,357 +1,531 @@
-// ignore_for_file: prefer_interpolation_to_compose_strings
+import 'dart:async';
+import 'dart:convert';
 
-import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/customer_filter_notifier.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/customer_sorting_notifier.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/cutomer_search_notifier.dart';
-import 'package:asset_yug_debugging/features/Customers/data/repository/customer_mongodb.dart';
-import 'package:asset_yug_debugging/features/Customers/domain/usecases/customer_show_filters_modal_sheet.dart';
-import 'package:asset_yug_debugging/features/Customers/domain/usecases/extract_initials.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/pages/view_customer_page.dart';
+import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
+import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_category_data.dart';
 import 'package:asset_yug_debugging/features/Customers/data/models/customers_model.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
-import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
-import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
-import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
-import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
-import 'package:asset_yug_debugging/config/theme/text_styles.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_searchbar.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_selected_filter.dart';
+import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/pages/view_customer_page.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/cutomer_search_notifier.dart';
+import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/utils/widgets/my_elevated_button.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../../../../config/theme/container_styles.dart';
+import '../../../../config/theme/text_styles.dart';
+import '../../../../core/utils/constants/colors.dart';
+import '../../../../core/utils/constants/pageFilters.dart';
+import '../../../../core/utils/constants/sizes.dart';
+import '../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../../core/utils/widgets/d_gap.dart';
+import '../../../../core/utils/widgets/d_searchbar.dart';
+import '../../../../core/utils/widgets/d_selected_filter.dart';
+import '../../../../core/utils/widgets/d_text_field.dart';
+import '../../../../core/utils/widgets/my_elevated_button.dart';
+import '../../../../core/utils/widgets/no_data_found.dart';
+import '../../data/data_sources/customer_status_data.dart';
+import '../../domain/usecases/customer_show_filters_modal_sheet.dart';
+import '../riverpod/customer_filter_notifier.dart';
 
 class CustomersPage extends ConsumerWidget {
   const CustomersPage({super.key});
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      appBar: _buildAppBar(context, ref),
       resizeToAvoidBottomInset: false,
       backgroundColor: tBackground,
-      appBar: AppBar(
-        title: const Text("Customers"),
-        centerTitle: true,
-       
+      body: const Padding(
+        padding: EdgeInsets.all(dPadding),
+        child: CustomersSearchAndList(),
       ),
-      body: Center(
-        child: Container(
-          height: MediaQuery.sizeOf(context).height - 100,
-          padding: const EdgeInsets.all(dPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              BuildSearchSection(),
-              const DGap(gap: dGap),
-              const BuildFiltersSection(),
-              const BuildCustomerListSection()
-            ],
-          ),
+    );
+  }
+
+  AppBar _buildAppBar(BuildContext context, WidgetRef ref) {
+    return AppBar(
+      title: const Text("Customers"),
+      actions: [
+        IconButton(
+          onPressed: () => {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddCustomerPage(),
+              ),
+            )
+          },
+          icon: const Icon(Icons.person_add),
         ),
-      ),
+      ],
     );
   }
 }
 
-class BuildFiltersSection extends ConsumerWidget {
-  const BuildFiltersSection({super.key});
+class CustomersSearchAndList extends ConsumerStatefulWidget {
+  const CustomersSearchAndList({super.key});
 
-  void _clearFilters(BuildContext context, WidgetRef ref) {
-    //CLEAR FILTERS
-    print("Cleared Filters");
+  @override
+  _CustomersSearchAndListState createState() => _CustomersSearchAndListState();
+}
 
-    //REMOVE FILTERS FROM PROVIDER
-    // TODO: Update the tab index
-    ref.read(customerFiltersProvider.notifier).clearFilters();
+class _CustomersSearchAndListState
+    extends ConsumerState<CustomersSearchAndList> {
+  final searchTextFieldController = TextEditingController();
+  List<dynamic> customers = [];
+  bool isLoading = true;
+  bool hasMore = true;
+  int currentPage = 0;
+  static const int pageSize = 10;
+  String sortingCategory = '';
+  final ScrollController _scrollController = ScrollController();
+  String? companyId;
+  Timer? _debounce;
 
-    //POP
-    Navigator.pop(context);
+  String? _customerStatus;
+  String? _customerCategory;
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+    fetchCompanyId();
+  }
+
+  Future<void> fetchCompanyId() async {
+    final box = await Hive.openBox('auth_data');
+    companyId = box.get('companyId');
+    _fetchCustomers();
+  }
+
+  Future<void> _fetchCustomers() async {
+    setState(() {
+      isLoading = true;
+      currentPage = 0;
+      customers.clear();
+    });
+    await _fetchCustomersPage();
+  }
+
+  Future<void> _fetchMoreCustomers() async {
+    if (!hasMore || isLoading) return;
+    setState(() {
+      isLoading = true;
+    });
+    currentPage++;
+    await _fetchCustomersPage();
+  }
+
+  Future<void> _fetchCustomersPage() async {
+    try {
+      final customersRepo = CompanyCustomerRepositoryImpl();
+      final searchTerm = searchTextFieldController.text;
+      ref.watch(refreshProvider);
+
+
+      if (companyId == null) {
+        throw Exception("Company ID not found");
+      }
+
+      final filterForm = {
+        "name": "",
+        "companyId": companyId,
+        "category": "",
+        "status": "",
+        "phone": "",
+        "email": "",
+        "address": "",
+        "apartment": "",
+        "city": "",
+        "state": "",
+        "zipCode": ""
+      };
+
+      final response = await customersRepo.advanceFilter(
+        filterForm,
+        currentPage,
+        pageSize,
+        sortingCategory,
+        searchTerm,
+      );
+
+      print("-------------------------------");
+      print("RESPONSE FOR CUSTOMERS: ${response.statusCode}");
+      print("-------------------------------");
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<dynamic> customerList = responseData['data'];
+
+        print("-------------------------------");
+        print("RESPONSE FOR CUSTOMERS DATA: $customerList");
+        print("-------------------------------");
+
+        setState(() {
+          customers.addAll(customerList.map((e) => json.decode(e)).toList());
+          isLoading = false;
+          hasMore = customers.length < responseData['totalRecords'];
+        });
+      } else {
+        if (mounted) {
+          dSnackBar(
+              context, response.statusCode.toString(), TypeSnackbar.error);
+          setState(() {
+            isLoading = false;
+          });
+          throw Exception("No customers found");
+        }
+      }
+    } catch (e) {
+      print("Error fetching customers: $e");
+      if (mounted) {
+        dSnackBar(context, e.toString(), TypeSnackbar.error);
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _scrollListener() {
+    if (_scrollController.offset >=
+            _scrollController.position.maxScrollExtent &&
+        !_scrollController.position.outOfRange &&
+        hasMore &&
+        !isLoading) {
+      _fetchMoreCustomers();
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _fetchCustomers();
+    });
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedFilters = ref.watch(customerFiltersProvider.notifier).selectedFilters;
+  Widget build(BuildContext context) {
+  ref.watch(refreshProvider);
 
-    return Row(
-      children: [
-        //LIST OF SELECTED FILTERS
-        Expanded(
-          flex: 4,
-          child: Container(
+    return LayoutBuilder(builder: (context, constraints) {
+      return Column(
+        children: [
+          _buildSearchBar(),
+          Container(
             padding: const EdgeInsets.all(dPadding),
             height: 70,
-            width: 200,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(dPadding),
-              itemBuilder: (context, index) {
-                String filterKey = customerFilters.keys.elementAt(index);
-                return DSelectedFilterItem(
-                    selectedOption: selectedFilters[filterKey] ?? '',
-                    isDropdown: true,
-                    title: filterKey,
-                    onPressed: () {
-                      // onTap:
-                      // () => FocusScope.of(context).unfocus();
-                      CustomerShowFiltersModalSheet.showFilterOptions(context, filterKey, selectedFilters[filterKey],customerFilters, ref);
-                      //SEND REQUEST TO ASSETS MONGODB
-                    });
-              },
-              itemCount: customerFilters.length,
+            child: _buildFiltersSection(),
+          ),
+          Expanded(
+            child: _buildCustomersList(),
+          ),
+        ],
+      );
+    });
+  }
 
-              // itemCount: 1,
-              separatorBuilder: (context, index) {
-                return const SizedBox(width: dPadding);
-              },
-              scrollDirection: Axis.horizontal,
-            ),
+  Widget _buildSearchBar() {
+    return DSearchBar(
+      hintText: "Search all customers",
+      controller: searchTextFieldController,
+      onChanged: _onSearchChanged,
+    );
+  }
+
+  Widget _buildFiltersSection() {
+    final selectedFilters =
+        ref.watch(customerFiltersProvider.notifier).selectedFilters;
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: ListView.separated(
+            padding: const EdgeInsets.all(dPadding),
+            scrollDirection: Axis.horizontal,
+            itemCount: customerFilters.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: dPadding),
+            itemBuilder: (context, index) {
+              String filterKey = customerFilters.keys.elementAt(index);
+              return DSelectedFilterItem(
+                selectedOption: selectedFilters[filterKey] ?? '',
+                isDropdown: true,
+                title: filterKey,
+                onPressed: () {
+                  CustomerShowFiltersModalSheet.showFilterOptions(
+                    context,
+                    filterKey,
+                    selectedFilters[filterKey],
+                    customerFilters,
+                    ref,
+                  );
+                },
+              );
+            },
           ),
         ),
-        //FILTER BUTTON
-         const Expanded(
-          child: IconButton(
-              // onPressed: () => _buildAdvancedFilters(context, ref),
-              onPressed: null,
-              icon: Icon(
-                Icons.filter_alt,
-                // size: 40,
-                // color: darkGrey,
-              )),
+        IconButton(
+          onPressed: () => _buildAdvancedFilters(),
+          icon: const Icon(Icons.filter_alt, color: darkGrey),
         ),
       ],
     );
   }
 
-  void _buildAdvancedFilters(BuildContext context, WidgetRef ref) {
+  void _buildAdvancedFilters() {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(2 * dPadding),
-          decoration: const BoxDecoration(
-              color: tWhite,
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30.0),
-                  topRight: Radius.circular(30.0))),
-          height: 500,
-          // width: MediaQuery.sizeOf(context).width - 50,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            // mainAxisSize: MainAxisSize.min,
-            children: [
-              //HEADING ROW
-              SizedBox(
-                height: 40,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Text(
-                      'Select Filters',
-                      style: boldHeading(),
-                    ),
-                    TextButton(
-                        onPressed: () => _clearFilters(context, ref),
-                        child: Text(
-                          "CLEAR",
-                          style: boldHeading(size: 16),
-                        )),
-                  ],
-                ),
-              ),
-
-              SizedBox(
-                height: 40,
-                child: DElevatedButton(
-                  buttonColor: tBlack,
-                  textColor: tWhite,
-                  child: const Text('Apply Filters'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            ],
-          ),
-        );
+        return _buildFilterModalContent();
       },
       shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30.0)),
+      ),
+    );
+  }
+
+  Widget _buildFilterModalContent() {
+    return Container(
+      padding: const EdgeInsets.all(2 * dPadding),
+      decoration: const BoxDecoration(
+        color: tWhite,
         borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30.0), topRight: Radius.circular(30.0)),
+          topLeft: Radius.circular(30.0),
+          topRight: Radius.circular(30.0),
+        ),
       ),
-    );
-  }
-}
-
-class BuildSearchSection extends ConsumerWidget {
-  final searchTextFieldController = TextEditingController();
-
-  BuildSearchSection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    void searchCustomer() {
-      final String search = searchTextFieldController.text;
-      ref.read(customerSearchTermProvider.notifier).updateSearchTerm(search);
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Expanded(
-          flex: 4,
-          child: DSearchBar(
-            hintText: "Search all customers",
-            controller: searchTextFieldController,
-            onChanged: (value) => searchCustomer(),
-          ),
-        ),
-        const DGap(vertical: false),
-      ],
-    );
-  }
-}
-
-class BuildCustomerListSection extends ConsumerWidget {
-  const BuildCustomerListSection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    Map<String, dynamic> selectedFilters = ref.watch(customerFiltersProvider);
-    Map<String, int> selectedSort = ref.watch(customerSortingProvider);
-    print("Filters: $selectedFilters");
-    String searchTerm = ref.watch(customerSearchTermProvider);
-
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(dBorderRadius),
-          color: tBackground,
-          border: Border.all(width: .2, color: lighterGrey),
-        ),
-        // height: 500,
-        padding: const EdgeInsets.all(dPadding),
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          /*/
-              
-                    A P P L Y F I L T E R S
-              
-                  */
-          // stream: WorkOrdersMongodb.getWorkOrdersDataStream(""),
-          future: CustomerMongoDb.getCustomerDataStream(searchTerm: searchTerm,
-              filter: selectedFilters, sortOption: selectedSort),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            } else if (snapshot.hasError) {
-              print(snapshot.error);
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            } else {
-              if (snapshot.hasData) {
-                var totalData = snapshot.data?.length;
-                print("Customer Data Length: " + totalData.toString());
-
-                if (totalData != 0) {
-                  return ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: totalData!,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: dGap),
-                    scrollDirection: Axis.vertical,
-                    itemBuilder: (context, index) {
-                      //
-                      //ITEM BUILDER
-                      return buildCustomersCard(
-                          CustomersModel.fromJson(snapshot.data![index]),
-                          context);
-                    },
-                  );
-                } else {
-                  return const NoDataFoundPage();
-                }
-              } else {
-                return const NoDataFoundPage();
-              }
-            }
-          },
+      height: 500,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            _buildFilterModalHeader(),
+            _buildFilterModalBody(),
+            _buildFilterModalFooter(),
+          ],
         ),
       ),
     );
   }
 
-  GestureDetector buildCustomersCard(
-      CustomersModel data, BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        print("Tapped");
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) =>
-                ViewCustomerPage(customerObjectId: data.id.toString())));
-      },
-      child: Container(
-          decoration: BoxDecoration(
-              color: tWhite,
-              borderRadius: BorderRadius.circular(dBorderRadius),
-              boxShadow: dBoxShadow(color: Colors.black12)),
-          padding: const EdgeInsets.all(dPadding * 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(25),
-                    child: Container(
-                      color: tOrange,
-                      width: 40,
-                      height: 40,
-                      child: Center(child: Text(extractInitials(data.name), style: containerText(color: tWhite, weight: FontWeight.w700),)),
-                    ),
-                  ),
-                  const DGap(gap: dGap*2 ,vertical: false),
-
-                  Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  _buildDetailsRow("ID: ", data.companyCustomerId.toString()),
-                  _buildDetailsRow("Name: ", data.name),
-                  _buildDetailsRow("Email: ", data.email),
-                  
-                ],
-              ),
-                ],
-              ),
-              
-              //Press arrow
-              IconButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) =>
-                            ViewCustomerPage(customerObjectId: data.id.toString())));
-                  },
-                  icon: const Icon(Icons.arrow_forward_ios_rounded))
-            ],
-          )),
-    );
-  }
-
-  RichText _buildDetailsRow(String title, String value) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(color: tBlack),
+  Widget _buildFilterModalHeader() {
+    return SizedBox(
+      height: 40,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          TextSpan(
-            text: title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          TextSpan(
-            text: value,
+          Text('Select Filters', style: boldHeading()),
+          TextButton(
+            onPressed: () => _clearFilters(),
+            child: Text("CLEAR", style: boldHeading(size: 16)),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildFilterModalBody() {
+    return SizedBox(
+      height: 350,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Column(
+              children: [
+                const DTextField(
+                  icon: Icon(Icons.tag),
+                  hintText: "Name",
+                  // controller: assetIdController
+                ),
+                const DTextField(
+                  icon: Icon(Icons.person),
+                  hintText: "Address",
+                  // controller: assetNameController
+                ),
+                const DTextField(
+                  icon: Icon(Icons.confirmation_number),
+                  hintText: "Phone Number",
+                  // controller: serialNumberController
+                ),
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                  label: "Category",
+                  items: customerCategoryTypeMenuItems,
+                  onChanged: (value) => setState(() {
+                    _customerCategory = value;
+                  }),
+                  value: _customerCategory,
+                ),
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                  label: "Status",
+                  items: customerStatusMenuItems,
+                  value: _customerStatus,
+                  onChanged: (value) => setState(() {
+                    _customerStatus = value;
+                  }),
+                ),
+              ],
+            ),
+            const DGap(),
+            _buildAdditionalFilters(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdditionalFilters() {
+    return Container(
+      decoration: dBoxDecoration(color: tBackground),
+      child: Text("Extra fields to be added soon", style: subtitle()),
+    );
+  }
+
+  Widget _buildFilterModalFooter() {
+    return SizedBox(
+      height: 40,
+      child: DElevatedButton(
+        buttonColor: tBlack,
+        textColor: tWhite,
+        child: const Text('Apply Filters'),
+        onPressed: () => setState(() {
+          _fetchCustomers();
+          Navigator.pop(context);
+        }),
+      ),
+    );
+  }
+
+  void _clearFilters() {
+    ref.read(customerFiltersProvider.notifier).clearFilters();
+
+    _customerCategory = '';
+    _customerStatus = '';
+
+    setState(() {});
+
+    searchTextFieldController.clear();
+    _fetchCustomers();
+    Navigator.pop(context);
+  }
+
+  Widget _buildCustomersList() {
+    ref.watch(refreshProvider);
+
+    if (customers.isEmpty && !isLoading) {
+      return const NoDataFoundPage();
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      itemCount: customers.length + (hasMore ? 1 : 0),
+      separatorBuilder: (context, index) => const SizedBox(height: dGap),
+      itemBuilder: (context, index) {
+        if (index < customers.length) {
+          var customerData = CustomersModel.fromJson(customers[index]);
+          return buildCustomerDetailsCard(customerData);
+        } else if (hasMore) {
+          return const Center(child: CircularProgressIndicator());
+        } else {
+          return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
+Widget buildCustomerDetailsCard(CustomersModel data) {
+  return GestureDetector(
+    onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (context) =>
+            ViewCustomerPage(customerObjectId: data.id.toString()),
+      ));
+    },
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: dPadding),
+      decoration: BoxDecoration(
+        color: tWhite,
+        borderRadius: BorderRadius.circular(dBorderRadius),
+        border: Border.all(color: tGreyLight),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: tPrimary, // Set the background color of the circle
+          child: Text(
+            data.name![0].toUpperCase(), // Get the first letter and make it uppercase
+            style: boldHeading(size: 20, color: tWhite), // Style the initial letter
+          ),
+        ),
+        title: Text(data.name!, style: boldHeading(size: 19)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Email: ${data.email}",
+                style: containerText(weight: FontWeight.w400)),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (String result) {
+            if (result == 'delete') {
+              // Handle delete action here
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Delete Customer'),
+                    content: const Text('Are you sure you want to delete this customer?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          // Perform the delete action here
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        
+                        onPressed: () async{
+                          final response = await CompanyCustomerRepositoryImpl().deleteCompanyCustomer(data.id!);
+                          if(response.statusCode == 200){
+                            dSnackBar(context, "Customer deleted successfully", TypeSnackbar.info);
+
+                          }else{
+                            dSnackBar(context, "Some error occured while deleting customer", TypeSnackbar.error);
+                            
+                          }
+                          ref.read(refreshProvider.notifier).state =
+                        !ref.read(refreshProvider);
+
+                          Navigator.of(context).pop(); // Close the dialog
+
+                        },
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'delete',
+              child: Text('Delete'),
+            ),
+          ],
+          icon: const Icon(Icons.more_vert),
+        ),
+      ),
+    ),
+  );
+}
 }

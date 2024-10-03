@@ -34,41 +34,48 @@ import '../riverpod/asset_sorting_notifier.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/icon_text_row.dart';
 
 class AssetsPage extends ConsumerWidget {
-  const AssetsPage({super.key});
+  const AssetsPage( {super.key,this.serialNumber});
+
+  final String? serialNumber;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: _buildAppBar(context),
-        resizeToAvoidBottomInset: false,
-        backgroundColor: tBackground,
-        body: const Padding(
-          padding: EdgeInsets.all(dPadding),
-          child: AssetsSearchAndList(),
-        ),
+    print('Searching asset with serial number: $serialNumber');
+
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      resizeToAvoidBottomInset: false,
+      backgroundColor: tBackground,
+      body: Padding(
+        padding: const EdgeInsets.all(dPadding),
+        child: AssetsSearchAndList(predefinedSerialNumber: serialNumber ?? "",),
       ),
     );
   }
 
   AppBar _buildAppBar(BuildContext context) {
-    void searchAsset(String serialNumber) {
-      print('Searching asset with serial number: $serialNumber');
-      // Your search logic here
-    }
+    // void searchAsset(String serialNumber) {
+    //   print('Searching asset with serial number: $serialNumber');
+      
+
+    //   // Your search logic here
+    //   //navigate to asset page
+    //   //set advance filter serial no
+
+    // }
 
     return AppBar(
       title: const Text("Assets"),
       actions: [
-        IconButton(
-          onPressed: () async {
-            String? serialNumber = await SerialSearchDialog.show(context);
-            if (serialNumber != null && serialNumber.isNotEmpty) {
-              searchAsset(serialNumber);
-            }
-          },
-          icon: const Icon(Icons.numbers),
-        ),
+        // IconButton(
+        //   onPressed: () async {
+        //     String? serialNumber = await SerialSearchDialog.show(context);
+        //     if (serialNumber != null && serialNumber.isNotEmpty) {
+        //       searchAsset(serialNumber);
+        //     }
+        //   },
+        //   icon: const Icon(Icons.numbers),
+        // ),
         IconButton(
           onPressed: () {
             Navigator.push(
@@ -86,7 +93,8 @@ class AssetsPage extends ConsumerWidget {
 }
 
 class AssetsSearchAndList extends ConsumerStatefulWidget {
-  const AssetsSearchAndList({super.key});
+  const AssetsSearchAndList( {super.key, this.predefinedSerialNumber});
+  final String? predefinedSerialNumber;
 
   @override
   _AssetsSearchAndListState createState() => _AssetsSearchAndListState();
@@ -120,6 +128,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    serialNumberController.text = widget.predefinedSerialNumber ?? '';
     fetchCompanyId();
   }
 
@@ -209,6 +218,10 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         if (responseBody is Map<String, dynamic>) {
           final newAssets = responseBody['data'] as List<dynamic>;
           final totalRecords = responseBody['totalRecords'] as int;
+          print("---=======================---");
+
+          print(("TOTAL RECORDS: $totalRecords"));
+          print("---=======================---");
           setState(() {
             assets.addAll(newAssets);
             isLoading = false;

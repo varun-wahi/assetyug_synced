@@ -13,11 +13,12 @@ class SerialSearchDialog {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Search Asset by Serial Number'),
+          title: const Text('Search Asset'),
           content: TextField(
             controller: searchController,
             decoration: const InputDecoration(
               hintText: 'Enter Serial Number',
+              border: OutlineInputBorder(), // Added outline border
             ),
           ),
           actions: <Widget>[
