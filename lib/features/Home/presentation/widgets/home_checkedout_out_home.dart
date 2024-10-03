@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';  // Import Hive for local storage
 
 import '../../../Assets/presentation/riverpod/asset_filter_notifier.dart';
@@ -13,14 +14,14 @@ import '../../../../config/theme/text_styles.dart';
 import '../../../../core/utils/widgets/loading_animated_container.dart';
 import 'package:http/http.dart' as http;
 
-class BuildCheckOutAssetsContainer extends StatefulWidget {
+class BuildCheckOutAssetsContainer extends ConsumerStatefulWidget {
   const BuildCheckOutAssetsContainer({super.key});
 
   @override
   _BuildCheckOutAssetsContainerState createState() => _BuildCheckOutAssetsContainerState();
 }
 
-class _BuildCheckOutAssetsContainerState extends State<BuildCheckOutAssetsContainer> {
+class _BuildCheckOutAssetsContainerState extends ConsumerState<BuildCheckOutAssetsContainer> {
   String? companyId;
 
   @override
@@ -39,13 +40,16 @@ class _BuildCheckOutAssetsContainerState extends State<BuildCheckOutAssetsContai
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      // onTap: () {
-      //   context.read(tabProvider.notifier).setTab(1);
-      //   context
-      //       .read(assetFiltersProvider.notifier)
-      //       .updateFilter({"status": checkOutString});
-      // },
-      child: companyId == null ? LoadingAnimatedContainer(height: 130, width: MediaQuery.of(context).size.width) : buildCheckedOutContainer(context),
+      onTap: () {
+        ref.read(tabProvider.notifier).setTab(1);
+        // context
+        //     .read(assetFiltersProvider.notifier)
+        //     .updateFilter({"status": checkOutString});
+      },
+      child: companyId == null
+          ? LoadingAnimatedContainer(
+              height: 130, width: MediaQuery.of(context).size.width)
+          : buildCheckedOutContainer(context),
     );
   }
 

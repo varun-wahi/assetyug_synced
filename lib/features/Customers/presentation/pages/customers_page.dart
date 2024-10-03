@@ -89,8 +89,6 @@ class _CustomersSearchAndListState
   String? _customerStatus;
   String? _customerCategory;
 
-
-
   @override
   void initState() {
     super.initState();
@@ -122,79 +120,132 @@ class _CustomersSearchAndListState
     await _fetchCustomersPage();
   }
 
+  // Future<void> _fetchCustomersPage() async {
+  //   try {
+  //     final customersRepo = CompanyCustomerRepositoryImpl();
+  //     final searchTerm = searchTextFieldController.text;
+  //     ref.watch(refreshProvider);
+
+  //     if (companyId == null) {
+  //       throw Exception("Company ID not found");
+  //     }
+
+  //     final filterForm = {
+  //       "name": "",
+  //       "companyId": companyId,
+  //       "category": "",
+  //       "status": "",
+  //       "phone": "",
+  //       "email": "",
+  //       "address": "",
+  //       "apartment": "",
+  //       "city": "",
+  //       "state": "",
+  //       "zipCode": ""
+  //     };
+
+  //     final response = await customersRepo.advanceFilter(
+  //       filterForm,
+  //       currentPage,
+  //       pageSize,
+  //       sortingCategory,
+  //       searchTerm,
+  //     );
+
+  //     print("-------------------------------");
+  //     print("RESPONSE FOR CUSTOMERS: ${response.statusCode}");
+  //     print("-------------------------------");
+
+  //     if (response.statusCode == 200) {
+  //       final Map<String, dynamic> responseData = json.decode(response.body);
+  //       final List<dynamic> customerList = responseData['data'];
+
+  //       print("-------------------------------");
+  //       print("RESPONSE FOR CUSTOMERS DATA: $customerList");
+  //       print("-------------------------------");
+
+  //       setState(() {
+  //         customers.addAll(customerList.map((e) => json.decode(e)).toList());
+  //         isLoading = false;
+  //         hasMore = customers.length < responseData['totalRecords'];
+  //       });
+  //     } else {
+  //       if (mounted) {
+  //         dSnackBar(
+  //             context, response.statusCode.toString(), TypeSnackbar.error);
+  //         setState(() {
+  //           isLoading = false;
+  //         });
+  //         throw Exception("No customers found");
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print("Error fetching customers: $e");
+  //     if (mounted) {
+  //       dSnackBar(context, e.toString(), TypeSnackbar.error);
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
+
   Future<void> _fetchCustomersPage() async {
-    try {
-      final customersRepo = CompanyCustomerRepositoryImpl();
-      final searchTerm = searchTextFieldController.text;
-      ref.watch(refreshProvider);
+  try {
+    final customersRepo = CompanyCustomerRepositoryImpl();
+    final searchTerm = searchTextFieldController.text;
 
+    if (companyId == null) {
+      throw Exception("Company ID not found");
+    }
 
-      if (companyId == null) {
-        throw Exception("Company ID not found");
-      }
+    final filterForm = {
+      "name": "",
+      "companyId": companyId,
+      "category": _customerCategory ?? "",
+      "status": _customerStatus ?? "",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "apartment": "",
+      "city": "",
+      "state": "",
+      "zipCode": ""
+    };
 
-      final filterForm = {
-        "name": "",
-        "companyId": companyId,
-        "category": "",
-        "status": "",
-        "phone": "",
-        "email": "",
-        "address": "",
-        "apartment": "",
-        "city": "",
-        "state": "",
-        "zipCode": ""
-      };
+    final response = await customersRepo.advanceFilter(
+      filterForm,
+      currentPage,
+      pageSize,
+      sortingCategory,
+      searchTerm,
+    );
 
-      final response = await customersRepo.advanceFilter(
-        filterForm,
-        currentPage,
-        pageSize,
-        sortingCategory,
-        searchTerm,
-      );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      final List<dynamic> customerList = responseData['data'];
 
-      print("-------------------------------");
-      print("RESPONSE FOR CUSTOMERS: ${response.statusCode}");
-      print("-------------------------------");
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        final List<dynamic> customerList = responseData['data'];
-
-        print("-------------------------------");
-        print("RESPONSE FOR CUSTOMERS DATA: $customerList");
-        print("-------------------------------");
-
-        setState(() {
-          customers.addAll(customerList.map((e) => json.decode(e)).toList());
-          isLoading = false;
-          hasMore = customers.length < responseData['totalRecords'];
-        });
-      } else {
-        if (mounted) {
-          dSnackBar(
-              context, response.statusCode.toString(), TypeSnackbar.error);
-          setState(() {
-            isLoading = false;
-          });
-          throw Exception("No customers found");
-        }
-      }
-    } catch (e) {
-      print("Error fetching customers: $e");
-      if (mounted) {
-        dSnackBar(context, e.toString(), TypeSnackbar.error);
-        setState(() {
-          isLoading = false;
-        });
-      }
+      setState(() {
+        // customers.addAll(customerList); // Append the new list
+        customers.addAll(customerList.map((e) => json.decode(e)).toList()); // Append the new list
+        isLoading = false;
+        hasMore = customers.length < responseData['totalRecords'];
+      });
+    } else {
+      throw Exception("Failed to load customers");
+    }
+  } catch (e) {
+    if (mounted) {
+      dSnackBar(context, e.toString(), TypeSnackbar.error);
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+}
 
   void _scrollListener() {
-    if (_scrollController.offset >=
+    if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent &&
         !_scrollController.position.outOfRange &&
         hasMore &&
@@ -210,9 +261,11 @@ class _CustomersSearchAndListState
     });
   }
 
+
+
   @override
   Widget build(BuildContext context) {
-  ref.watch(refreshProvider);
+    ref.watch(refreshProvider);
 
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
@@ -363,6 +416,7 @@ class _CustomersSearchAndListState
                   }),
                   value: _customerCategory,
                 ),
+                const DGap(),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
                   label: "Status",
@@ -426,106 +480,115 @@ class _CustomersSearchAndListState
 
     return ListView.separated(
       controller: _scrollController,
-      itemCount: customers.length + (hasMore ? 1 : 0),
+      itemCount: customers.length +
+          (hasMore ? 1 : 0), // Add 1 item for the loading indicator
       separatorBuilder: (context, index) => const SizedBox(height: dGap),
       itemBuilder: (context, index) {
         if (index < customers.length) {
           var customerData = CustomersModel.fromJson(customers[index]);
           return buildCustomerDetailsCard(customerData);
         } else if (hasMore) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+              child:
+                  CircularProgressIndicator()); // Loading indicator when fetching more customers
         } else {
-          return const SizedBox.shrink();
+          return const SizedBox.shrink(); // No more data to load
         }
       },
     );
   }
 
-Widget buildCustomerDetailsCard(CustomersModel data) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) =>
-            ViewCustomerPage(customerObjectId: data.id.toString()),
-      ));
-    },
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: dPadding),
-      decoration: BoxDecoration(
-        color: tWhite,
-        borderRadius: BorderRadius.circular(dBorderRadius),
-        border: Border.all(color: tGreyLight),
-      ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: tPrimary, // Set the background color of the circle
-          child: Text(
-            data.name![0].toUpperCase(), // Get the first letter and make it uppercase
-            style: boldHeading(size: 20, color: tWhite), // Style the initial letter
+  Widget buildCustomerDetailsCard(CustomersModel data) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) =>
+              ViewCustomerPage(customerObjectId: data.id.toString()),
+        ));
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: dPadding),
+        decoration: BoxDecoration(
+          color: tWhite,
+          borderRadius: BorderRadius.circular(dBorderRadius),
+          border: Border.all(color: tGreyLight),
+        ),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: tPrimary, // Set the background color of the circle
+            child: Text(
+              data.name![0]
+                  .toUpperCase(), // Get the first letter and make it uppercase
+              style: boldHeading(
+                  size: 17, color: tWhite), // Style the initial letter
+            ),
+          ),
+          title: Text(data.name!, style: boldHeading(size: 16)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Email: ${data.email}",
+                  style: containerText(weight: FontWeight.w400)),
+            ],
+          ),
+          trailing: PopupMenuButton<String>(
+            onSelected: (String result) {
+              if (result == 'delete') {
+                // Handle delete action here
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('Delete Customer'),
+                      content: const Text(
+                          'Are you sure you want to delete this customer?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            // Perform the delete action here
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final response =
+                                await CompanyCustomerRepositoryImpl()
+                                    .deleteCompanyCustomer(data.id!);
+                            if (response.statusCode == 200) {
+                              dSnackBar(
+                                  context,
+                                  "Customer deleted successfully",
+                                  TypeSnackbar.info);
+                            } else {
+                              dSnackBar(
+                                  context,
+                                  "Some error occured while deleting customer",
+                                  TypeSnackbar.error);
+                            }
+                            ref.read(refreshProvider.notifier).state =
+                                !ref.read(refreshProvider);
+
+                            Navigator.of(context).pop(); // Close the dialog
+                          },
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Text('Delete'),
+              ),
+            ],
+            icon: const Icon(Icons.more_vert),
           ),
         ),
-        title: Text(data.name!, style: boldHeading(size: 19)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Email: ${data.email}",
-                style: containerText(weight: FontWeight.w400)),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (String result) {
-            if (result == 'delete') {
-              // Handle delete action here
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Delete Customer'),
-                    content: const Text('Are you sure you want to delete this customer?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          // Perform the delete action here
-                          Navigator.of(context).pop(); // Close the dialog
-                        },
-                        
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        
-                        onPressed: () async{
-                          final response = await CompanyCustomerRepositoryImpl().deleteCompanyCustomer(data.id!);
-                          if(response.statusCode == 200){
-                            dSnackBar(context, "Customer deleted successfully", TypeSnackbar.info);
-
-                          }else{
-                            dSnackBar(context, "Some error occured while deleting customer", TypeSnackbar.error);
-                            
-                          }
-                          ref.read(refreshProvider.notifier).state =
-                        !ref.read(refreshProvider);
-
-                          Navigator.of(context).pop(); // Close the dialog
-
-                        },
-                        child: const Text('Delete'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            }
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'delete',
-              child: Text('Delete'),
-            ),
-          ],
-          icon: const Icon(Icons.more_vert),
-        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

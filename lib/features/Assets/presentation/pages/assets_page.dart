@@ -154,16 +154,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     _fetchAssets();
   }
 
-  void _scrollListener() {
-    if (_scrollController.offset >= _scrollController.position.maxScrollExtent &&
-        !_scrollController.position.outOfRange &&
-        hasMore &&
-        !isLoading) {
-      print("Fetching more assets...");
-      _fetchMoreAssets();
-    }
-  }
-
   Future<void> _fetchAssets() async {
     setState(() {
       isLoading = true;
@@ -173,76 +163,84 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     await _fetchAssetsPage();
   }
 
-  Future<void> _fetchMoreAssets() async {
-    if (!hasMore || isLoading) return;
-    setState(() {
-      isLoading = true;
-    });
-    currentPage++;
-    await _fetchAssetsPage();
+
+void _scrollListener() {
+  if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent &&
+      !isLoading &&
+      hasMore) {
+    print("Fetching more assets...");
+    _fetchMoreAssets();
   }
+}
 
-  Future<void> _fetchAssetsPage() async {
-    try {
-      print("Fetching assets for page: $currentPage");
-      final assetsRepo = AssetsRepositoryImpl();
-      final searchTerm = searchTextFieldController.text;
+Future<void> _fetchMoreAssets() async {
+  if (!hasMore || isLoading) return;
+  
+  setState(() {
+    isLoading = true;
+  });
 
-      if (companyId == null) {
-        throw Exception("Company ID not found");
-      }
+  // Fetch next page of assets
+  await _fetchAssetsPage();
+}
 
-      final Map<String, dynamic> filterForm = {
-        'assetId': assetIdController.text,
-        'name': assetNameController.text,
-        'customer': _customer ?? '',
-        'serialNumber': serialNumberController.text,
-        'category': _assetCategory ?? '',
-        'location': locationController.text,
-        'status': _assetStatus ?? '',
-        'email': '',
-        'companyId': companyId!,
-      };
+Future<void> _fetchAssetsPage() async {
+  try {
+    print("Fetching assets for page: $currentPage");
+    final assetsRepo = AssetsRepositoryImpl();
+    final searchTerm = searchTextFieldController.text;
 
-      final response = await assetsRepo.advanceFilter(
-        json.encode(filterForm),
-        currentPage,
-        pageSize,
-        sortingCategory,
-        searchTerm.isEmpty ? 'null' : searchTerm,
-      );
+    if (companyId == null) {
+      throw Exception("Company ID not found");
+    }
 
-      if (response.statusCode == 200) {
-        print("Assets fetched successfully");
-        final responseBody = json.decode(response.body);
-        if (responseBody is Map<String, dynamic>) {
-          final newAssets = responseBody['data'] as List<dynamic>;
-          final totalRecords = responseBody['totalRecords'] as int;
-          print("---=======================---");
+    final Map<String, dynamic> filterForm = {
+      'assetId': assetIdController.text,
+      'name': assetNameController.text,
+      'customer': _customer ?? '',
+      'serialNumber': serialNumberController.text,
+      'category': _assetCategory ?? '',
+      'location': locationController.text,
+      'status': _assetStatus ?? '',
+      'email': '',
+      'companyId': companyId!,
+    };
 
-          print(("TOTAL RECORDS: $totalRecords"));
-          print("---=======================---");
-          setState(() {
-            assets.addAll(newAssets);
-            isLoading = false;
-            hasMore = assets.length < totalRecords;
-          });
-        } else {
-          throw Exception("Invalid response format: ${response.body}");
-        }
-      } else {
-        throw Exception("Failed to load assets. Status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error fetching assets: $e");
-      if (mounted) {
-        _showErrorSnackBar(e.toString());
+    final response = await assetsRepo.advanceFilter(
+      json.encode(filterForm),
+      currentPage,
+      pageSize,
+      sortingCategory,
+      searchTerm.isEmpty ? 'null' : searchTerm,
+    );
+
+    if (response.statusCode == 200) {
+      print("Assets fetched successfully");
+      final responseBody = json.decode(response.body);
+      if (responseBody is Map<String, dynamic>) {
+        final newAssets = responseBody['data'] as List<dynamic>;
+        final totalRecords = responseBody['totalRecords'] as int;
         setState(() {
+          assets.addAll(newAssets);
           isLoading = false;
+          hasMore = assets.length < totalRecords; // Check if more assets are available
         });
+      } else {
+        throw Exception("Invalid response format: ${response.body}");
       }
+    } else {
+      throw Exception("Failed to load assets. Status code: ${response.statusCode}");
+    }
+  } catch (e) {
+    print("Error fetching assets: $e");
+    if (mounted) {
+      _showErrorSnackBar(e.toString());
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+}
 
   void _showErrorSnackBar(String message) {
     dSnackBar(context, message, TypeSnackbar.error);
@@ -491,61 +489,38 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   }
 
   Widget _buildAssetsList() {
-    ref.watch(refreshProvider);
+  ref.watch(refreshProvider);
 
-    if (assets.isEmpty && !isLoading) {
-      return const NoDataFoundPage();
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(dBorderRadius),
-        border: Border.all(color: tGreyLight),
-      ),
-      child: isLoading
-          ? const SingleChildScrollView(
-              child: Column(
-                children: [
-                  LoadingAnimatedContainer(
-                      height: 130, width: double.infinity),
-                  DGap(gap: 10),
-                  LoadingAnimatedContainer(
-                      height: 130, width: double.infinity),
-                  DGap(gap: 10),
-                  LoadingAnimatedContainer(
-                      height: 130, width: double.infinity),
-                  DGap(gap: 10),
-                  LoadingAnimatedContainer(
-                      height: 130, width: double.infinity),
-                  DGap(gap: 10),
-                  LoadingAnimatedContainer(
-                      height: 130, width: double.infinity),
-                ],
-              ),
-            )
-          : ListView.separated(
-              controller: _scrollController,
-              padding: EdgeInsets.zero,
-              itemCount: assets.length + (hasMore ? 1 : 0),
-              separatorBuilder: (context, index) => const DGap(gap: 8),
-              scrollDirection: Axis.vertical,
-              itemBuilder: (context, index) {
-                if (index < assets.length) {
-                  var assetData = AssetsModel.fromJson(
-                      jsonDecode(assets.reversed.toList()[index]));
-                  return AssetsDetailsCard(data: assetData, ref: ref);
-                } else if (hasMore) {
-                  return const Expanded(
-                      child: Center(child: CircularProgressIndicator()));
-                } else {
-                  return const SizedBox.shrink();
-                }
-              },
-            ),
-    );
+  if (assets.isEmpty && !isLoading) {
+    return const NoDataFoundPage();
   }
 
+  return Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(dBorderRadius),
+      border: Border.all(color: tGreyLight),
+    ),
+    child: ListView.separated(
+      controller: _scrollController,
+      padding: EdgeInsets.zero,
+      itemCount: assets.length + (hasMore ? 1 : 0), // Add one more item if more assets are available
+      separatorBuilder: (context, index) => const DGap(gap: 8),
+      scrollDirection: Axis.vertical,
+      itemBuilder: (context, index) {
+        if (index < assets.length) {
+          var assetData = AssetsModel.fromJson(
+              jsonDecode(assets.reversed.toList()[index]));
+          return AssetsDetailsCard(data: assetData, ref: ref);
+        } else if (hasMore) {
+          return const Center(child: CircularProgressIndicator()); // Show loading indicator when fetching more assets
+        } else {
+          return const SizedBox.shrink(); // If no more data, show nothing
+        }
+      },
+    ),
+  );
+}
   Widget AssetsDetailsCard(
       {required AssetsModel data, required WidgetRef ref}) {
     return GestureDetector(
