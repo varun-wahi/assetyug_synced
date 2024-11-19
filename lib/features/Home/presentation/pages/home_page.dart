@@ -8,7 +8,6 @@ import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_action
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Work%20Orders/data/repository/work_orders_mongodb.dart';
-import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:badges/badges.dart' as badges;
@@ -23,7 +22,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../Auth/data/repository/firebase_authentication.dart';
-import '../../../Main/presentation/riverpod/tab_notifier.dart';
 import '../widgets/home_checkedout_out_home.dart';
 import '../widgets/wo_tile_widget_home.dart';
 
@@ -238,7 +236,7 @@ class _HomePageState extends State<HomePage> {
               BuildOptionsSection(context: context,),
               const DGap(gap: dGap * 2),
 
-              const BuildCheckOutAssetsContainer(),
+              const BuildAssetOverviewContainer(),
 
               const DGap(gap: dGap * 2),
 

@@ -82,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        _showErrorSnackBar(res);
+        _showErrorSnackBar("Please enter the correct credentials");
       }
     } catch (e) {
       _showErrorSnackBar(e.toString());
@@ -293,15 +293,11 @@ void _showErrorSnackBar(String message) {
                                 borderRadius:
                                     BorderRadius.circular(dBorderRadius))),
                         onPressed: () {
-                          //LOGIN HAPPENS HERE
-
-                          
-
                           signInUser();
                         },
                         child: !isLoading
                             ? const Text(
-                                "Submit",
+                                "Login",
                                 style: TextStyle(fontSize: 16),
                               )
                             : const SizedBox(

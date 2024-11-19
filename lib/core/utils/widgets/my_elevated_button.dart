@@ -7,6 +7,7 @@ class DElevatedButton extends StatelessWidget {
   final Color? textColor;
   final EdgeInsetsGeometry? padding;
   final double? borderRadius;
+  final Icon? icon; // Add an optional icon
 
   const DElevatedButton({
     super.key,
@@ -16,6 +17,7 @@ class DElevatedButton extends StatelessWidget {
     this.textColor,
     this.padding,
     this.borderRadius,
+    this.icon, // Optional icon parameter
   });
 
   @override
@@ -23,13 +25,24 @@ class DElevatedButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        foregroundColor: textColor, backgroundColor: buttonColor,
+        foregroundColor: textColor,
+        backgroundColor: buttonColor,
         padding: padding,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(borderRadius ?? 8.0),
         ),
       ),
-      child: child,
+      // Conditionally display the icon with the child
+      child: icon != null
+          ? Row(
+              mainAxisSize: MainAxisSize.min, // Adjust the size to match content
+              children: [
+                icon!, // Show the icon
+                const SizedBox(width: 8), // Add spacing between the icon and text
+                child, // Show the button's child (text or another widget)
+              ],
+            )
+          : child, // If no icon, just show the child
     );
   }
 }

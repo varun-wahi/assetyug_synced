@@ -8,7 +8,7 @@ import 'package:asset_yug_debugging/features/Customers/data/models/customers_mod
 import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/view_customer_page.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/cutomer_search_notifier.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/customer_sorting_notifier.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,10 +52,10 @@ class CustomersPage extends ConsumerWidget {
       actions: [
         IconButton(
           onPressed: () => {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => AddCustomerPage(),
+                builder: (context) => const AddCustomerPage(fromCustomersPage: true,),
               ),
             )
           },
@@ -78,6 +78,7 @@ class _CustomersSearchAndListState
   final searchTextFieldController = TextEditingController();
   List<dynamic> customers = [];
   bool isLoading = true;
+  bool isDeleting = false;
   bool hasMore = true;
   int currentPage = 0;
   static const int pageSize = 10;
@@ -85,6 +86,11 @@ class _CustomersSearchAndListState
   final ScrollController _scrollController = ScrollController();
   String? companyId;
   Timer? _debounce;
+
+  final customerNameController = TextEditingController();
+  final addressController = TextEditingController();
+  final customerController = TextEditingController();
+  final phoneNumberController = TextEditingController();
 
   String? _customerStatus;
   String? _customerCategory;
@@ -96,6 +102,19 @@ class _CustomersSearchAndListState
     fetchCompanyId();
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    searchTextFieldController.dispose();
+    _debounce?.cancel();
+    customerNameController.dispose();
+    customerController.dispose();
+    addressController.dispose();
+    phoneNumberController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchCompanyId() async {
     final box = await Hive.openBox('auth_data');
     companyId = box.get('companyId');
@@ -103,6 +122,7 @@ class _CustomersSearchAndListState
   }
 
   Future<void> _fetchCustomers() async {
+    ref.watch(refreshProvider);
     setState(() {
       isLoading = true;
       currentPage = 0;
@@ -120,136 +140,68 @@ class _CustomersSearchAndListState
     await _fetchCustomersPage();
   }
 
-  // Future<void> _fetchCustomersPage() async {
-  //   try {
-  //     final customersRepo = CompanyCustomerRepositoryImpl();
-  //     final searchTerm = searchTextFieldController.text;
-  //     ref.watch(refreshProvider);
-
-  //     if (companyId == null) {
-  //       throw Exception("Company ID not found");
-  //     }
-
-  //     final filterForm = {
-  //       "name": "",
-  //       "companyId": companyId,
-  //       "category": "",
-  //       "status": "",
-  //       "phone": "",
-  //       "email": "",
-  //       "address": "",
-  //       "apartment": "",
-  //       "city": "",
-  //       "state": "",
-  //       "zipCode": ""
-  //     };
-
-  //     final response = await customersRepo.advanceFilter(
-  //       filterForm,
-  //       currentPage,
-  //       pageSize,
-  //       sortingCategory,
-  //       searchTerm,
-  //     );
-
-  //     print("-------------------------------");
-  //     print("RESPONSE FOR CUSTOMERS: ${response.statusCode}");
-  //     print("-------------------------------");
-
-  //     if (response.statusCode == 200) {
-  //       final Map<String, dynamic> responseData = json.decode(response.body);
-  //       final List<dynamic> customerList = responseData['data'];
-
-  //       print("-------------------------------");
-  //       print("RESPONSE FOR CUSTOMERS DATA: $customerList");
-  //       print("-------------------------------");
-
-  //       setState(() {
-  //         customers.addAll(customerList.map((e) => json.decode(e)).toList());
-  //         isLoading = false;
-  //         hasMore = customers.length < responseData['totalRecords'];
-  //       });
-  //     } else {
-  //       if (mounted) {
-  //         dSnackBar(
-  //             context, response.statusCode.toString(), TypeSnackbar.error);
-  //         setState(() {
-  //           isLoading = false;
-  //         });
-  //         throw Exception("No customers found");
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print("Error fetching customers: $e");
-  //     if (mounted) {
-  //       dSnackBar(context, e.toString(), TypeSnackbar.error);
-  //       setState(() {
-  //         isLoading = false;
-  //       });
-  //     }
-  //   }
-  // }
-
   Future<void> _fetchCustomersPage() async {
-  try {
-    final customersRepo = CompanyCustomerRepositoryImpl();
-    final searchTerm = searchTextFieldController.text;
+    try {
+      final customersRepo = CompanyCustomerRepositoryImpl();
+      final searchTerm = searchTextFieldController.text;
 
-    if (companyId == null) {
-      throw Exception("Company ID not found");
-    }
+      if (companyId == null) {
+        throw Exception("Company ID not found");
+      }
 
-    final filterForm = {
-      "name": "",
-      "companyId": companyId,
-      "category": _customerCategory ?? "",
-      "status": _customerStatus ?? "",
-      "phone": "",
-      "email": "",
-      "address": "",
-      "apartment": "",
-      "city": "",
-      "state": "",
-      "zipCode": ""
-    };
+      final filterForm = {
+        "name": customerNameController.text,
+        "companyId": companyId,
+        "category": _customerCategory ?? "",
+        "status": _customerStatus ?? "",
+        "phone": phoneNumberController.text,
+        "email": "",
+        "address": addressController.text,
+        "apartment": "",
+        "city": "",
+        "state": "",
+        "zipCode": ""
+      };
+      print("Advanced filters being updated");
 
-    final response = await customersRepo.advanceFilter(
-      filterForm,
-      currentPage,
-      pageSize,
-      sortingCategory,
-      searchTerm,
-    );
+      final response = await customersRepo.advanceFilter(
+        filterForm,
+        currentPage,
+        pageSize,
+        sortingCategory,
+        searchTerm,
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> responseData = json.decode(response.body);
-      final List<dynamic> customerList = responseData['data'];
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<dynamic> customerList = responseData['data'];
 
-      setState(() {
-        // customers.addAll(customerList); // Append the new list
-        customers.addAll(customerList.map((e) => json.decode(e)).toList()); // Append the new list
-        isLoading = false;
-        hasMore = customers.length < responseData['totalRecords'];
-      });
-    } else {
-      throw Exception("Failed to load customers");
-    }
-  } catch (e) {
-    if (mounted) {
-      dSnackBar(context, e.toString(), TypeSnackbar.error);
-      setState(() {
-        isLoading = false;
-      });
+        setState(() {
+          // customers.addAll(customerList); // Append the new list
+          customers.addAll(customerList
+              .map((e) => json.decode(e))
+              .toList()); // Append the new list
+          isLoading = false;
+          hasMore = customers.length < responseData['totalRecords'];
+        });
+      } else {
+        throw Exception("Failed to load customers");
+      }
+    } catch (e) {
+      if (mounted) {
+        dSnackBar(context, e.toString(), TypeSnackbar.error);
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
-}
 
   void _scrollListener() {
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent &&
-        !_scrollController.position.outOfRange &&
-        hasMore &&
-        !isLoading) {
+        !isLoading &&
+        hasMore) {
       _fetchMoreCustomers();
     }
   }
@@ -257,15 +209,20 @@ class _CustomersSearchAndListState
   void _onSearchChanged(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      _fetchCustomers();
+      ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
     });
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     ref.watch(refreshProvider);
+
+    final sortingCategory = ref.watch(customerSortingProvider);
+
+    if (sortingCategory != this.sortingCategory) {
+      this.sortingCategory = sortingCategory;
+      _fetchCustomers();
+    }
 
     return LayoutBuilder(builder: (context, constraints) {
       return Column(
@@ -295,40 +252,60 @@ class _CustomersSearchAndListState
   Widget _buildFiltersSection() {
     final selectedFilters =
         ref.watch(customerFiltersProvider.notifier).selectedFilters;
-    return Row(
-      children: [
-        Expanded(
-          flex: 4,
-          child: ListView.separated(
-            padding: const EdgeInsets.all(dPadding),
-            scrollDirection: Axis.horizontal,
-            itemCount: customerFilters.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(width: dPadding),
-            itemBuilder: (context, index) {
-              String filterKey = customerFilters.keys.elementAt(index);
-              return DSelectedFilterItem(
-                selectedOption: selectedFilters[filterKey] ?? '',
-                isDropdown: true,
-                title: filterKey,
-                onPressed: () {
-                  CustomerShowFiltersModalSheet.showFilterOptions(
-                    context,
-                    filterKey,
-                    selectedFilters[filterKey],
-                    customerFilters,
-                    ref,
-                  );
-                },
-              );
-            },
+    return SizedBox(
+      height: 70,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: _buildSelectedFilters(selectedFilters),
           ),
-        ),
-        IconButton(
-          onPressed: () => _buildAdvancedFilters(),
-          icon: const Icon(Icons.filter_alt, color: darkGrey),
-        ),
-      ],
+          Expanded(
+            child: IconButton(
+              onPressed: () {
+                ref.read(refreshProvider.notifier).state =
+                    !ref.read(refreshProvider);
+                _fetchCustomers();
+              },
+              icon: const Icon(Icons.refresh, color: darkGrey),
+            ),
+          ),
+          Expanded(
+            child: IconButton(
+              onPressed: () => _buildAdvancedFilters(),
+              icon: const Icon(Icons.filter_alt, color: darkGrey),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedFilters(Map<String, dynamic> selectedFilters) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(dPadding),
+      scrollDirection: Axis.horizontal,
+      itemCount: assetsFilters.length,
+      separatorBuilder: (context, index) => const SizedBox(width: dPadding),
+      itemBuilder: (context, index) {
+        String filterKey = assetsFilters.keys.elementAt(index);
+        return DSelectedFilterItem(
+          selectedOption: selectedFilters[filterKey] ?? '',
+          isDropdown: true,
+          title: filterKey,
+          onPressed: () {
+            print("Building selected filter");
+
+            CustomerShowFiltersModalSheet.showFilterOptions(
+              context,
+              filterKey,
+              selectedFilters[filterKey],
+              customerFilters,
+              ref,
+            );
+          },
+        );
+      },
     );
   }
 
@@ -385,6 +362,11 @@ class _CustomersSearchAndListState
   }
 
   Widget _buildFilterModalBody() {
+    print("Customer Category Items: $customerCategoryTypeMenuItems");
+    print("Selected Customer Category: $_customerCategory");
+    print("Customer Status Items: $customerStatusMenuItems");
+    print("Selected Customer Status: $_customerStatus");
+
     return SizedBox(
       height: 350,
       child: SingleChildScrollView(
@@ -392,21 +374,18 @@ class _CustomersSearchAndListState
           children: [
             Column(
               children: [
-                const DTextField(
-                  icon: Icon(Icons.tag),
-                  hintText: "Name",
-                  // controller: assetIdController
-                ),
-                const DTextField(
-                  icon: Icon(Icons.person),
-                  hintText: "Address",
-                  // controller: assetNameController
-                ),
-                const DTextField(
-                  icon: Icon(Icons.confirmation_number),
-                  hintText: "Phone Number",
-                  // controller: serialNumberController
-                ),
+                DTextField(
+                    icon: const Icon(Icons.tag),
+                    hintText: "Name",
+                    controller: customerNameController),
+                DTextField(
+                    icon: const Icon(Icons.person),
+                    hintText: "Address",
+                    controller: addressController),
+                DTextField(
+                    icon: const Icon(Icons.confirmation_number),
+                    hintText: "Phone Number",
+                    controller: phoneNumberController),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
                   label: "Category",
@@ -414,17 +393,19 @@ class _CustomersSearchAndListState
                   onChanged: (value) => setState(() {
                     _customerCategory = value;
                   }),
-                  value: _customerCategory,
+                  value:
+                      _customerCategory, // Ensure value is either null or one of the valid items
                 ),
                 const DGap(),
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
                   label: "Status",
                   items: customerStatusMenuItems,
-                  value: _customerStatus,
                   onChanged: (value) => setState(() {
                     _customerStatus = value;
                   }),
+                  value:
+                      _customerStatus, // Ensure value is either null or one of the valid items
                 ),
               ],
             ),
@@ -452,6 +433,8 @@ class _CustomersSearchAndListState
         child: const Text('Apply Filters'),
         onPressed: () => setState(() {
           _fetchCustomers();
+          ref.read(refreshProvider.notifier).state =
+              !ref.read(refreshProvider); // Trigger refresh
           Navigator.pop(context);
         }),
       ),
@@ -461,8 +444,12 @@ class _CustomersSearchAndListState
   void _clearFilters() {
     ref.read(customerFiltersProvider.notifier).clearFilters();
 
-    _customerCategory = '';
-    _customerStatus = '';
+    _customerCategory = null;
+    _customerStatus = null;
+
+    customerNameController.clear();
+    addressController.clear();
+    phoneNumberController.clear();
 
     setState(() {});
 
@@ -500,7 +487,13 @@ class _CustomersSearchAndListState
 
   Widget buildCustomerDetailsCard(CustomersModel data) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        final customerRepo = CompanyCustomerRepositoryImpl();
+        final response = await customerRepo.getCompanyCustomerDetails(data.id!);
+        print("CUSTOMER DETAILS: ${response.body}");
+
+        final customerDetails =
+            CustomersModel.fromJson(jsonDecode(response.body));
         Navigator.of(context).push(MaterialPageRoute(
           builder: (context) =>
               ViewCustomerPage(customerObjectId: data.id.toString()),
@@ -550,15 +543,16 @@ class _CustomersSearchAndListState
                           },
                           child: const Text('Cancel'),
                         ),
-                        TextButton(
+                        DElevatedButton(
                           onPressed: () async {
+                            setState(() {
+                            isDeleting = true;
+                            });
                             final response =
                                 await CompanyCustomerRepositoryImpl()
                                     .deleteCompanyCustomer(data.id!);
                             if (response.statusCode == 200) {
-                              dSnackBar(
-                                  context,
-                                  "Customer deleted successfully",
+                              dSnackBar(context, "Customer deleted successlly",
                                   TypeSnackbar.info);
                             } else {
                               dSnackBar(
@@ -569,9 +563,16 @@ class _CustomersSearchAndListState
                             ref.read(refreshProvider.notifier).state =
                                 !ref.read(refreshProvider);
 
-                            Navigator.of(context).pop(); // Close the dialog
+                            setState(() async {
+                              _fetchCustomers();
+                              customers.remove(data);
+                              isDeleting = false;
+                              Navigator.of(context).pop(); // Close the dialog
+                            });
+
+
                           },
-                          child: const Text('Delete'),
+                          child: !isDeleting? const Text('Delete'): const SizedBox.square(dimension: 20.0,child: CircularProgressIndicator(),),
                         ),
                       ],
                     );

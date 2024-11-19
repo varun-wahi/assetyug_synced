@@ -3,7 +3,7 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_extra_field_names_model.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_extra_fields_model.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/pages/extraFieldsForm.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_extraFieldsForm.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';

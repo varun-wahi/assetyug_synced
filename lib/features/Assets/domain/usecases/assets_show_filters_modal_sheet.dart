@@ -65,7 +65,7 @@ class AssetsShowFiltersModalSheet {
                           final sortOptions = pagesFilters[filterKey] ?? {};
                           final String? selectedOption =
                               sortOptions[option];
-                          print("Relevant Map: $selectedOption");
+                          print("Relevant Option: $selectedOption");
             
                           if (selectedOption != null) {
                             ref

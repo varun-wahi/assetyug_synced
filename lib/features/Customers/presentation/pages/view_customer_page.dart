@@ -1,5 +1,5 @@
+import 'dart:convert';
 
-import 'package:asset_yug_debugging/features/Customers/data/repository/customer_mongodb.dart';
 import 'package:asset_yug_debugging/features/Customers/data/models/customers_model.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
@@ -7,31 +7,31 @@ import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/repository/company_customer_repository_impl.dart';
 import 'View Customer Tabs/customer_assets_tab.dart';
 import 'View Customer Tabs/customer_custom_tab.dart';
 import 'View Customer Tabs/customer_details_tab.dart';
 import 'View Customer Tabs/customer_files_tab.dart';
-import 'View Customer Tabs/customer_invoices_tab.dart';
 import 'View Customer Tabs/customer_wO_tab.dart';
 
 class ViewCustomerPage extends ConsumerWidget {
   final String customerObjectId;
   const ViewCustomerPage({super.key, required this.customerObjectId});
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final customerRepo = CompanyCustomerRepositoryImpl();
     return Scaffold(
         appBar: AppBar(
-          title:const Text("Customer Details"),
+          title: const Text("Customer Details"),
           centerTitle: true,
-          actions:  const [
+          actions: const [
             IconButton(onPressed: null, icon: Icon(Icons.more_vert))
           ],
         ),
         body: Center(
           child: FutureBuilder(
-            future: CustomerMongoDb.fetchCustomer(customerObjectId),
+            future: customerRepo.getCompanyCustomerDetails(customerObjectId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const CircularProgressIndicator();
@@ -40,9 +40,12 @@ class ViewCustomerPage extends ConsumerWidget {
               } else {
                 final customerData = snapshot.data;
                 if (customerData != null) {
+                  final customerMap =
+                      jsonDecode(customerData.body) as Map<String, dynamic>;
+
                   return BuildCustomerDetailCard(
                       customerData:
-                          customerData); // Replace with your data field
+                          customerMap); // Replace with your data field
                 } else {
                   return const Text('Customer not found');
                 }
@@ -79,21 +82,19 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
               tabAlignment: TabAlignment.center,
               indicatorSize:
                   TabBarIndicatorSize.tab, // Ensure indicator fills tab width
-      
+
               // Custom properties for equal width and gap
               labelPadding: const EdgeInsets.symmetric(
                   horizontal: 2 * dPadding), // Adjust padding as needed
               indicatorPadding: const EdgeInsets.symmetric(
-                  horizontal: dPadding/2), // 5px gap on each side
+                  horizontal: dPadding / 2), // 5px gap on each side
               dividerHeight: 0.2,
-      
               automaticIndicatorColorAdjustment: true,
               isScrollable: true,
               indicatorColor: tPrimary,
               indicator: const UnderlineTabIndicator(
                 borderSide: BorderSide(
-                    width: 5.0,
-                    color: tPrimary), // Adjust thickness and color
+                    width: 5.0, color: tPrimary), // Adjust thickness and color
                 // insets: EdgeInsets.symmetric(horizontal: dPadding),
               ),
               // indicator: BoxDecoration(
@@ -140,20 +141,18 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
               children: [
                 CustomerDetailsPage(data: data),
                 CustomerAssetsPage(data: data),
-                CustomerFilesPage(data: data),
+                CustomerFilesPage(objectId: widget.customerData?['id']),
                 CustomerWOsPage(data: data),
                 // CustomerInvoicesPage(data: data),
                 CustomersCustomPage(
-                  // data: data, 
-                assetId: 3714,),
+                  companyId: widget.customerData?['companyId'],
+                  customerId: widget.customerData?['id'],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
-
-    
   }
 }
-

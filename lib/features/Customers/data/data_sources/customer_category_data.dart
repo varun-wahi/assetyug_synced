@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 
 List<DropdownMenuItem> customerCategoryTypeMenuItems = const [
       DropdownMenuItem(
-        value: "Employee",
-        child: Text("Employee"),
+        value: "Individual",
+        child: Text("Individual"),
       ),
       DropdownMenuItem(
-        value: "Customer",
-        child: Text("Customer"),
+        value: "Company",
+        child: Text("Company"),
       ),
 
     ];

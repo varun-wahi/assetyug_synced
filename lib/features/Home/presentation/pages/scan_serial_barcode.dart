@@ -8,14 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-class ScanCodePage extends StatefulWidget {
-  const ScanCodePage({super.key});
+class ScanSerialBarcode extends StatefulWidget {
+  const ScanSerialBarcode({super.key});
 
   @override
-  State<ScanCodePage> createState() => _ScanCodePageState();
+  State<ScanSerialBarcode> createState() => _ScanSerialBarcodeState();
 }
 
-class _ScanCodePageState extends State<ScanCodePage> {
+class _ScanSerialBarcodeState extends State<ScanSerialBarcode> {
   final ImagePicker _picker = ImagePicker();
   final MobileScannerController _cameraController = MobileScannerController();
   
@@ -136,7 +136,7 @@ void _onDetect(BarcodeCapture capture) {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back_ios_new,)),
-        title: const Text('Scan QR Code' ),
+        title: const Text('Scan Serial Code' ),
         centerTitle: true,
         backgroundColor: tWhite,
         elevation: 5.0,

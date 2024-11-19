@@ -3,7 +3,6 @@ import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongo
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
 import 'package:asset_yug_debugging/features/Customers/data/models/customers_model.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';

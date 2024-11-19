@@ -1,8 +1,5 @@
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/features/Assets/data/data_sources/asset_field_types_data.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/assets_extra_fields_model.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/assets_extra_field_names_model.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/custom_text_field.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
@@ -11,19 +8,22 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/features/Customers/data/models/customers_extra_fields_model.dart';
+import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:http/http.dart';
 
-class AssetCreateCustomField extends StatefulWidget {
-  final String assetId;
-  AssetCreateCustomField({super.key, required this.assetId});
+import '../../data/models/customer_extra_field_names_model.dart';
+
+class CustomerCreateCustomField extends StatefulWidget {
+  final String customerId;
+  CustomerCreateCustomField({super.key, required this.customerId});
 
   @override
-  State<AssetCreateCustomField> createState() => _AssetCreateCustomFieldState();
+  State<CustomerCreateCustomField> createState() => _CustomerCreateCustomFieldState();
 }
 
-class _AssetCreateCustomFieldState extends State<AssetCreateCustomField> {
+class _CustomerCreateCustomFieldState extends State<CustomerCreateCustomField> {
   final _fieldNameController = TextEditingController();
 
   // final _companyEmailController = TextEditingController();
@@ -98,13 +98,13 @@ class _AssetCreateCustomFieldState extends State<AssetCreateCustomField> {
                   // TODO: Add input validation here
 
                   // Initialize the repository
-                  final assetsRepositoryImpl = AssetsRepositoryImpl();
+                  final customerRepositoryImpl = CompanyCustomerRepositoryImpl();
 
                   // Fetch the latest company data
                   await _fetchCompanyData();
 
                   // Create a model for the new extra field name
-                  final model = AssetExtraFieldNamesModel(
+                  final model = CustomerExtraFieldNamesModel(
                     name: _fieldNameController.text,
                     type: _fieldType,
                     companyId: companyId,
@@ -113,16 +113,17 @@ class _AssetCreateCustomFieldState extends State<AssetCreateCustomField> {
                       "Name: ${model.name} Type: ${model.type} Company ID: ${model.companyId}");
 
                   // Step 1: Add the new extra field name to the company's field list
-                  final response = await assetsRepositoryImpl.addExtraFieldsName(
-                      AssetExtraFieldNamesModelToJson(model));
+                  final response = await customerRepositoryImpl.addExtraFieldsName(
+                      CustomerExtraFieldNamesModelToJson(model));
+                      
                   print("Add Extra Field Name Response Status: ${response.statusCode}");
                   print("Add Extra Field Name Response Body: ${response.body}");
 
                   if (response.statusCode == 200) {
                     // Step 2: If the field name was added successfully, create the field for this specific asset
-                    final extraFieldData = AssetExtraFieldModel(
+                    final extraFieldData = CustomerExtraFieldModel(
                       companyId: companyId,
-                      assetId: widget.assetId,
+                      customerId: widget.customerId,
                       email:
                           "ayushwahi0530@gmail.com", // TODO: Make this dynamic, possibly fetch from user session
                       value: _getInitialValueForFieldType(_fieldType),
@@ -133,8 +134,8 @@ class _AssetCreateCustomFieldState extends State<AssetCreateCustomField> {
 
                     // Add the extra field with its initial value to the asset
                     final addExtraFieldResponse =
-                        await assetsRepositoryImpl.addExtraFieldsWithValue(
-                            AssetExtraFieldModelToJson(extraFieldData));
+                        await customerRepositoryImpl.addExtraFieldsWithValue(
+                            CustomerExtraFieldModelToJson(extraFieldData));
                     print(
                         "Add Extra Field Value Response: ${addExtraFieldResponse.statusCode}");
 

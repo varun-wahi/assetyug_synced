@@ -1,6 +1,10 @@
 import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_category_data.dart';
+import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
+import 'package:asset_yug_debugging/features/Main/presentation/riverpod/tab_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
+
 import '../../../../../config/theme/snackbar__types_enum.dart';
 import '../../../../../core/utils/constants/colors.dart';
 import '../../../../../core/utils/constants/sizes.dart';
@@ -9,19 +13,22 @@ import '../../../../../core/utils/widgets/d_gap.dart';
 import '../../../../../core/utils/widgets/d_snackbar.dart';
 import '../../../../../core/utils/widgets/my_elevated_button.dart';
 import '../../../../Assets/presentation/widgets/custom_text_field.dart';
+import '../../../../Main/presentation/riverpod/refresh_provider.dart';
+import '../../../data/repository/company_customer_repository_impl.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../../../data/repository/company_customer_repository_impl.dart';
+class AddCustomerPage extends ConsumerStatefulWidget { 
+  final bool fromCustomersPage;
 
-class AddCustomerPage extends StatefulWidget {
+  const AddCustomerPage({super.key, this.fromCustomersPage = false});// Change to ConsumerStatefulWidget
   @override
+  // ignore: library_private_types_in_public_api
   _AddCustomerPageState createState() => _AddCustomerPageState();
 }
 
-class _AddCustomerPageState extends State<AddCustomerPage> {
+class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update to use ConsumerState
   final _nameField = TextEditingController();
-  // final _categoryField = TextEditingController();
   final _phoneField = TextEditingController();
   final _emailField = TextEditingController();
   final _addressField = TextEditingController();
@@ -30,7 +37,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   final _zipCodeField = TextEditingController();
 
   String? _category;
-  String? _status;
+  String? _status = "Active";
 
   late final String companyId;
   bool loadingCustomerInsertion = false;
@@ -40,26 +47,44 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   void _changeCategoryValue(String? option) => _category = option;
   void _changeStatusValue(String? option) => _status = option;
 
-
   @override
-  void initState(){
+  void initState() {
     super.initState();
     getCompanyId();
   }
 
-   Future<void> getCompanyId() async {
+  Future<void> getCompanyId() async {
     var box = await Hive.openBox('auth_data');
-    companyId = box.get('companyId');
+    setState(() {
+      companyId = box.get('companyId');
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final WidgetRef ref = this.ref; // Get the `ref` inside the build method
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: const Text("Add Customer"),
+          leading: IconButton(
+  onPressed: () {
+    if (widget.fromCustomersPage) {
+      // Wrap in a function to delay execution
+      ref.read(tabProvider.notifier).setTab(3);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainPage()),
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  },
+  icon: const Icon(Icons.arrow_back_ios_new),
+),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -122,7 +147,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         loadingCustomerInsertion = true;
                       });
                       // Submit form data
-                      _submitCustomerData();
+                      _submitCustomerData(ref);  // Pass ref to _submitCustomerData
                     },
                     child: loadingCustomerInsertion
                         ? const SizedBox(
@@ -141,7 +166,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     );
   }
 
-  void _submitCustomerData() async {
+  void _submitCustomerData(WidgetRef ref) async {
     if (_nameField.text.isEmpty ||
         _category == null ||
         _status == null ||
@@ -155,7 +180,6 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     }
 
     Map<String, dynamic> customerData = {
-
       'name': _nameField.text,
       'companyId': companyId,
       'category': _category,
@@ -168,18 +192,13 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       'zipCode': _zipCodeField.text,
     };
 
-    print(customerData);
-
-    print('{"name":"Varun","companyId":"66d366272304213be64ebd81","category":"Employee","status":"inActive","phone":"7610144793","email":"wahivarun02@gmail.com","address":"wewew","apartment":"","city":"22","state":"33d","zipCode":"482009"}') ;
-
     try {
-      http.Response response =
-          await _customerRepo.addCompanyCustomer(customerData);
-      print("Response code: ${response.statusCode}");
-
+      http.Response response = await _customerRepo.addCompanyCustomer(customerData);
       if (response.statusCode == 200) {
         dSnackBar(context, "Customer Added Successfully", TypeSnackbar.success);
         clearFields();
+        // Notify the app to refresh customer list
+        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
       } else {
         dSnackBar(context, "Failed to add customer", TypeSnackbar.error);
       }

@@ -37,6 +37,17 @@ const Map<String, Map<String, String>> assetsFilters = {
 
 };
 
+const Map<String, Map<String, String>> customerFilters = {
+  "Sort by": {
+    'Name': 'name',
+    'Status': 'status',
+    'Category': 'category',
+    'Customer ID': 'customerId',
+    'City': 'city',
+    'State': 'state',
+  },
+};
+
 const Map<String, Map<String, dynamic>> workOrderFilters = {
   "Sort by": {
     //!TO FIX COMMANDS
@@ -64,18 +75,6 @@ const Map<String, Map<String, dynamic>> workOrderFilters = {
   // "My Work": {
   //   "Assigned to me": {},
   // }
-};
-
-const Map<String, Map<String, dynamic>> customerFilters = {
-    "Sort by": {
-    'Newest first' : {'Newest first': 1 },
-    'Oldest First' : {'Newest first': -1},
-    'Name (A-Z)': {"name": 1},
-    'Name (Z-A)': {"name": -1},
-    'Category (A-Z)': {"category": 1},
-    'Category (Z-A)': {"category": -1},
-
-  },
 };
 const Map<String, Map<String, dynamic>> inventoryFilters = {
   "Sort by": {

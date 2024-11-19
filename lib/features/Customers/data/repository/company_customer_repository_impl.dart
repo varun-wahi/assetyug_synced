@@ -35,6 +35,15 @@ class CompanyCustomerRepositoryImpl {
     return await http.get(url, headers: await getHeaders());
   }
 
+
+  // Get asset details by ID
+  Future<http.Response> getCompanyCustomerDetails(String id) async {
+    final url = "${companyCustomerEndpoint}getCompanyCustomer/$id";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+
   Future<http.Response> deleteCompanyCustomer(String id) async {
     final url = Uri.parse('${companyCustomerEndpoint}deleteCompanyCustomer/$id');
     return await http.delete(url, headers: await getHeaders());
@@ -78,6 +87,28 @@ class CompanyCustomerRepositoryImpl {
   Future<http.Response> getRoleAndPermission(String id, String name) async {
     final url = Uri.parse('${customerEndpoint}roleAndPermissionByName/get/$id/$name');
     return await http.get(url, headers: await getHeaders());
+  }
+
+    // Add extra fields
+  Future<http.Response> addExtraFieldsWithValue(dynamic data) async {
+    final url = "${companyCustomerEndpoint}addfields";
+    var headers = await getHeaders();
+    return await http.post(Uri.parse(url), body: data, headers: headers);
+  }
+
+    // Add extra fields
+  Future<http.Response> addExtraFieldsName(dynamic data) async {
+    final url = "${companyCustomerEndpoint}addExtraFieldName";
+    var headers = await getHeaders();
+    return await http.post(Uri.parse(url), body: data, headers: headers);
+  }
+
+    // Get extra fields
+  // NEW API
+  Future<http.Response> getExtraFields(String id) async {
+    final url = "${companyCustomerEndpoint}getExtraFields/$id";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
   }
 
   Future<http.Response> advanceFilter(

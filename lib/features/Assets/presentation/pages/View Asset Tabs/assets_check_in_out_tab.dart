@@ -1,8 +1,5 @@
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/assets_check_in_out_model.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/assets_checking_details_model.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
-import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
+import 'package:asset_yug_debugging/features/Assets/data/models/assets_check_in_out_model.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
@@ -51,13 +48,7 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
   @override
   Widget build(BuildContext context) {
     if (checkInOutData.isEmpty) {
-      return const Center(
-        child: SizedBox(
-          height: 30,
-          width: 30,
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const NoDataFoundPage();
     }
 
     return ListView.separated(

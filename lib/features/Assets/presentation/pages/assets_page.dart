@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/loading_animated_container.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
-import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
 import 'package:asset_yug_debugging/config/theme/container_styles.dart';
@@ -54,15 +52,6 @@ class AssetsPage extends ConsumerWidget {
   }
 
   AppBar _buildAppBar(BuildContext context) {
-    // void searchAsset(String serialNumber) {
-    //   print('Searching asset with serial number: $serialNumber');
-      
-
-    //   // Your search logic here
-    //   //navigate to asset page
-    //   //set advance filter serial no
-
-    // }
 
     return AppBar(
       title: const Text("Assets"),
@@ -337,6 +326,8 @@ Future<void> _fetchAssetsPage() async {
 
   void _buildAdvancedFilters() {
     showModalBottomSheet(
+      showDragHandle: true,
+      isScrollControlled: true,
       context: context,
       builder: (BuildContext context) {
         return _buildFilterModalContent();
@@ -349,7 +340,7 @@ Future<void> _fetchAssetsPage() async {
 
   Widget _buildFilterModalContent() {
     return Container(
-      padding: const EdgeInsets.all(2 * dPadding),
+      padding: const EdgeInsets.symmetric(horizontal:  2 * dPadding),
       decoration: const BoxDecoration(
         color: tWhite,
         borderRadius: BorderRadius.only(
@@ -359,13 +350,15 @@ Future<void> _fetchAssetsPage() async {
       ),
       height: 500,
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            _buildFilterModalHeader(),
-            _buildFilterModalBody(),
-            _buildFilterModalFooter(),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              _buildFilterModalHeader(),
+              _buildFilterModalBody(),
+              _buildFilterModalFooter(),
+            ],
+          ),
         ),
       ),
     );
@@ -388,6 +381,7 @@ Future<void> _fetchAssetsPage() async {
   }
 
   Widget _buildFilterModalBody() {
+
     return SizedBox(
       height: 350,
       child: SingleChildScrollView(
@@ -475,11 +469,11 @@ Future<void> _fetchAssetsPage() async {
 
     assetIdController.clear();
     assetNameController.clear();
-    _customer = '';
+    _customer = null;
     serialNumberController.clear();
-    _assetCategory = '';
+    _assetCategory = null;
     locationController.clear();
-    _assetStatus = '';
+    _assetStatus = null;
 
     setState(() {});
 
@@ -495,33 +489,26 @@ Future<void> _fetchAssetsPage() async {
     return const NoDataFoundPage();
   }
 
-  return Container(
-    width: double.infinity,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(dBorderRadius),
-      border: Border.all(color: tGreyLight),
-    ),
-    child: ListView.separated(
-      controller: _scrollController,
-      padding: EdgeInsets.zero,
-      itemCount: assets.length + (hasMore ? 1 : 0), // Add one more item if more assets are available
-      separatorBuilder: (context, index) => const DGap(gap: 8),
-      scrollDirection: Axis.vertical,
-      itemBuilder: (context, index) {
-        if (index < assets.length) {
-          var assetData = AssetsModel.fromJson(
-              jsonDecode(assets.reversed.toList()[index]));
-          return AssetsDetailsCard(data: assetData, ref: ref);
-        } else if (hasMore) {
-          return const Center(child: CircularProgressIndicator()); // Show loading indicator when fetching more assets
-        } else {
-          return const SizedBox.shrink(); // If no more data, show nothing
-        }
-      },
-    ),
+  return ListView.separated(
+    controller: _scrollController,
+    padding: EdgeInsets.zero,
+    itemCount: assets.length + (hasMore ? 1 : 0), // Add one more item if more assets are available
+    separatorBuilder: (context, index) => const DGap(gap: 8),
+    scrollDirection: Axis.vertical,
+    itemBuilder: (context, index) {
+      if (index < assets.length) {
+        var assetData = AssetsModel.fromJson(
+            jsonDecode(assets.reversed.toList()[index]));
+        return assetsDetailsCard(data: assetData, ref: ref);
+      } else if (hasMore) {
+        return const Center(child: CircularProgressIndicator()); // Show loading indicator when fetching more assets
+      } else {
+        return const SizedBox.shrink(); // If no more data, show nothing
+      }
+    },
   );
 }
-  Widget AssetsDetailsCard(
+  Widget assetsDetailsCard(
       {required AssetsModel data, required WidgetRef ref}) {
     return GestureDetector(
       onTap: () async {
@@ -578,7 +565,7 @@ Future<void> _fetchAssetsPage() async {
                   if (value == 'delete') {
                     final assetsRepo = AssetsRepositoryImpl();
                     await assetsRepo.removeAsset(data.id!);
-                    setState(() {
+                    setState(() { 
                       assets.remove(data);
                     });
                     print("deleted asset: ${data.id.toString()}");

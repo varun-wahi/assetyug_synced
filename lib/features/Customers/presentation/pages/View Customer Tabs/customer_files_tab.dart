@@ -1,34 +1,123 @@
-
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/asset_files_model.dart';
-import 'package:asset_yug_debugging/features/Customers/data/models/customers_model.dart';
-import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
-import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
-import 'package:asset_yug_debugging/config/theme/box_shadow_styles.dart';
-import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
-import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/features/Assets/domain/usecases/asset_files_functions.dart';
+import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_details_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:asset_yug_debugging/features/Assets/data/models/asset_files_model.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
+import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
+import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
+import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
+import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
-import '../../../../Assets/domain/usecases/asset_files_functions.dart';
+// Assume you have a provider for AssetsRepositoryImpl
+final customerRepositoryProvider =
+    Provider<CompanyCustomerDetailsService>((ref) => CompanyCustomerDetailsService());
 
-class CustomerFilesPage extends ConsumerWidget {
-  final CustomersModel data;
-  const CustomerFilesPage({super.key, required this.data});
+class CustomerFilesPage extends ConsumerStatefulWidget {
+  final String objectId;
+  const CustomerFilesPage({super.key, required this.objectId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomerFilesPage> createState() => _CustomerFilesPageState();
+}
+
+class _CustomerFilesPageState extends ConsumerState<CustomerFilesPage> {
+  List<AssetFilesModel> files = [];
+  bool isLoading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    print("objectId: ${widget.objectId}");
+    _loadFiles();
+  }
+
+  Future<void> _loadFiles() async {
+    try {
+      final repository = ref.read(customerRepositoryProvider);
+      print("Attempting to load files for objectId: ${widget.objectId}");
+
+      if (widget.objectId == null || widget.objectId.isEmpty) {
+        throw Exception("Invalid objectId: ${widget.objectId}");
+      }
+
+      final response = await repository.getCompanyCustomerFile(widget.objectId);
+      print("Response status code: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        final String responseBody = await response.stream.bytesToString();
+        print("Response body: $responseBody");
+
+        if (responseBody.isNotEmpty) {
+          final List<dynamic> jsonData = json.decode(responseBody);
+          setState(() {
+            files =
+                jsonData.map((data) => AssetFilesModel.fromJson(data)).toList();
+          isLoading = false;
+          });
+          print("Parsed ${files.length} files");
+
+        } else {
+          setState(() {
+            files = [];
+            isLoading = false;
+          });
+          print("No files found");
+        }
+      } else {
+        throw Exception('Failed to load files: ${response.statusCode}');
+      }
+    } catch (e) {
+      print("Error in _loadFiles: $e");
+      setState(() {
+        error = 'Error loading files: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         _buildAddFileRow(context),
-        Expanded(
-          child: _buildFilesList(context, ref, data.companyCustomerId!),
-        ),
+        Expanded(child: _buildFilesList()),
       ],
     );
+  }
+
+  Widget _buildFilesList() {
+    if (isLoading) {
+      return const Center(
+        child:
+            SizedBox(height: 30, width: 30, child: CircularProgressIndicator()),
+      );
+    } else if (error != null) {
+      return Text('Error: $error');
+    } else if (files.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(dPadding),
+          child: ListView.separated(
+            itemCount: files.length,
+            itemBuilder: (context, index) {
+              return _buildFileContainer(data: files[index]);
+            },
+            separatorBuilder: (context, index) {
+              return const DGap();
+            },
+          ),
+        ),
+      );
+    } else {
+      return const NoDataFoundPage();
+    }
   }
 
   SizedBox _buildAddFileRow(BuildContext context) {
@@ -41,9 +130,55 @@ class CustomerFilesPage extends ConsumerWidget {
             width: MediaQuery.sizeOf(context).width / 1.2,
           ),
           IconButton(
-            onPressed: () {
-              //TODO: #1 Add files for customer
-              return dSnackBar(context, "Feature coming soon!", TypeSnackbar.info);
+            onPressed: () async {
+              FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+              if (result != null) {
+                setState(() {
+                  isLoading = true;
+                });
+                File file = File(result.files.single.path!);
+                String fileName = result.files.single.name;
+                print("fileName: $fileName");
+                try {
+                  final repository = ref.read(customerRepositoryProvider);
+                  final response =
+                      await repository.addCompanyCustomerFile(file, widget.objectId);
+
+                  // Read the streamed response
+                  final responseBody = await response.stream.bytesToString();
+                  print('Response body: $responseBody');
+
+                  // Check if the response is valid JSON
+                  try {
+                    final responseData = json.decode(responseBody);
+                    print('Parsed response: $responseData');
+                    // setState(() {
+                    //   isLoading = false;
+                    // });
+                    dSnackBar(context, "File uploaded successfully!",
+                        TypeSnackbar.success);
+                  } catch (jsonError) {
+                    print('Error parsing JSON: $jsonError');
+                    print(
+                        'First character of response: ${responseBody.isNotEmpty ? responseBody[0] : "Empty response"}');
+                    dSnackBar(context, "Unexpected server response",
+                        TypeSnackbar.error);
+                  }
+
+                  // Optionally, refresh the file list
+                  await _loadFiles();
+                } catch (e) {
+                  print('Error uploading file: $e');
+                  setState(() {
+                    isLoading = false;
+                  });
+                  dSnackBar(
+                      context, "Error uploading file: $e", TypeSnackbar.error);
+                }
+              } else {
+                dSnackBar(context, "No file selected", TypeSnackbar.info);
+              }
             },
             alignment: Alignment.center,
             icon: const Icon(Icons.add),
@@ -52,87 +187,58 @@ class CustomerFilesPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  _buildFilesList(BuildContext context, WidgetRef ref, String customerID) {
-    return FutureBuilder(
-        future: AssetsMongoDB.fetchCustomerFiles(int.parse(customerID)),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: SizedBox(
-              height: 50.0,
-              width: 50.0,
-              child: Center(child: CircularProgressIndicator()),
-            ));
-          } else if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          } else {
-            final data = snapshot.data;
-            if (snapshot.hasData && data != null && data.isNotEmpty) {
-              final filesData = snapshot.data;
-              // TODO: #3 ADD ASSET ID ALONG WITH IT
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(dPadding),
-                  child: ListView.separated(
-                    itemCount: filesData!.length,
-                    itemBuilder: (context, index) {
-                      final data = AssetFilesModel.fromJson(filesData[index]);
-                      return _buildFileContainer(data);
-                    },
-                    separatorBuilder: (context, index) {
-                      return const DGap();
-                    },
-                  ),
-                ),
-              );
-            } 
-              return const NoDataFoundPage();
-            
-          }
-        }
-        );
-  }
+class _buildFileContainer extends StatelessWidget {
+  const _buildFileContainer({
+    super.key,
+    required this.data,
+  });
 
-  Container _buildFileContainer(AssetFilesModel data) {
+  final AssetFilesModel data;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: dPadding*2, vertical: dPadding),
-                      decoration: BoxDecoration(
-                      color: tPrimary,
-                        border: Border.all(width: D_BORDER_WIDTH, color: lighterGrey),
-                        // boxShadow: dBoxShadow(),
-                        borderRadius: BorderRadius.circular(dBorderRadius)
+      padding: const EdgeInsets.symmetric(
+          horizontal: dPadding * 2, vertical: dPadding),
 
-                      ),
-                      // height: 40,
-                      width: double.infinity,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            data.fileName.isNotEmpty
-                                ? data.fileName
-                                : "Unnamed File",
-                            textAlign: TextAlign.center,
-                            style: body(weight: FontWeight.w400, size: 16, color: tWhite),
-                          ),
-                          IconButton(
-                              onPressed: () async {
-                                // bool isWaitingToLoadFile = false;
-                                // setState(() {
-                                //   isWaitingToLoadFile = true;
-                                // });
-                                await AssetFilesFunctions(
-                                        binaryString: data.assetFile,
-                                        fileName: data.fileName)
-                                    .downloadAndOpenFile();
-                                // }, icon: isWaitingToLoadFile? const CircularProgressIndicator():const Icon(Icons.download))
-                              },
-                              icon: const Icon(Icons.download),
-                              color: tWhite,
-                              )
-                        ],
-                      ),
-                    );
+      decoration: BoxDecoration(
+          color: tPrimary,
+          border: Border.all(width: D_BORDER_WIDTH, color: lighterGrey),
+          // boxShadow: dBoxShadow(),
+          borderRadius: BorderRadius.circular(dBorderRadius)),
+      // height: 40,
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+
+            child: Text(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              data.fileName.isNotEmpty ? data.fileName : "Unnamed File",
+              textAlign: TextAlign.start,
+              style: body(weight: FontWeight.w400, size: 15, color: tWhite),
+            ),
+          ),
+          IconButton(
+            onPressed: () async {
+              // bool isWaitingToLoadFile = false;
+              // setState(() {
+              //   isWaitingToLoadFile = true;
+              // });
+              await AssetFilesFunctions(
+                      binaryString: data.assetFile, fileName: data.fileName)
+                  .downloadAndOpenFile();
+              // }, icon: isWaitingToLoadFile? const CircularProgressIndicator():const Icon(Icons.download))
+            },
+            icon: const Icon(Icons.download),
+            color: tWhite,
+          )
+        ],
+      ),
+    );
   }
 }

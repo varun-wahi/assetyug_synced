@@ -1,10 +1,3 @@
-import 'dart:convert';
-
-CustomersModel customersModelFromJson(String str) =>
-    CustomersModel.fromJson(json.decode(str));
-
-String customersModelToJson(CustomersModel data) => json.encode(data.toJson());
-
 class CustomersModel {
   String? id;
   String? companyCustomerId;
@@ -38,7 +31,7 @@ class CustomersModel {
 
   factory CustomersModel.fromJson(Map<String, dynamic> json) => CustomersModel(
         id: json["id"],
-        companyCustomerId: json["companyCustomerId"],
+        companyCustomerId: json["companyCustomerId"].toString(),
         name: json["name"],
         companyId: json["companyId"],
         category: json["category"],
@@ -49,7 +42,8 @@ class CustomersModel {
         apartment: json["apartment"],
         city: json["city"],
         state: json["state"],
-        zipCode: json["zipCode"],
+        // Handle both int and String zipCode by converting it to String
+        zipCode: json["zipCode"].toString(),
       );
 
   Map<String, dynamic> toJson() => {

@@ -19,17 +19,24 @@ class CustomerDetailsPage extends StatefulWidget {
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   @override
   Widget build(BuildContext context) {
+    print(widget.data.name);
     return Column(
       children: [
         ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: Container(
-                      color: tOrange,
-                      width: 100,
-                      height: 100,
-                      child: Center(child: Text(extractInitials(widget.data.name!), style: headline(color: tWhite,),)),
-                    ),
-                  ),
+          borderRadius: BorderRadius.circular(50),
+          child: Container(
+            color: tOrange,
+            width: 100,
+            height: 100,
+            child: Center(
+                child: Text(
+              extractInitials(widget.data.name!),
+              style: headline(
+                color: tWhite,
+              ),
+            )),
+          ),
+        ),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(
@@ -42,7 +49,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 DGap(),
                 _buildDetailRow("Customer Name: ", widget.data.name!),
                 const DDivider(),
-                 _buildDetailRow(
+                _buildDetailRow(
                     "Email: ",
                     widget.data.address!.isNotEmpty == true
                         ? widget.data.email!
@@ -53,7 +60,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     widget.data.address!.isNotEmpty == true
                         ? widget.data.phone.toString()
                         : "--"),
-                        const DDivider(),
+                const DDivider(),
                 _buildDetailRow(
                     "Address: ",
                     widget.data.address!.isNotEmpty == true
@@ -87,7 +94,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ? widget.data.category!
                         : "No status data"),
                 const DDivider(),
-               
                 _buildDetailRow(
                     "Status: ",
                     widget.data.status!.isNotEmpty == true
@@ -107,11 +113,22 @@ Row _buildDetailRow(String title, String value) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        title,
-        style: containerText(size: 16, weight: FontWeight.w600),
+      Flexible(
+        child: Text(
+          title,
+          style: containerText(size: 16, weight: FontWeight.w600),
+          maxLines: 2, // Allow up to 2 lines for the title
+          overflow: TextOverflow.ellipsis, // Add ellipsis if text exceeds 2 lines
+        ),
       ),
-      Text(value),
+      const SizedBox(width: 10), // Add some spacing between title and value
+      Flexible(
+        child: Text(
+          value,
+          maxLines: 2, // Allow up to 2 lines for the value
+          overflow: TextOverflow.ellipsis, // Add ellipsis if text exceeds 2 lines
+        ),
+      ),
     ],
   );
 }
