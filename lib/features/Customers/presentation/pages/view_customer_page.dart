@@ -128,9 +128,9 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
                 // Tab(
                 //     child: SizedBox(
                 //         width: 100, child: Center(child: Text("Invoices")))),
-                Tab(
-                    child: SizedBox(
-                        width: 100, child: Center(child: Text("Custom")))),
+                // Tab(
+                //     child: SizedBox(
+                //         width: 100, child: Center(child: Text("Custom")))),
               ]),
           const SizedBox(height: dGap),
           /**
@@ -144,10 +144,10 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
                 CustomerFilesPage(objectId: widget.customerData?['id']),
                 CustomerWOsPage(data: data),
                 // CustomerInvoicesPage(data: data),
-                CustomersCustomPage(
-                  companyId: widget.customerData?['companyId'],
-                  customerId: widget.customerData?['id'],
-                ),
+                // CustomersCustomPage(
+                //   companyId: widget.customerData?['companyId'],
+                //   customerId: widget.customerData?['id'],
+                // ),
               ],
             ),
           ),

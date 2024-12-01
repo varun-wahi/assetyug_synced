@@ -43,7 +43,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
   String? base64Image;
   String? _assetStatus = activeStatusString;
   String? _assetCategory;
-  String? _assetLocation;
   String? _customer;
 
   bool loadingAssetInsertion = false;
@@ -403,7 +402,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
       _assetLocationField.text = '';
       _changeCategoryValue(null);
       _changeCustomerValue(null);
-      _changeStatusValue(null);
+      _changeStatusValue(activeStatusString);
       _image = null;
       _assetCategory = null;
       _customer = null;

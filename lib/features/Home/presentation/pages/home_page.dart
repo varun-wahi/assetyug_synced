@@ -23,6 +23,7 @@ import 'package:intl/intl.dart';
 
 import '../../../Auth/data/repository/firebase_authentication.dart';
 import '../widgets/home_checkedout_out_home.dart';
+import '../widgets/options_section.dart';
 import '../widgets/wo_tile_widget_home.dart';
 
 class HomePage extends StatefulWidget {
@@ -225,15 +226,15 @@ class _HomePageState extends State<HomePage> {
             children: [
               //Greetings
               _buildGreetingsSection(),
-              const SizedBox(
-                height: dPadding * 2,
-              ),
+              const DGap(gap: dPadding * 2),
 
               //quick actions
               _buildQuickActionsSection(),
 
               //Scan or Add Asset Container
-              BuildOptionsSection(context: context,),
+              BuildOptionsSection(
+                context: context,
+              ),
               const DGap(gap: dGap * 2),
 
               const BuildAssetOverviewContainer(),
@@ -368,7 +369,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>  AddCustomerPage(),
+                          builder: (context) => AddCustomerPage(),
                         ));
                   } else {
                     dSnackBar(context, "Feature coming to mobile later.",
@@ -392,138 +393,4 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class BuildOptionsSection extends ConsumerWidget {
-  const BuildOptionsSection({
-    super.key,
-    required this.context,
-  });
 
-  final BuildContext context;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    void searchAsset(String serialNumber) {
-      // Add your search logic here
-      // You can navigate to a new page with the search result if needed
-          // ref.read(tabProvider.notifier).setTab(1);
-      //!TO FIX: TAKE THEM STRAIGHT TO ASSET
-// 
-      Navigator.push(context, MaterialPageRoute(builder: (context) => AssetsPage(serialNumber: serialNumber,),));
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-          color: tWhite,
-          borderRadius: BorderRadius.circular(dBorderRadius),
-          border: Border.all(width: .1, color: lighterGrey)),
-      height: 150,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround, //** */
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ScanCodePage(),
-                        ));
-                  },
-                  child: const Icon(
-                    Icons.qr_code,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Scan Asset",
-                style: body(),
-              )
-            ],
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () async {
-                    // Show the serial search dialog
-                    String? serialNumber =
-                        await SerialSearchDialog.show(context);
-                    if (serialNumber != null && serialNumber.isNotEmpty) {
-                      searchAsset(serialNumber);
-                    }
-                  },
-                  child: const Icon(
-                    Icons.search,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Search Asset",
-                style: body(),
-              )
-            ],
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () {
-                    // Navigate to the second page when the button is pressed
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AddAssetPage()),
-                    );
-                  },
-                  child: const Icon(
-                    Icons.add,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Add Asset",
-                style: body(),
-              )
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

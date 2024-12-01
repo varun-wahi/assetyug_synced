@@ -48,6 +48,7 @@ flutter_native_splash:
   image: assets/images/asset_yug_logo.png  # Path to your splash screen image
   android: true  # Include Android platform
   ios: true  # Include iOS platform
+  web: true
   android_gravity: center  # Gravity for Android splash screen image
   ios_content_mode: scaleAspectFill  # Content mode for iOS splash screen image
   # android_fullscreen: true  # Enable full screen mode for Android

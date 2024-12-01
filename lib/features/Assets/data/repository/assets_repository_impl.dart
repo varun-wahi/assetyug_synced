@@ -65,6 +65,18 @@ class AssetsRepositoryImpl {
     return await http.post(Uri.parse(url), body: companyId, headers: headers);
   }
 
+  Future<http.Response> getActiveAssets(String companyId) async {
+    final url = "${assetEndpoint}getActiveAssets/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  Future<http.Response> getAssetsByCategories(String companyId) async {
+    final url = "${assetEndpoint}getAssetByCategory/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
   // Get extra field name by ID
   Future<http.Response> getExtraFieldName(String id) async {
     final url = "${assetEndpoint}getExtraFieldName/$id";

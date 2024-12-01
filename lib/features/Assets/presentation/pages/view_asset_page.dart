@@ -112,7 +112,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
               Tab(child: SizedBox(width: 100, child: Center(child: Text("Files")))),
               Tab(child: SizedBox(width: 100, child: Center(child: Text("WOs")))),
               // Tab(child: SizedBox(width: 100, child: Center(child: Text("Parts")))),
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("Custom")))),
+              // Tab(child: SizedBox(width: 100, child: Center(child: Text("Custom")))),
             ],
           ),
           const SizedBox(height: dGap),
@@ -126,7 +126,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
 
                 AssetWOsPage(objectId: data.id!),
                 // AssetPartsPage(serialNo: data.assetId),
-                AssetCustomPage(companyId: data.companyId, assetId: data.id!),
+                // AssetCustomPage(companyId: data.companyId, assetId: data.id!),
               ],
             ),
           ),

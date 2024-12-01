@@ -20,8 +20,7 @@ class AssetStatusButton extends ConsumerStatefulWidget {
   final AssetsModel data;
   final WidgetRef ref;
 
-  const AssetStatusButton({Key? key, required this.data, required this.ref})
-      : super(key: key);
+  const AssetStatusButton({super.key, required this.data, required this.ref});
 
   @override
   _AssetStatusButtonState createState() => _AssetStatusButtonState();
