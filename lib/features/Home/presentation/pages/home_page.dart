@@ -1,12 +1,13 @@
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
+import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Work%20Orders/data/repository/work_orders_mongodb.dart';
-import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:badges/badges.dart' as badges;
@@ -16,11 +17,13 @@ import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../Auth/data/repository/firebase_authentication.dart';
 import '../widgets/home_checkedout_out_home.dart';
+import '../widgets/options_section.dart';
 import '../widgets/wo_tile_widget_home.dart';
 
 class HomePage extends StatefulWidget {
@@ -223,18 +226,18 @@ class _HomePageState extends State<HomePage> {
             children: [
               //Greetings
               _buildGreetingsSection(),
-              const SizedBox(
-                height: dPadding * 2,
-              ),
+              const DGap(gap: dPadding * 2),
 
               //quick actions
               _buildQuickActionsSection(),
 
               //Scan or Add Asset Container
-              _buildOptionsSection(context),
+              BuildOptionsSection(
+                context: context,
+              ),
               const DGap(gap: dGap * 2),
 
-              const BuildCheckOutAssetsContainer(),
+              const BuildAssetOverviewContainer(),
 
               const DGap(gap: dGap * 2),
 
@@ -342,129 +345,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Container _buildOptionsSection(BuildContext context) {
-    void searchAsset(String serialNumber) {
-      // Add your search logic here
-      print('Searching asset with serial number: $serialNumber');
-      // You can navigate to a new page with the search result if needed
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-          color: tWhite,
-          borderRadius: BorderRadius.circular(dBorderRadius),
-          border: Border.all(width: .1, color: lighterGrey)),
-      height: 150,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround, //** */
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ScanCodePage(),
-                        ));
-                  },
-                  child: const Icon(
-                    Icons.qr_code,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Scan Asset",
-                style: body(),
-              )
-            ],
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () async {
-                    // Show the serial search dialog
-                    String? serialNumber =
-                        await SerialSearchDialog.show(context);
-                    if (serialNumber != null && serialNumber.isNotEmpty) {
-                      searchAsset(serialNumber);
-                    }
-                  },
-                  child: const Icon(
-                    Icons.search,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Search Asset",
-                style: body(),
-              )
-            ],
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tWhite,
-                      foregroundColor: tBlack,
-                      elevation: 2.0),
-                  onPressed: () {
-                    // Navigate to the second page when the button is pressed
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AddAssetPage()),
-                    );
-                  },
-                  child: const Icon(
-                    Icons.add,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: dPadding,
-              ),
-              Text(
-                "Add Asset",
-                style: body(),
-              )
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Container _buildQuickActionsSection() {
     return Container(
       padding: const EdgeInsets.all(dPadding),
@@ -489,7 +369,7 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const InventoryPage(),
+                          builder: (context) => AddCustomerPage(),
                         ));
                   } else {
                     dSnackBar(context, "Feature coming to mobile later.",
@@ -512,3 +392,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+

@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-
-import 'package:open_file_plus/open_file_plus.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 class AssetFilesFunctions {
@@ -16,9 +15,9 @@ class AssetFilesFunctions {
     try {
       print("REACHED DOWNLOAD FUNC");
       File file = await convertBinaryStringToFile(binaryString, fileName);
-      // Ensure OpenFile.open is awaited
-      final result = await OpenFile.open(file.path);
-      print("File opened with result: ${result.message}");
+      // Using OpenFilex instead of OpenFile
+      final result = await OpenFilex.open(file.path);
+      print("File opened with result: $result");
     } catch (e) {
       print("Error in downloadAndOpenFile: $e");
     }

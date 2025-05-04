@@ -1,19 +1,19 @@
-import 'package:riverpod/riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CustomerSortingNotifier extends StateNotifier<Map<String, int>> {
-  CustomerSortingNotifier() : super({});
+class CustomerSortingNotifier extends StateNotifier<String> {
+  CustomerSortingNotifier() : super('');
 
-  void updateSort(Map<String, int> sortingRule) {
+  void updateSort(String sortingRule) {
     state = sortingRule;
     print("Added sorting rule: $sortingRule");
   }
 
   void clearSort() {
-    state = {};
+    state = '';
   }
 }
 
 final customerSortingProvider =
-    StateNotifierProvider<CustomerSortingNotifier, Map<String, int>>((ref) {
+    StateNotifierProvider<CustomerSortingNotifier, String>((ref) {
   return CustomerSortingNotifier();
 });

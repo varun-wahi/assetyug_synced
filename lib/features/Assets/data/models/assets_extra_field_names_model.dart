@@ -1,11 +1,4 @@
-// To parse this JSON data, do
-//
-//     final AssetExtraFieldNamesModel = AssetExtraFieldNamesModelFromJson(jsonString);
-
-import 'package:meta/meta.dart';
 import 'dart:convert';
-
-import 'package:mongo_dart/mongo_dart.dart';
 
 AssetExtraFieldNamesModel AssetExtraFieldNamesModelFromJson(String str) => AssetExtraFieldNamesModel.fromJson(json.decode(str));
 

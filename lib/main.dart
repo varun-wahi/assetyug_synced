@@ -1,5 +1,3 @@
-import 'package:asset_yug_debugging/features/Home/presentation/pages/home_page.dart';
-import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/pages/splash_screen.dart';
 
 import 'package:asset_yug_debugging/config/theme/light_theme_data.dart';
@@ -31,7 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Login App',
+      title: 'AssetYug',
       theme: lightThemeData,
       // home: const LoginPage(),
       home: const SplashScreen(),

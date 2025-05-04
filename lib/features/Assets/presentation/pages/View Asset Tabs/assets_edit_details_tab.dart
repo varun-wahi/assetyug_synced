@@ -152,6 +152,17 @@ class AssetEditDetailsPage extends ConsumerWidget {
           print("jsonData: $jsonData");
           return Text('Error parsing data: $e');
         }
+      }else{
+        return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(//!TO Fix Here
+                  "Checked in (default state)",
+                  style: containerText(),
+                ),
+                AssetStatusButton(data: assetData, ref: ref)
+              ],
+            );
       }
     }
     return const NoDataFoundPage();

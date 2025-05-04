@@ -1,5 +1,3 @@
-import 'package:asset_yug_debugging/features/Assets/presentation/riverpod/asset_filter_notifier.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/riverpod/asset_sorting_notifier.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/customer_filter_notifier.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/riverpod/customer_sorting_notifier.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
@@ -14,7 +12,7 @@ class CustomerShowFiltersModalSheet {
     BuildContext context,
     String filterKey,
     String? selectedOption, // Track the selected option
-    Map<String, Map<String, dynamic>> pagesFilters,
+    Map<String, Map<String, String>> pagesFilters,  // Ensure values are Map<String, String>
     WidgetRef ref,
   ) {
     print("FilterKey: $filterKey"); // status sort
@@ -55,53 +53,39 @@ class CustomerShowFiltersModalSheet {
                 ...pagesFilters[filterKey]!.keys.map((option) => ListTile(
                       title: Text(option),
                       leading: selectedOption == option
-                          ? Icon(Icons.check_circle, color: Colors.green)
+                          ? const Icon(Icons.check_circle, color: Colors.green)
                           : null,
                       onTap: () {
                         // Handle option selection
                         if (filterKey == "Sort by") {
                           // Handle option selection
                           print('Sorting selected: $option');
-            
+
                           // Access the inner map associated with the selected option
                           final sortOptions = pagesFilters[filterKey] ?? {};
-                          final Map<String, int>? selectedOption =
-                              sortOptions[option];
-            
-                          print("Relevant Map: $selectedOption");
-            
-                          if (selectedOption != null) {
+                          final String? selectedSortValue = sortOptions[option];
+
+                          print("Relevant Sort Option: $selectedSortValue");
+
+                          if (selectedSortValue != null) {
                             ref
                                 .read(customerSortingProvider.notifier)
-                                .updateSort(selectedOption);
-                          } else {
-                            ref
-                                .read(customerFiltersProvider.notifier)
-                                .updateFilter({});
+                                .updateSort(selectedSortValue);
                           }
                         } else {
-                          // Handle option selection
+                          // Handle option selection for filters
                           print('Filter selected: $option');
-            
-                          // Access the inner map associated with the selected option
+
                           final filterOptions = pagesFilters[filterKey] ?? {};
-                          final Map<String, dynamic>? selectedOption =
-                              filterOptions[option];
-            
-                          print("Relevant Map: $selectedOption");
-                          CustomerFilterNotifier notifier = CustomerFilterNotifier();
-            
-                          if (selectedOption != null) {
+                          final String? selectedFilterValue = filterOptions[option];
+
+                          if (selectedFilterValue != null) {
                             ref
                                 .read(customerFiltersProvider.notifier)
-                                .updateFilter(selectedOption);
-                          } else {
-                            ref
-                                .read(customerFiltersProvider.notifier)
-                                .updateFilter({});
+                                .updateFilter({filterKey: selectedFilterValue});
                           }
                         }
-            
+
                         Navigator.pop(context);
                       },
                     )),

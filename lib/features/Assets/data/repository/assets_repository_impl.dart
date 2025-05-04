@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:asset_yug_debugging/config/api_config.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/asset_by_serial_dto_model.dart';
-import 'package:asset_yug_debugging/features/Main/data/data_sources/api_user_data.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
@@ -64,6 +63,18 @@ class AssetsRepositoryImpl {
     final url = "${assetEndpoint}removeAsset";
     var headers = await getHeaders();
     return await http.post(Uri.parse(url), body: companyId, headers: headers);
+  }
+
+  Future<http.Response> getActiveAssets(String companyId) async {
+    final url = "${assetEndpoint}getActiveAssets/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  Future<http.Response> getAssetsByCategories(String companyId) async {
+    final url = "${assetEndpoint}getAssetByCategory/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
   }
 
   // Get extra field name by ID
@@ -174,7 +185,7 @@ class AssetsRepositoryImpl {
   // Advance filter
   //*MAIN
   Future<http.Response> advanceFilter(dynamic data, int pageIndex, int pageSize,
-      String category, String searchData, {String isAsc = 'true'}) async {
+      String category, String? searchData, {String isAsc = 'true'}) async {
     final url =
         // "http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/5/cycle?category='Name'";
 
@@ -331,7 +342,11 @@ class AssetsRepositoryImpl {
   
   Future<http.Response> assetFromSerialNumber(AssetBySerialDTO assetBySerialDTO) async {
     final url = "${assetEndpoint}assetBySerialNumber";
+
     var headers = await getHeaders();
+    print("URL: $url");
+    print("Headers: $headers");
+    print("body: ${json.encode(assetBySerialDTO.toJson())}");
     return await http.post(
       Uri.parse(url),
       headers: headers,

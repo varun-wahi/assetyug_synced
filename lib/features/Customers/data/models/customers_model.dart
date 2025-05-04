@@ -1,50 +1,37 @@
-// To parse this JSON data, do
-//
-//     final welcome = welcomeFromJson(jsonString);
-
-import 'dart:convert';
-import 'package:fixnum/fixnum.dart';
-import 'package:mongo_dart/mongo_dart.dart';
-
-CustomersModel mongoDbModelFromJson(String str) =>
-    CustomersModel.fromJson(json.decode(str));
-
-String mongoDbModelToJson(CustomersModel data) => json.encode(data.toJson());
-
 class CustomersModel {
-    ObjectId id;
-    int companyCustomerId;
-    String name;
-    String companyId;
-    String category;
-    String status;
-    Int64 phone;
-    String email;
-    String address;
-    String apartment;
-    String city;
-    String state;
-    int zipCode;
+  String? id;
+  String? companyCustomerId;
+  String? name;
+  String? companyId;
+  String? category;
+  String? status;
+  String? phone;
+  String? email;
+  String? address;
+  String? apartment;
+  String? city;
+  String? state;
+  String? zipCode;
 
-    CustomersModel({
-        required this.id,
-        required this.companyCustomerId,
-        required this.name,
-        required this.companyId,
-        required this.category,
-        required this.status,
-        required this.phone,
-        required this.email,
-        required this.address,
-        required this.apartment,
-        required this.city,
-        required this.state,
-        required this.zipCode,
-    });
+  CustomersModel({
+    this.id,
+    this.companyCustomerId,
+    this.name,
+    this.companyId,
+    this.category,
+    this.status,
+    this.phone,
+    this.email,
+    this.address,
+    this.apartment,
+    this.city,
+    this.state,
+    this.zipCode,
+  });
 
-    factory CustomersModel.fromJson(Map<String, dynamic> json) => CustomersModel(
-        id: json["_id"],
-        companyCustomerId: json["companyCustomerId"],
+  factory CustomersModel.fromJson(Map<String, dynamic> json) => CustomersModel(
+        id: json["id"],
+        companyCustomerId: json["companyCustomerId"].toString(),
         name: json["name"],
         companyId: json["companyId"],
         category: json["category"],
@@ -55,11 +42,12 @@ class CustomersModel {
         apartment: json["apartment"],
         city: json["city"],
         state: json["state"],
-        zipCode: json["zipCode"],
-    );
+        // Handle both int and String zipCode by converting it to String
+        zipCode: json["zipCode"].toString(),
+      );
 
-    Map<String, dynamic> toJson() => {
-        "_id": id,
+  Map<String, dynamic> toJson() => {
+        "id": id,
         "companyCustomerId": companyCustomerId,
         "name": name,
         "companyId": companyId,
@@ -72,7 +60,5 @@ class CustomersModel {
         "city": city,
         "state": state,
         "zipCode": zipCode,
-    };
+      };
 }
-
-

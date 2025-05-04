@@ -26,7 +26,7 @@ class MainPage extends ConsumerWidget {
     final pages = [
       const HomePage(),
       const AssetsPage(),
-      WorkOrdersPage(),
+      const WorkOrdersPage(),
       const CustomersPage(),
       MoreOptionsPage(),
     ];

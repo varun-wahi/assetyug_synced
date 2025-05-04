@@ -1,4 +1,3 @@
-import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
 import 'package:asset_yug_debugging/features/Customers/data/models/customers_model.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
@@ -20,17 +19,24 @@ class CustomerDetailsPage extends StatefulWidget {
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   @override
   Widget build(BuildContext context) {
+    print(widget.data.name);
     return Column(
       children: [
         ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: Container(
-                      color: tOrange,
-                      width: 100,
-                      height: 100,
-                      child: Center(child: Text(extractInitials(widget.data.name), style: headline(color: tWhite,),)),
-                    ),
-                  ),
+          borderRadius: BorderRadius.circular(50),
+          child: Container(
+            color: tOrange,
+            width: 100,
+            height: 100,
+            child: Center(
+                child: Text(
+              extractInitials(widget.data.name!),
+              style: headline(
+                color: tWhite,
+              ),
+            )),
+          ),
+        ),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(
@@ -41,24 +47,24 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DGap(),
-                _buildDetailRow("Customer Name: ", widget.data.name),
+                _buildDetailRow("Customer Name: ", widget.data.name!),
                 const DDivider(),
-                 _buildDetailRow(
+                _buildDetailRow(
                     "Email: ",
-                    widget.data.address.isNotEmpty == true
-                        ? widget.data.email
+                    widget.data.address!.isNotEmpty == true
+                        ? widget.data.email!
                         : "No location data"),
                 const DDivider(),
                 _buildDetailRow(
                     "Phone: ",
-                    widget.data.address.isNotEmpty == true
+                    widget.data.address!.isNotEmpty == true
                         ? widget.data.phone.toString()
                         : "--"),
-                        const DDivider(),
+                const DDivider(),
                 _buildDetailRow(
                     "Address: ",
-                    widget.data.address.isNotEmpty == true
-                        ? widget.data.address
+                    widget.data.address!.isNotEmpty == true
+                        ? widget.data.address!
                         : "--"),
                 const DDivider(),
                 _buildDetailRow(
@@ -66,14 +72,14 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 const DDivider(),
                 _buildDetailRow(
                     "City: ",
-                    widget.data.city.isNotEmpty == true
-                        ? widget.data.city
+                    widget.data.city!.isNotEmpty == true
+                        ? widget.data.city!
                         : "--"),
                 const DDivider(),
                 _buildDetailRow(
                     "State: ",
-                    widget.data.state.isNotEmpty == true
-                        ? widget.data.state
+                    widget.data.state!.isNotEmpty == true
+                        ? widget.data.state!
                         : "--"),
                 const DDivider(),
                 _buildDetailRow(
@@ -84,15 +90,14 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 const DDivider(),
                 _buildDetailRow(
                     "Category: ",
-                    widget.data.category.isNotEmpty == true
-                        ? widget.data.category
+                    widget.data.category!.isNotEmpty == true
+                        ? widget.data.category!
                         : "No status data"),
                 const DDivider(),
-               
                 _buildDetailRow(
                     "Status: ",
-                    widget.data.status.isNotEmpty == true
-                        ? widget.data.status.toUpperCase()
+                    widget.data.status!.isNotEmpty == true
+                        ? widget.data.status!.toUpperCase()
                         : "No status data"),
                 const DGap(),
               ],
@@ -108,11 +113,22 @@ Row _buildDetailRow(String title, String value) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(
-        title,
-        style: containerText(size: 16, weight: FontWeight.w600),
+      Flexible(
+        child: Text(
+          title,
+          style: containerText(size: 16, weight: FontWeight.w600),
+          maxLines: 2, // Allow up to 2 lines for the title
+          overflow: TextOverflow.ellipsis, // Add ellipsis if text exceeds 2 lines
+        ),
       ),
-      Text(value),
+      const SizedBox(width: 10), // Add some spacing between title and value
+      Flexible(
+        child: Text(
+          value,
+          maxLines: 2, // Allow up to 2 lines for the value
+          overflow: TextOverflow.ellipsis, // Add ellipsis if text exceeds 2 lines
+        ),
+      ),
     ],
   );
 }

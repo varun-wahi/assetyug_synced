@@ -17,7 +17,6 @@ dependencies:
   path_provider: ^2.1.3
   mongo_dart: ^0.10.0
   # open_file: ^3.3.2
-  open_file_plus: ^3.4.1+1
   intl: ^0.19.0
   table_calendar: ^3.1.0
   fixnum: ^1.1.0
@@ -40,6 +39,9 @@ dependencies:
   flutter_riverpod: ^2.5.1
   rxdart: ^0.28.0
   file_picker: ^8.0.7
+  device_info_plus: ^11.2.0
+  universal_io: ^2.2.2
+  open_filex: ^4.7.0
 
 
 
@@ -48,6 +50,7 @@ flutter_native_splash:
   image: assets/images/asset_yug_logo.png  # Path to your splash screen image
   android: true  # Include Android platform
   ios: true  # Include iOS platform
+  web: true
   android_gravity: center  # Gravity for Android splash screen image
   ios_content_mode: scaleAspectFill  # Content mode for iOS splash screen image
   # android_fullscreen: true  # Enable full screen mode for Android

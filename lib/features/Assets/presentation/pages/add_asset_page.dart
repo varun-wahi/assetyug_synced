@@ -7,8 +7,6 @@ import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repos
 import 'package:asset_yug_debugging/features/Auth/data/repository/auth_token_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_names_data.dart';
 import 'package:asset_yug_debugging/features/Assets/data/data_sources/asset_status_data.dart';
-import 'package:asset_yug_debugging/features/Main/data/data_sources/locations_data.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/custom_text_field.dart';
@@ -22,7 +20,6 @@ import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -44,9 +41,8 @@ class _AddAssetPageState extends State<AddAssetPage> {
 
   File? _image;
   String? base64Image;
-  String? _assetStatus;
+  String? _assetStatus = activeStatusString;
   String? _assetCategory;
-  String? _assetLocation;
   String? _customer;
 
   bool loadingAssetInsertion = false;
@@ -406,7 +402,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
       _assetLocationField.text = '';
       _changeCategoryValue(null);
       _changeCustomerValue(null);
-      _changeStatusValue(null);
+      _changeStatusValue(activeStatusString);
       _image = null;
       _assetCategory = null;
       _customer = null;

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/riverpod.dart';
 
 
@@ -18,11 +19,14 @@ class CustomerFilterNotifier extends StateNotifier<Map<String, dynamic>> {
     if (filterKey != null) {
       _selectedFilters[filterKey] = filter.isNotEmpty ? filter.keys.first : null;
     }
+      // Notify the app to refresh the customer list
 
   }
 
   void clearFilters(){
     state = {};
+    _selectedFilters.clear();
+
   }
 }
 

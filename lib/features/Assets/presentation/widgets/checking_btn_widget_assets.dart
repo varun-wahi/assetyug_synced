@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
-import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_names_data.dart';
@@ -11,7 +10,6 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/repository/assets_mongodb.dart';
 import '../../domain/usecases/switch_asset_status_string.dart';
 import '../../data/models/assets_model.dart';
 import '../../../../core/utils/constants/strings.dart';
@@ -22,8 +20,7 @@ class AssetStatusButton extends ConsumerStatefulWidget {
   final AssetsModel data;
   final WidgetRef ref;
 
-  const AssetStatusButton({Key? key, required this.data, required this.ref})
-      : super(key: key);
+  const AssetStatusButton({super.key, required this.data, required this.ref});
 
   @override
   _AssetStatusButtonState createState() => _AssetStatusButtonState();
@@ -84,7 +81,6 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
           return Text('Error: ${snapshot.error}');
         } else if (snapshot.hasData) {
           final assetCheckingStatus = snapshot.data;
-          print("assetCheckingStatus: $assetCheckingStatus for widget ${widget.data.id!}");
 
           return DElevatedButton(
             borderRadius: 30,
@@ -110,37 +106,41 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Check In/Out Details'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              DDropdown(
-                label: "Employee",
-                items: customerNamesMenuItems,
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedEmployee = newValue;
-                  });
-                },
-              ),
-              const DGap(),
-              DTextField(
-                hasLabel: true,
-                hintText: "Notes",
-                maxLines: 3,
-                padding: 0,
-                controller: _notesController,
-              ),
-              const DGap(),
-              DTextField(
-                hasLabel: true,
-                hintText: "Location",
-                padding: 0,
-                controller: _locationController,
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                DDropdown(
+                  label: "Employee",
+                  items: customerNamesMenuItems,
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedEmployee = newValue;
+                    });
+                  },
+                ),
+                const DGap(),
+                DTextField(
+                  hasLabel: true,
+                  hintText: "Notes",
+                  maxLines: 3,
+                  padding: 0,
+                  controller: _notesController,
+                ),
+                const DGap(),
+                DTextField(
+                  hasLabel: true,
+                  hintText: "Location",
+                  padding: 0,
+                  controller: _locationController,
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
-            TextButton(
+
+            TextButton(onPressed: (){Navigator.of(context).pop();}, child: const Text("Cancel")),
+            DElevatedButton(
               child: const Text('Submit'),
               onPressed: () async {
                 Navigator.of(context).pop();
@@ -154,15 +154,12 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   'location': _locationController.text,
                   'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
                 };
-
                 // Call addCheckInOut method
                 final repository = AssetsRepositoryImpl();
                 try {
                   final response = await repository.addCheckInOut(json.encode(data));
                   print("data: $data");
                   if (response.statusCode == 200) {
-                    print("response: ${response.body}");
-                    print('Check in/out successful');
                   } else {
                     print('Failed to check in/out: ${response.body}');
                   }
@@ -178,6 +175,8 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                 }
               },
             ),
+
+            
           ],
         );
       },
