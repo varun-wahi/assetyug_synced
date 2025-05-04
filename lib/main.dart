@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Asset Yug',
+      title: 'AssetYug',
       theme: lightThemeData,
       // home: const LoginPage(),
       home: const SplashScreen(),

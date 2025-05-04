@@ -47,5 +47,14 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+
+		    <!-- Camera Permissions -->
+
+    <key>NSCameraUsageDescription</key>
+<string>We need access to your camera to take car photos.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>We need access to your photo library to upload car photos.</string>
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>We need access to save photos to your photo library.</string>
 	</dict>
 </plist>

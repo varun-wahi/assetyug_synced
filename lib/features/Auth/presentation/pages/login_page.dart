@@ -1,4 +1,3 @@
-
 import 'package:asset_yug_debugging/features/Auth/data/repository/auth_repo_impl.dart';
 import 'package:asset_yug_debugging/features/Auth/data/repository/auth_token_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Auth/data/repository/firebase_authentication.dart';
@@ -7,10 +6,12 @@ import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.da
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
+import 'package:universal_io/io.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     createBox();
+    getDeviceId();
   }
 
   void createBox() async {
@@ -52,87 +54,150 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isSignUpScreen = false;
   bool isRememberMe = false;
+  String? _deviceId;
+
+  Future<void> getDeviceId() async {
+    final deviceInfoPlugin = DeviceInfoPlugin();
+
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        print(androidInfo.id);
+
+        _deviceId = androidInfo.id; // Unique device ID for Android
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        print(iosInfo.identifierForVendor);
+        _deviceId = iosInfo.identifierForVendor; // Unique ID for iOS
+      } else {
+        _deviceId = "Unsupported Platform";
+      }
+    } catch (e) {
+      print("Error fetching device ID: $e");
+      return null;
+    }
+  }
+
+  // New API Method
+  Future<bool> checkSameBrowserAndDevice() async {
+    if (_deviceId == null) {
+      _showErrorSnackBar('Device ID not available');
+      return false;
+    }
+
+    String getUserAgent() {
+      return HttpClient().userAgent ?? "Unknown User Agent";
+    }
+
+    final payload = {
+      "userId": _emailController.text,
+      "deviceId": _deviceId,
+      "userAgent": getUserAgent()
+    };
+    print("Payload: $payload");
+
+    try {
+      final authRepository = AuthRepositoryImpl(httpClient: Client());
+      final isSameDevice = await authRepository.isSameBrowserAndDevice(payload);
+
+      if (isSameDevice) {
+        print('Browser and device match');
+      } else {
+        _showErrorSnackBar('Browser and device do not match');
+      }
+      return isSameDevice;
+    } catch (e) {
+      _showErrorSnackBar('Error: $e');
+      return false;
+    }
+  }
 
 //!OLD METHOD TO SIGN IN USING FIREBASE
   void signInUser() async {
-  if (!isLoading) {
-    setState(() => isLoading = true);
-    
-    try {
-      String res = await AuthServices().loginUser(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      
-      if (res == "success") {
-        await getUserToken();
+    if (!isLoading) {
+      setState(() => isLoading = true);
 
-        if (isRememberMe) {
-          box.put('email', _emailController.text);
-          box.put('password', _passwordController.text);
-          print("Email: ${box.get('email')}");
-          print("Password: ${box.get('password')}");
-        } else {
-          box.clear();
-        }
+      try {
+        const isSameDevice = true;
+        // final isSameDevice = await checkSameBrowserAndDevice();
 
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainPage()),
+        if (isSameDevice) {
+          String res = await AuthServices().loginUser(
+            email: _emailController.text,
+            password: _passwordController.text,
           );
+
+          if (res == "success") {
+            await getUserToken();
+
+            if (isRememberMe) {
+              box.put('email', _emailController.text);
+              box.put('password', _passwordController.text);
+              print("Email: ${box.get('email')}");
+              print("Password: ${box.get('password')}");
+            } else {
+              box.clear();
+            }
+
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const MainPage()),
+              );
+            }
+          } else {
+            _showErrorSnackBar("Please enter the correct credentials");
+          }
+        } else {
+          _showErrorSnackBar("Browser and device do not match");
         }
+      } catch (e) {
+        _showErrorSnackBar(e.toString());
+      } finally {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+      }
+    }
+  }
+
+  Future<void> getUserToken() async {
+    try {
+      final authRepository = AuthRepositoryImpl(httpClient: Client());
+      final userData = await authRepository.login(_emailController.text, _deviceId??"");
+
+      if (userData != null) {
+        box.put('auth_token', userData["token"]);
+        box.put('role', userData["role"]);
+        print("Token: ${box.get('auth_token')}");
+        print("Role: ${box.get('role')}");
+        fetchUserCompanyDetails(_emailController.text);
       } else {
-        _showErrorSnackBar("Please enter the correct credentials");
+        _showErrorSnackBar('Login failed');
       }
     } catch (e) {
       _showErrorSnackBar(e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
     }
   }
-}
 
-Future<void> getUserToken() async {
-  try {
-    final authRepository = AuthRepositoryImpl(httpClient: Client());
-    final userData = await authRepository.login(_emailController.text);
-    
-    if (userData != null) {
-      box.put('auth_token', userData["token"]);
-      box.put('role', userData["role"]);
-      print("Token: ${box.get('auth_token')}");
-      print("Role: ${box.get('role')}");
-      fetchUserCompanyDetails(_emailController.text);
-    } else {
-      _showErrorSnackBar('Login failed');
+  Future<void> fetchUserCompanyDetails(String email) async {
+    final userRepo = AuthTokenRepositoryImpl(httpClient: Client());
+    final companyDetails = await userRepo.getCompanyId(email);
+    box.put('companyId', companyDetails['id']);
+    box.put('companyName', companyDetails['companyName']);
+    //!TEMPORARY PRINT STATEMENTS
+    if (mounted) {
+      dSnackBar(context, "recieved companyId: ${companyDetails['id']}",
+          TypeSnackbar.success);
     }
-  } catch (e) {
-    _showErrorSnackBar(e.toString());
+    print("recieved companyId: ${companyDetails['id']}");
+    print("recieved companyName: ${companyDetails['companyName']}");
   }
-}
 
-Future<void> fetchUserCompanyDetails(String email) async{
-  final userRepo = AuthTokenRepositoryImpl(httpClient: Client());
-  final companyDetails = await userRepo.getCompanyId(email);
-  box.put('companyId', companyDetails['id']);
-  box.put('companyName', companyDetails['companyName']);
-  //!TEMPORARY PRINT STATEMENTS
-  if(mounted){
-    dSnackBar(context, "recieved companyId: ${companyDetails['id']}", TypeSnackbar.success);
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      dSnackBar(context, message, TypeSnackbar.error);
+    }
   }
-  print("recieved companyId: ${companyDetails['id']}" );
-  print("recieved companyName: ${companyDetails['companyName']}" );
-} 
-
-void _showErrorSnackBar(String message) {
-  if (mounted) {
-    dSnackBar(context, message, TypeSnackbar.error);
-  }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +216,7 @@ void _showErrorSnackBar(String message) {
             right: 0,
             child: Container(
               padding: const EdgeInsets.only(top: 10),
-              height: MediaQuery.sizeOf(context).height/2.5,
+              height: MediaQuery.sizeOf(context).height / 2.5,
               decoration: const BoxDecoration(
                 color: tPrimary,
                 borderRadius: BorderRadius.only(
@@ -181,7 +246,7 @@ void _showErrorSnackBar(String message) {
 
           //Main Login Signup Card
           Positioned(
-            top: MediaQuery.sizeOf(context).height/3.2,
+            top: MediaQuery.sizeOf(context).height / 3.2,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeIn,

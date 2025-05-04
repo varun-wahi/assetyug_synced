@@ -12,15 +12,15 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<dynamic> login(String email) async {
-    final response = await httpClient.get(Uri.parse('${ApiConfig.baseUrl}customer/getLoginToken/$email'));
+  Future<dynamic> login(String email, String deviceId) async {
+    final response = await httpClient.get(Uri.parse('${ApiConfig.baseUrl}customer/getLoginToken/$email/$deviceId'));
 
     if (response.statusCode == 200) {
       print("HEREEEE");
       print(response.body);
       return json.decode(response.body);
     } else {
-      throw Exception('Failed to log in');
+      throw Exception('Failed to login');
     }
   }
 
@@ -34,6 +34,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to register');
+    }
+  }
+
+
+  Future<bool> isSameBrowserAndDevice(Map<String, dynamic> payload) async {
+    final response = await httpClient.post(
+      Uri.parse('${ApiConfig.baseUrl}customer/isSameBrowserAndDevice'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(payload),
+    );
+    print("HERE IN isSameBrowser: RESPONSE: ${response.body}");
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as bool;
+    } else {
+      throw Exception('Failed to check if the browser and device are the same');
     }
   }
 

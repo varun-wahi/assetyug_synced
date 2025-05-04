@@ -195,13 +195,15 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         'email': '',
         'companyId': companyId!,
       };
+// http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true
+// http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true
 
       final response = await assetsRepo.advanceFilter(
         json.encode(filterForm),
         currentPage,
         pageSize,
         sortingCategory,
-        searchTerm.isEmpty ? 'null' : searchTerm,
+        searchTerm.isEmpty ? '' : searchTerm,
       );
 
       if (response.statusCode == 200) {
