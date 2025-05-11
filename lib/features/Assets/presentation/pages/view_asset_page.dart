@@ -73,7 +73,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
   Widget build(BuildContext context) {
     var data = AssetsModel.fromJson(widget.assetData!);
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: Column(
         children: [
           TabBar(

@@ -63,13 +63,10 @@ class _AddAssetPageState extends State<AddAssetPage> {
   }
 
   Future<void> _fetchUserInfo() async {
-    final assetsTokenRepo = AuthTokenRepositoryImpl(httpClient: Client());
+    final assetsTokenRepo = AuthTokenRepositoryImpl();
     //!TODO: GET EMAIL ID AUTOMATICALLY
     userEmail = box.get('email');
-    final response = await assetsTokenRepo.getCompanyId(userEmail);
-    companyId = response["id"];
-    print(companyId);
-    print(userEmail);
+    companyId = box.get('companyId');
   }
 
   void createBox() async {

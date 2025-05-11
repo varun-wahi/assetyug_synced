@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../config/api_config.dart';
+
 class CompanyCustomerRepositoryImpl {
-  final String companyCustomerEndpoint = 'http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/companycustomer/';
-  final String customerEndpoint = 'http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/customer/';
+  final String companyCustomerEndpoint = '${ApiConfig.baseUrl}companycustomer/';
+  final String customerEndpoint = '${ApiConfig.baseUrl}customer/';
   
   // Auth token
   
@@ -15,13 +17,17 @@ class CompanyCustomerRepositoryImpl {
   }
 
   // Asynchronous headers getter
-  Future<Map<String, String>> getHeaders() async {
-    String? token = await getAuthToken();
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  } // Replace with your actual auth token retrieval logic
+Future<Map<String, String>> getHeaders() async {
+  final box = await Hive.openBox('auth_data');
+  final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+  final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $authToken',
+    'mobile-id': mobileId,
+  };
+}
 
 
   Future<http.Response> addCompanyCustomer(Map<String, dynamic> data) async {

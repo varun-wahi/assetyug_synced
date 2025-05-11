@@ -3,10 +3,9 @@ import 'package:asset_yug_debugging/features/Inventory/data/repository/inventory
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:uuid/uuid.dart'; // Add this import
 
-import 'MainPage.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,20 +16,34 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
-  
   void initState() {
     super.initState();
     _initializeApp();
-    //test commit
   }
 
   Future<void> _initializeApp() async {
-    // Simulate some initialization process
+    // Initialize Firebase
     await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  
+      options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // Initialize Hive
     await Hive.initFlutter();
+    
+    // Open the auth box
+    final authBox = await Hive.openBox('auth_data');
+    
+    // Check if mobileId exists, if not create and save a new UUID
+    if (!authBox.containsKey('mobileId')) {
+      final uuid = const Uuid().v4(); // Generate a new UUID
+      await authBox.put('mobileId', uuid);
+      print('New mobile ID generated: $uuid');
+    } else {
+      final mobileId = authBox.get('mobileId');
+      print('Existing mobile ID: $mobileId');
+    }
+    
+    // Connect to MongoDB
     await InventoryMongoDB.connect();
 
     // Navigate to the LoginPage after initialization

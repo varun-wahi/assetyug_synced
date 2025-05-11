@@ -250,8 +250,18 @@ Widget _buildAssetCategorySection() {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
-          Text(count, style: boldHeading(size: 16)),
-          Text(label, style: subheading(size: 14)),
+          Text(
+            count,
+            style: boldHeading(size: 16),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          Text(
+            label,
+            style: subheading(size: 14),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ],
       ),
     );
