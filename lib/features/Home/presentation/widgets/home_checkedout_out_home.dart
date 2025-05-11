@@ -283,7 +283,7 @@ Widget _buildAssetCategorySection() {
                       color: tWhite,
                       border: Border.all(color: tGreyLight),
                       borderRadius: BorderRadius.circular(dBorderRadius)),
-                  width: 110,
+                  width: 180,
                   child: _buildTableCell(
                       "CST A${index + 1}", (4 + index).toString()));
             },

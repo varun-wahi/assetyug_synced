@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     
     // Connect to MongoDB
-    await InventoryMongoDB.connect();
+    // await InventoryMongoDB.connect();
 
     // Navigate to the LoginPage after initialization
     Navigator.of(context).pushReplacement(

@@ -5,9 +5,9 @@ import 'package:asset_yug_debugging/features/More%20Options/presentation/pages/m
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/customers_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/home_page.dart';
-import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
-import 'package:asset_yug_debugging/features/Work%20Orders/presentation/pages/work_orders_page.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
+// import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
+// import 'package:asset_yug_debugging/features/Work%20Orders/presentation/pages/work_orders_page.dart';
+// import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
@@ -26,7 +26,7 @@ class MainPage extends ConsumerWidget {
     final pages = [
       const HomePage(),
       const AssetsPage(),
-      const WorkOrdersPage(),
+      // const WorkOrdersPage(),
       const CustomersPage(),
       MoreOptionsPage(),
     ];
@@ -62,8 +62,8 @@ class MainPage extends ConsumerWidget {
                   icon: Icon(Icons.home_filled), label: "Home"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.account_balance_wallet), label: "Assets"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.work), label: "Work Orders"),
+              // BottomNavigationBarItem(
+              //     icon: Icon(Icons.work), label: "Work Orders"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.people_alt), label: "Customers"),
               BottomNavigationBarItem(icon: Icon(Icons.menu), label: "More"),

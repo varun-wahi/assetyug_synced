@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _fetchCompanyName();
-    _connectToDb();
+    // _connectToDb();
   }
 
   Future<void> _fetchCompanyName() async {
@@ -60,7 +60,7 @@ class _HomePageState extends State<HomePage> {
     try {
       await WorkOrdersMongodb.connect();
       await AssetsMongoDB.connect();
-      // print("Connected to both DBs");
+      print("Connected to both DBs");
 
       if (mounted) {
         setState(() {
@@ -242,7 +242,7 @@ class _HomePageState extends State<HomePage> {
               const DGap(gap: dGap * 2),
 
               //Work Orders by status
-              _buildWoCategorisedSection(),
+              // _buildWoCategorisedSection(),
 
               //Checked Out Assets
 

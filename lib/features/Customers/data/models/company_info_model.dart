@@ -4,7 +4,6 @@
 
 import 'dart:convert';
 
-import 'package:mongo_dart/mongo_dart.dart';
 
 CompanyInfoModel mongoDbModelFromJson(String str) =>
     CompanyInfoModel.fromJson(json.decode(str));
