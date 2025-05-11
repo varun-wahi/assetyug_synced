@@ -4,14 +4,14 @@
 
 import 'dart:convert';
 
-import 'package:mongo_dart/mongo_dart.dart';
+// import 'package:mongo_dart/mongo_dart.dart';
 
 WorkOrdersModel mongoDbWorkOrdersModelFromJson(String str) => WorkOrdersModel.fromJson(json.decode(str));
 
 String mongoDbWorkOrdersModelToJson(WorkOrdersModel data) => json.encode(data.toJson());
 
 class WorkOrdersModel {
-    ObjectId id;
+    String id;
     String description;
     String customerName;
     String status;

@@ -8,20 +8,31 @@ import 'package:rxdart/rxdart.dart';
 
 class AssetsRepositoryImpl {
 
-  // Function to get the auth token from Hive
-  Future<String?> getAuthToken() async {
-    var box = await Hive.openBox('auth_data');
-    return box.get('auth_token');
-  }
 
-  // Asynchronous headers getter
-  Future<Map<String, String>> getHeaders() async {
-    String? token = await getAuthToken();
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  }
+
+
+Future<Map<String, String>> getHeaders() async {
+  final box = await Hive.openBox('auth_data');
+  final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+  final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $authToken',
+    'mobile-id': mobileId,
+  };
+}
+
+
+
+  // // Asynchronous headers getter
+  // Future<Map<String, String>> getHeaders() async {
+  //   String? token = await getAuthToken();
+  //   return {
+  //     'Authorization': 'Bearer $token',
+  //     'Content-Type': 'application/json',
+  //   };
+  // }
 
   // Endpoints
   String get customerEndpoint => "${ApiConfig.baseUrl}customer/";

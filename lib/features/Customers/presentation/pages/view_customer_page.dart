@@ -74,7 +74,7 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
   Widget build(BuildContext context) {
     var data = CustomersModel.fromJson(widget.customerData!);
     return DefaultTabController(
-      length: 5,
+      length: 4,
       // length: 6,
       child: Column(
         children: [

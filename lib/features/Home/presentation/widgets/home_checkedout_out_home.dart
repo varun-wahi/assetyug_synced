@@ -250,8 +250,18 @@ Widget _buildAssetCategorySection() {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
-          Text(count, style: boldHeading(size: 16)),
-          Text(label, style: subheading(size: 14)),
+          Text(
+            count,
+            style: boldHeading(size: 16),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+          Text(
+            label,
+            style: subheading(size: 14),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ],
       ),
     );
@@ -273,7 +283,7 @@ Widget _buildAssetCategorySection() {
                       color: tWhite,
                       border: Border.all(color: tGreyLight),
                       borderRadius: BorderRadius.circular(dBorderRadius)),
-                  width: 110,
+                  width: 180,
                   child: _buildTableCell(
                       "CST A${index + 1}", (4 + index).toString()));
             },

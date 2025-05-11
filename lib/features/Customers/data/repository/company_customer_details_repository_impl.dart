@@ -16,13 +16,18 @@ class CompanyCustomerDetailsService {
   }
 
   // Asynchronous headers getter
-  Future<Map<String, String>> getHeaders() async {
-    String? token = await getAuthToken();
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  }
+   // Asynchronous headers getter
+Future<Map<String, String>> getHeaders() async {
+  final box = await Hive.openBox('auth_data');
+  final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+  final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
+
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $authToken',
+    'mobile-id': mobileId,
+  };
+}
 
   // Update Company Customer
   Future<http.Response> updateCompanyCustomer(Map<String, dynamic> data) async {

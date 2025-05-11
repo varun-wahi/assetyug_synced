@@ -10,7 +10,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
-import 'package:http/http.dart';
 import 'package:universal_io/io.dart';
 
 class LoginPage extends StatefulWidget {
@@ -23,6 +22,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  AuthRepositoryImpl authRepository =
+      AuthRepositoryImpl();
+  AuthTokenRepositoryImpl authTokenRepository =
+      AuthTokenRepositoryImpl();
 
   //HIVE REMEMBER ME LOGIN
   late Box box;
@@ -78,39 +82,39 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // New API Method
-  Future<bool> checkSameBrowserAndDevice() async {
-    if (_deviceId == null) {
-      _showErrorSnackBar('Device ID not available');
-      return false;
-    }
+  // // New API Method
+  // Future<bool> checkSameBrowserAndDevice() async {
+  //   // if (_deviceId == null) {
+  //   //   _showErrorSnackBar('Device ID not available');
+  //   //   return false;
+  //   // }
 
-    String getUserAgent() {
-      return HttpClient().userAgent ?? "Unknown User Agent";
-    }
+  //   String getUserAgent() {
+  //     return HttpClient().userAgent ?? "Unknown User Agent";
+  //   }
 
-    final payload = {
-      "userId": _emailController.text,
-      "deviceId": _deviceId,
-      "userAgent": getUserAgent()
-    };
-    print("Payload: $payload");
+  //   final payload = {
+  //     "userId": _emailController.text,
+  //     // "deviceId": _deviceId,
+  //     "userAgent": getUserAgent()
+  //   };
+  //   print("Payload: $payload");
 
-    try {
-      final authRepository = AuthRepositoryImpl(httpClient: Client());
-      final isSameDevice = await authRepository.isSameBrowserAndDevice(payload);
+  //   try {
+  //     final authRepository = AuthRepositoryImpl();
+  //     final isSameDevice = await authRepository.isSameBrowserAndDevice(payload);
 
-      if (isSameDevice) {
-        print('Browser and device match');
-      } else {
-        _showErrorSnackBar('Browser and device do not match');
-      }
-      return isSameDevice;
-    } catch (e) {
-      _showErrorSnackBar('Error: $e');
-      return false;
-    }
-  }
+  //     if (isSameDevice) {
+  //       print('Browser and device match');
+  //     } else {
+  //       _showErrorSnackBar('Browser and device do not match');
+  //     }
+  //     return isSameDevice;
+  //   } catch (e) {
+  //     _showErrorSnackBar('Error: $e');
+  //     return false;
+  //   }
+  // }
 
 //!OLD METHOD TO SIGN IN USING FIREBASE
   void signInUser() async {
@@ -119,7 +123,12 @@ class _LoginPageState extends State<LoginPage> {
 
       try {
         const isSameDevice = true;
-        // final isSameDevice = await checkSameBrowserAndDevice();
+        // final isSameDevice = await authTokenRepository.isSameDevice(_emailController.text,_deviceId!);
+        await getUserToken();
+        print("FETCHING COMPANY DETAILS");
+        await fetchUserCompanyDetails(_emailController.text);
+           
+        // if false remove session
 
         if (isSameDevice) {
           String res = await AuthServices().loginUser(
@@ -128,7 +137,15 @@ class _LoginPageState extends State<LoginPage> {
           );
 
           if (res == "success") {
-            await getUserToken();
+            // final response = await authRepository.getLoginToken(_emailController.text,  _passwordController.text);
+            // if(response['statusCode'] == 200) {
+            //    await fetchUserCompanyDetails(_emailController.text);
+          
+            // } else {
+            //   _showErrorSnackBar('Login failed');
+            // }
+       
+
 
             if (isRememberMe) {
               box.put('email', _emailController.text);
@@ -162,15 +179,13 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> getUserToken() async {
     try {
-      final authRepository = AuthRepositoryImpl(httpClient: Client());
-      final userData = await authRepository.login(_emailController.text, _deviceId??"");
+      final userData = await authRepository.getLoginToken(_emailController.text, _passwordController.text);
 
       if (userData != null) {
         box.put('auth_token', userData["token"]);
         box.put('role', userData["role"]);
         print("Token: ${box.get('auth_token')}");
         print("Role: ${box.get('role')}");
-        fetchUserCompanyDetails(_emailController.text);
       } else {
         _showErrorSnackBar('Login failed');
       }
@@ -180,17 +195,21 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> fetchUserCompanyDetails(String email) async {
-    final userRepo = AuthTokenRepositoryImpl(httpClient: Client());
-    final companyDetails = await userRepo.getCompanyId(email);
+    final companyDetails = await authTokenRepository.getCompanyId(email);
+    print("COMPANY DETAILS: $companyDetails");
+    if (companyDetails == null) {
+      _showErrorSnackBar('Failed to fetch company details');
+      return;
+    }
     box.put('companyId', companyDetails['id']);
     box.put('companyName', companyDetails['companyName']);
     //!TEMPORARY PRINT STATEMENTS
-    if (mounted) {
-      dSnackBar(context, "recieved companyId: ${companyDetails['id']}",
-          TypeSnackbar.success);
-    }
-    print("recieved companyId: ${companyDetails['id']}");
-    print("recieved companyName: ${companyDetails['companyName']}");
+    // if (mounted) {
+      // dSnackBar(context, "recieved companyId: ${companyDetails['id']}",
+          // TypeSnackbar.success);
+    // }
+    // print("recieved companyId: ${companyDetails['id']}");
+    // print("recieved companyName: ${companyDetails['companyName']}");
   }
 
   void _showErrorSnackBar(String message) {
