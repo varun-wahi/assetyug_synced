@@ -84,7 +84,7 @@ class _CustomersSearchAndListState
   static const int pageSize = 10;
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
-  String? companyId;
+  int? companyId;
   Timer? _debounce;
 
   final customerNameController = TextEditingController();

@@ -76,13 +76,13 @@ Future<Map<String, String>> getHeaders() async {
     return await http.post(Uri.parse(url), body: companyId, headers: headers);
   }
 
-  Future<http.Response> getActiveAssets(String companyId) async {
+  Future<http.Response> getActiveAssets(int companyId) async {
     final url = "${assetEndpoint}getActiveAssets/$companyId";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-  Future<http.Response> getAssetsByCategories(String companyId) async {
+  Future<http.Response> getAssetsByCategories(int companyId) async {
     final url = "${assetEndpoint}getAssetByCategory/$companyId";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
@@ -341,7 +341,7 @@ Future<Map<String, String>> getHeaders() async {
       // Adding new APIs
 
 
-  Future<dynamic> checkInCheckOutCount(String companyId) async {
+  Future<dynamic> checkInCheckOutCount(int companyId) async {
     final response = await http.get(
       Uri.parse('${assetEndpoint}checkInOutCount/$companyId'),
       headers: await getHeaders(),

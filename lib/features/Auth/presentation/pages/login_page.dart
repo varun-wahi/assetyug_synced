@@ -116,7 +116,7 @@ class _LoginPageState extends State<LoginPage> {
   //   }
   // }
 
-//!OLD METHOD TO SIGN IN USING FIREBASE
+
   void signInUser() async {
     if (!isLoading) {
       setState(() => isLoading = true);
@@ -127,7 +127,19 @@ class _LoginPageState extends State<LoginPage> {
         await getUserToken();
         print("FETCHING COMPANY DETAILS");
         await fetchUserCompanyDetails(_emailController.text);
-           
+
+        // Call addLoggedInMobile
+        try {
+          final userAgent = HttpClient().userAgent ?? "Unknown User Agent";
+          await authTokenRepository.addLoggedInMobile(
+            userId: _emailController.text,
+            mobileId: _deviceId ?? "Unknown Device",
+            userAgent: userAgent,
+          );
+        } catch (e) {
+          print("Failed to add logged in mobile session: $e");
+        }
+
         // if false remove session
 
         if (isSameDevice) {
@@ -137,16 +149,6 @@ class _LoginPageState extends State<LoginPage> {
           );
 
           if (res == "success") {
-            // final response = await authRepository.getLoginToken(_emailController.text,  _passwordController.text);
-            // if(response['statusCode'] == 200) {
-            //    await fetchUserCompanyDetails(_emailController.text);
-          
-            // } else {
-            //   _showErrorSnackBar('Login failed');
-            // }
-       
-
-
             if (isRememberMe) {
               box.put('email', _emailController.text);
               box.put('password', _passwordController.text);
@@ -193,7 +195,6 @@ class _LoginPageState extends State<LoginPage> {
       _showErrorSnackBar(e.toString());
     }
   }
-
   Future<void> fetchUserCompanyDetails(String email) async {
     final companyDetails = await authTokenRepository.getCompanyId(email);
     print("COMPANY DETAILS: $companyDetails");

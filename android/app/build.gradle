@@ -27,7 +27,8 @@ if (flutterVersionName == null) {
 android {
     namespace = "com.example.asset_yug_debugging"
     // Change to 34 if you're having issues with AGP compatibility
-    compileSdk = 34
+    // compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -44,7 +45,8 @@ android {
         
         // Using 23 as minimum SDK since you specified that
         minSdkVersion 23
-        targetSdk = flutter.targetSdkVersion
+        // targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }

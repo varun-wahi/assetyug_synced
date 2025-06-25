@@ -99,7 +99,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   static const int pageSize = 10; // Increased page size for better performance
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
-  String? companyId;
+  int? companyId;
   Timer? _debounce;
 
   final assetIdController = TextEditingController();
