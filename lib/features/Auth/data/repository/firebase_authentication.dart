@@ -1,12 +1,11 @@
+import 'package:asset_yug_debugging/features/Auth/data/repository/auth_token_repository_impl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 
-import '../../presentation/pages/login_page.dart';
 
 class AuthServices{
   //for authentication
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final AuthTokenRepositoryImpl _authTokenRepository = AuthTokenRepositoryImpl();
 
 
 //      FOR LOGIN
@@ -36,7 +35,8 @@ Future<String> loginUser({required String email, required String password}) asyn
   return res; 
 }
 
-Future<void> logoutUser() async {
+Future<void> logoutUser(String userId) async {
+    await _authTokenRepository.removeSession(userId);
     await _auth.signOut();
   }
 

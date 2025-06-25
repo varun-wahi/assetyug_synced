@@ -4,18 +4,19 @@ import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
 
 class AuthTokenRepositoryImpl {
-  late final String _mobileId;
-  late final String _authToken;
+  String? _mobileId;
+  String? _authToken;
+  bool _isInitialized = false;
 
-  AuthTokenRepositoryImpl() {
-    _init();
-  }
+  AuthTokenRepositoryImpl();
 
-  Future<void> _init() async {
-    final box = await Hive.openBox('auth_data');
-    _mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
-    _authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
-      // Function to get the auth token from Hive
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized) {
+      final box = await Hive.openBox('auth_data');
+      _mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+      _authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
+      _isInitialized = true;
+    }
   }
 
   Future<String?> getAuthToken() async {
@@ -23,28 +24,30 @@ class AuthTokenRepositoryImpl {
     return box.get('auth_token');
   }
 
-
-
   Future<Map<String, String>> _getHeaders() async {
-    if (_mobileId.isEmpty) {
+    await _ensureInitialized();
+    
+    if (_mobileId == null || _mobileId!.isEmpty || _mobileId == 'UNKNOWN_MOBILE_ID') {
       final box = await Hive.openBox('auth_data');
       String? token = await getAuthToken();
       return {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
+        // 'Authorization': 'Bearer $token',
         'mobile-id': box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID'),
       };
     } else {
       return {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_authToken',
-        'mobile-id': _mobileId,
+        // 'Authorization': 'Bearer $_authToken',
+        'mobile-id': _mobileId!,
       };
     }
   }
 
-    Future<Map<String, String>> _getBasicHeaders() async {
-    if (_mobileId.isEmpty) {
+  Future<Map<String, String>> _getBasicHeaders() async {
+    await _ensureInitialized();
+    
+    if (_mobileId == null || _mobileId!.isEmpty || _mobileId == 'UNKNOWN_MOBILE_ID') {
       final box = await Hive.openBox('auth_data');
       String? token = await getAuthToken();
       return {
@@ -61,22 +64,17 @@ class AuthTokenRepositoryImpl {
     }
   }
 
-
-
-
   Future<dynamic> isSameDevice(String email, String deviceId) async {
     final headers = await _getBasicHeaders();
     print(headers);
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}customer/isSameDevice'),
-      // headers: headers,
-      headers:headers,
+      headers: headers,
       body: json.encode({'userId': email, 'mobileId': deviceId, 'userAgent': deviceId}),
     );
-      // print('${ApiConfig.baseUrl}customer/isSameDevice') ;
-      // print("ERRORR  "+ response.statusCode.toString() + " " + response.body);
-      // print({'userId': email, 'mobileId': deviceId, 'userAgent': deviceId});
-
+    // print('${ApiConfig.baseUrl}customer/isSameDevice') ;
+    // print("ERRORR  "+ response.statusCode.toString() + " " + response.body);
+    // print({'userId': email, 'mobileId': deviceId, 'userAgent': deviceId});
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
@@ -149,21 +147,27 @@ class AuthTokenRepositoryImpl {
 
   Future<void> addLoggedInMobile({
     required String userId,
-    required String mobileId,
     required String userAgent,
   }) async {
     final headers = await _getHeaders();
     final body = json.encode({
       'userId': userId,
-      'mobileId': mobileId,
+      'mobileId': _mobileId,
       'userAgent': userAgent,
     });
+
+    print('addLoggedInMobile - URL: ${ApiConfig.baseUrl}customer/addLoggedInMobile');
+    print('addLoggedInMobile - Headers: $headers');
+    print('addLoggedInMobile - Body: $body');
 
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}customer/addLoggedInMobile'),
       headers: headers,
       body: body,
     );
+
+    print('addLoggedInMobile - Status Code: ${response.statusCode}');
+    print('addLoggedInMobile - Response Body: ${response.body}');
 
     if (response.statusCode != 200) {
       throw Exception('Failed to add logged in mobile session');
@@ -172,10 +176,17 @@ class AuthTokenRepositoryImpl {
 
   Future<void> removeSession(String userId) async {
     final headers = await _getHeaders();
+    final url = '${ApiConfig.baseUrl}customer/removeSession/$userId';
+    print('removeSession - URL: $url');
+    print('removeSession - Headers: $headers');
+
     final response = await http.delete(
-      Uri.parse('${ApiConfig.baseUrl}customer/removeSession/$userId'),
+      Uri.parse(url),
       headers: headers,
     );
+
+    print('removeSession - Status Code: ${response.statusCode}');
+    print('removeSession - Response Body: ${response.body}');
 
     if (response.statusCode != 200) {
       throw Exception('Failed to remove session');

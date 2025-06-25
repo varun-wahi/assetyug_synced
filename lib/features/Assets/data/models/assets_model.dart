@@ -51,7 +51,7 @@ class AssetsModel {
     status: json["status"] ?? 'Not Specified',
     category: json["category"] ?? 'Not Specified',
     image: json["image"],
-    companyId: json["companyId"] ?? '66cb7047b00e537755e4d878',
+    companyId: json["companyId"].toString() ?? '66cb7047b00e537755e4d878',
   );
 
   // Update toJson method as well

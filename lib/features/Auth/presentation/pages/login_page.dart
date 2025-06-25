@@ -11,208 +11,262 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:universal_io/io.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  // Controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _companyNameController = TextEditingController();
 
-  AuthRepositoryImpl authRepository =
-      AuthRepositoryImpl();
-  AuthTokenRepositoryImpl authTokenRepository =
+  // Form key for validation
+  final _formKey = GlobalKey<FormState>();
+
+  // Repositories
+  final AuthRepositoryImpl _authRepository = AuthRepositoryImpl();
+  final AuthTokenRepositoryImpl _authTokenRepository =
       AuthTokenRepositoryImpl();
 
-  //HIVE REMEMBER ME LOGIN
-  late Box box;
+  // Hive box
+  late Box _box;
+
+  // State variables
+  bool _isLoading = false;
+  bool _isSignUpScreen = false;
+  bool _isRememberMe = false;
+  String? _deviceId;
+  String? mobileId;
 
   @override
   void initState() {
     super.initState();
-    createBox();
-    getDeviceId();
+    _initializeApp();
   }
 
-  void createBox() async {
-    box = await Hive.openBox('auth_data');
-    getData();
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _companyNameController.dispose();
+    super.dispose();
   }
 
-  void getData() async {
-    if (box.get('email') != null && box.get('password') != null) {
+  // Initialize app
+  Future<void> _initializeApp() async {
+    await _createBox();
+    await _getDeviceId();
+  }
+
+  // Initialize Hive box
+  Future<void> _createBox() async {
+    try {
+      _box = await Hive.openBox('auth_data');
+      _loadSavedData();
+    } catch (e) {
+      _showErrorSnackBar('Failed to initialize storage: $e');
+    }
+  }
+
+  // Load saved login data
+  void _loadSavedData() {
+    final savedEmail = _box.get('email');
+    final savedPassword = _box.get('password');
+
+    if (savedEmail != null && savedPassword != null) {
       setState(() {
-        _emailController.text = box.get('email');
-        _passwordController.text = box.get('password');
-        isRememberMe = true;
+        _emailController.text = savedEmail;
+        _passwordController.text = savedPassword;
+        _isRememberMe = true;
       });
     }
   }
-  //HIVE ENDS
 
-  bool isLoading = false;
-
-  bool isSignUpScreen = false;
-  bool isRememberMe = false;
-  String? _deviceId;
-
-  Future<void> getDeviceId() async {
+  // Get device ID
+  Future<void> _getDeviceId() async {
     final deviceInfoPlugin = DeviceInfoPlugin();
 
     try {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfoPlugin.androidInfo;
-        print(androidInfo.id);
-
-        _deviceId = androidInfo.id; // Unique device ID for Android
+        _deviceId = androidInfo.id;
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfoPlugin.iosInfo;
-        print(iosInfo.identifierForVendor);
-        _deviceId = iosInfo.identifierForVendor; // Unique ID for iOS
+        _deviceId = iosInfo.identifierForVendor;
       } else {
         _deviceId = "Unsupported Platform";
       }
     } catch (e) {
-      print("Error fetching device ID: $e");
-      return null;
+      _deviceId = "Unknown Device";
     }
   }
 
-  // // New API Method
-  // Future<bool> checkSameBrowserAndDevice() async {
-  //   // if (_deviceId == null) {
-  //   //   _showErrorSnackBar('Device ID not available');
-  //   //   return false;
-  //   // }
-
-  //   String getUserAgent() {
-  //     return HttpClient().userAgent ?? "Unknown User Agent";
-  //   }
-
-  //   final payload = {
-  //     "userId": _emailController.text,
-  //     // "deviceId": _deviceId,
-  //     "userAgent": getUserAgent()
-  //   };
-  //   print("Payload: $payload");
-
-  //   try {
-  //     final authRepository = AuthRepositoryImpl();
-  //     final isSameDevice = await authRepository.isSameBrowserAndDevice(payload);
-
-  //     if (isSameDevice) {
-  //       print('Browser and device match');
-  //     } else {
-  //       _showErrorSnackBar('Browser and device do not match');
-  //     }
-  //     return isSameDevice;
-  //   } catch (e) {
-  //     _showErrorSnackBar('Error: $e');
-  //     return false;
-  //   }
-  // }
-
-
-  void signInUser() async {
-    if (!isLoading) {
-      setState(() => isLoading = true);
-
-      try {
-        const isSameDevice = true;
-        // final isSameDevice = await authTokenRepository.isSameDevice(_emailController.text,_deviceId!);
-        await getUserToken();
-        print("FETCHING COMPANY DETAILS");
-        await fetchUserCompanyDetails(_emailController.text);
-
-        // Call addLoggedInMobile
-        try {
-          final userAgent = HttpClient().userAgent ?? "Unknown User Agent";
-          await authTokenRepository.addLoggedInMobile(
-            userId: _emailController.text,
-            mobileId: _deviceId ?? "Unknown Device",
-            userAgent: userAgent,
-          );
-        } catch (e) {
-          print("Failed to add logged in mobile session: $e");
-        }
-
-        // if false remove session
-
-        if (isSameDevice) {
-          String res = await AuthServices().loginUser(
-            email: _emailController.text,
-            password: _passwordController.text,
-          );
-
-          if (res == "success") {
-            if (isRememberMe) {
-              box.put('email', _emailController.text);
-              box.put('password', _passwordController.text);
-              print("Email: ${box.get('email')}");
-              print("Password: ${box.get('password')}");
-            } else {
-              box.clear();
-            }
-
-            if (mounted) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const MainPage()),
-              );
-            }
-          } else {
-            _showErrorSnackBar("Please enter the correct credentials");
-          }
-        } else {
-          _showErrorSnackBar("Browser and device do not match");
-        }
-      } catch (e) {
-        _showErrorSnackBar(e.toString());
-      } finally {
-        if (mounted) {
-          setState(() => isLoading = false);
-        }
-      }
+  // Validate input fields
+  bool _validateInputs() {
+    if (!_formKey.currentState!.validate()) {
+      return false;
     }
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty) {
+      _showErrorSnackBar('Please enter your email');
+      return false;
+    }
+
+    if (!_isValidEmail(email)) {
+      _showErrorSnackBar('Please enter a valid email address');
+      return false;
+    }
+
+    if (password.isEmpty) {
+      _showErrorSnackBar('Please enter your password');
+      return false;
+    }
+
+    if (password.length < 6) {
+      _showErrorSnackBar('Password must be at least 6 characters');
+      return false;
+    }
+
+    return true;
   }
 
-  Future<void> getUserToken() async {
+  // Email validation
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  // Main sign in method
+  Future<void> _signInUser() async {
+    if (_isLoading) return;
+
+    if (!_validateInputs()) return;
+
+    setState(() => _isLoading = true);
+
     try {
-      final userData = await authRepository.getLoginToken(_emailController.text, _passwordController.text);
+      // Step 1: Validate credentials
+      final loginResult = await AuthServices().loginUser(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-      if (userData != null) {
-        box.put('auth_token', userData["token"]);
-        box.put('role', userData["role"]);
-        print("Token: ${box.get('auth_token')}");
-        print("Role: ${box.get('role')}");
-      } else {
-        _showErrorSnackBar('Login failed');
+      if (loginResult != "success") {
+        _showErrorSnackBar("Invalid email or password");
+        return;
+      }
+
+      // Step 2: Check device compatibility
+      final isSameDevice = await _checkDeviceCompatibility();
+      if (!isSameDevice) {
+        _showErrorSnackBar("Device verification failed");
+        return;
+      }
+
+      // Step 3: Get authentication token
+      await _getUserToken();
+
+      // Step 4: Fetch company details
+      await _fetchUserCompanyDetails();
+
+      // Step 5: Log mobile session
+      await _logMobileSession();
+
+      // Step 6: Handle remember me
+      _handleRememberMe();
+
+      // Step 7: Navigate to main page
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
       }
     } catch (e) {
-      _showErrorSnackBar(e.toString());
+      _showErrorSnackBar('Login failed: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-  }
-  Future<void> fetchUserCompanyDetails(String email) async {
-    final companyDetails = await authTokenRepository.getCompanyId(email);
-    print("COMPANY DETAILS: $companyDetails");
-    if (companyDetails == null) {
-      _showErrorSnackBar('Failed to fetch company details');
-      return;
-    }
-    box.put('companyId', companyDetails['id']);
-    box.put('companyName', companyDetails['companyName']);
-    //!TEMPORARY PRINT STATEMENTS
-    // if (mounted) {
-      // dSnackBar(context, "recieved companyId: ${companyDetails['id']}",
-          // TypeSnackbar.success);
-    // }
-    // print("recieved companyId: ${companyDetails['id']}");
-    // print("recieved companyName: ${companyDetails['companyName']}");
   }
 
+  // Check device compatibility
+  Future<bool> _checkDeviceCompatibility() async {
+    try {
+      // For now, returning true. Implement your device checking logic here
+      // final isSameDevice = await _authTokenRepository.isSameDevice(
+      //   _emailController.text.trim(),
+      //   _deviceId!
+      // );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Get user authentication token
+  Future<void> _getUserToken() async {
+    final userData = await _authRepository.getLoginToken(
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
+    );
+
+    if (userData == null) {
+      throw Exception('Failed to get authentication token');
+    }
+
+    _box.put('auth_token', userData["token"]);
+    _box.put('role', userData["role"]);
+  }
+
+  // Fetch user company details
+  Future<void> _fetchUserCompanyDetails() async {
+    final companyDetails = await _authTokenRepository.getCompanyId(
+      _emailController.text.trim(),
+    );
+
+    if (companyDetails == null) {
+      throw Exception('Failed to fetch company details');
+    }
+
+    _box.put('companyId', companyDetails['id'].toString());
+    _box.put('companyName', companyDetails['companyName']);
+  }
+
+  // Log mobile session
+  Future<void> _logMobileSession() async {
+    try {
+      final userAgent = HttpClient().userAgent ?? "Unknown User Agent";
+      await _authTokenRepository.addLoggedInMobile(
+        userId: _emailController.text.trim(),
+        userAgent: userAgent,
+      );
+    } catch (e) {
+      // Log error but don't fail the login process
+      debugPrint("Failed to add logged in mobile session: $e");
+    }
+  }
+
+  // Handle remember me functionality
+  void _handleRememberMe() {
+    if (_isRememberMe) {
+      _box.put('email', _emailController.text.trim());
+      _box.put('password', _passwordController.text.trim());
+    } else {
+      _box.delete('email');
+      _box.delete('password');
+    }
+  }
+
+  // Show error snackbar
   void _showErrorSnackBar(String message) {
     if (mounted) {
       dSnackBar(context, message, TypeSnackbar.error);
@@ -223,258 +277,50 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: tBlack,
-      // appBar: AppBar(
-      //   title: Text('Login'),
-      // ),
       body: Stack(
         alignment: Alignment.center,
         children: [
-          //Background Card (Welcome to AssetYug)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.only(top: 10),
-              height: MediaQuery.sizeOf(context).height / 2.5,
-              decoration: const BoxDecoration(
-                color: tPrimary,
-                borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(5),
-                    bottomRight: Radius.circular(5)),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FaIcon(
-                    FontAwesomeIcons.bitbucket,
-                    size: 40,
-                    color: tYellow,
-                  ),
-                  SizedBox(
-                    width: dPadding * 2,
-                  ),
-                  Text("AssetYug",
-                      style: TextStyle(
-                          color: tWhite,
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold))
-                ],
-              ),
-            ),
-          ),
+          // Background header
+          _buildHeader(),
 
-          //Main Login Signup Card
-          Positioned(
-            top: MediaQuery.sizeOf(context).height / 3.2,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeIn,
-
-              padding: const EdgeInsets.all(dPadding * 3),
-              height: isSignUpScreen ? 500 : 400,
-              width: MediaQuery.sizeOf(context).width - 40,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(21),
-                  color: tWhite,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 15,
-                        spreadRadius: 5),
-                  ]),
-
-              //Login Signup Card
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  //Login Signup selection row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      //LOGIN TAB
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isSignUpScreen = false;
-                          });
-                        },
-                        child: Column(
-                          children: [
-                            Text(
-                              "LOGIN",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: dTextSize,
-                                color:
-                                    isSignUpScreen ? disabledText : textColor1,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 3,
-                            ),
-                            if (!isSignUpScreen)
-                              Container(
-                                height: 3,
-                                width: 55,
-                                decoration: BoxDecoration(
-                                    color: tPrimary,
-                                    borderRadius: BorderRadius.circular(1)),
-                              )
-                          ],
-                        ),
-                      ),
-
-                      //SIGNUP Tab
-                      GestureDetector(
-                        onTap: () {
-                          // setState(() {
-                          //   isSignUpScreen = true;
-                          // });
-                        },
-                        child: Column(
-                          children: [
-                            Text(
-                              "SIGNUP",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: dTextSize,
-                                color:
-                                    isSignUpScreen ? textColor1 : disabledText,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 3,
-                            ),
-                            if (isSignUpScreen)
-                              Container(
-                                height: 3,
-                                width: 55,
-                                decoration: BoxDecoration(
-                                    color: tYellow,
-                                    borderRadius: BorderRadius.circular(1)),
-                              )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  //Signup Form
-                  if (isSignUpScreen) buildSignupSection(),
-
-                  if (!isSignUpScreen) buildSignInSection(),
-
-                  //Submit Button
-                  SizedBox(
-                      width: 300,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: tPrimary,
-                            foregroundColor: tWhite, // Background color
-                            padding: const EdgeInsets.all(8.0),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(dBorderRadius))),
-                        onPressed: () {
-                          signInUser();
-                        },
-                        child: !isLoading
-                            ? const Text(
-                                "Login",
-                                style: TextStyle(fontSize: 16),
-                              )
-                            : const SizedBox(
-                                height: 20.0,
-                                width: 20.0,
-                                child: CircularProgressIndicator(color: tWhite),
-                              ),
-                      )),
-                ],
-              ),
-            ),
-          ),
+          // Main login card
+          _buildLoginCard(),
         ],
       ),
     );
   }
 
-  Column buildSignInSection() {
-    return Column(
-      children: [
-        buildTextField(Icons.mail, "E-mail", false, true, _emailController),
-        buildTextField(
-            Icons.password, "Password", true, false, _passwordController),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Checkbox(
-                    side: MaterialStateBorderSide.resolveWith(
-                      (states) => const BorderSide(width: 1.0, color: tPrimary),
-                    ),
-                    value: isRememberMe,
-                    activeColor: tPrimary,
-                    checkColor: tWhite,
-                    onChanged: (value) {
-                      setState(() {
-                        isRememberMe = !isRememberMe;
-                      });
-                    }),
-                const Text(
-                  "Remember me",
-                  style: TextStyle(fontSize: 14, color: lighterGrey),
-                )
-              ],
-            ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                "Forgot Password?",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: tPrimary,
-                ),
-              ),
-            ),
-          ],
+  // Build header section
+  Widget _buildHeader() {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.only(top: 10),
+        height: MediaQuery.sizeOf(context).height / 2.5,
+        decoration: const BoxDecoration(
+          color: tPrimary,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(5),
+            bottomRight: Radius.circular(5),
+          ),
         ),
-      ],
-    );
-  }
-
-  Container buildSignupSection() {
-    return Container(
-      // padding: EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: dPadding * 2),
-      child: SingleChildScrollView(
-        child: Column(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            buildTextField(
-                Icons.person, "Company Name", false, false, _emailController),
-            buildTextField(Icons.mail, "E-Mail", false, true, _emailController),
-            buildTextField(
-                Icons.password, "Password", true, false, _passwordController),
-            const SizedBox(
-              height: 20,
+            FaIcon(
+              FontAwesomeIcons.bitbucket,
+              size: 40,
+              color: tYellow,
             ),
-            Container(
-              width: 250,
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                    text: "By pressing 'Submit' you agree to out ",
-                    style: TextStyle(color: lighterGrey),
-                    children: [
-                      TextSpan(
-                        text: "terms & conditions",
-                        style:
-                            TextStyle(color: Colors.deepOrange, fontSize: 14),
-                      ),
-                    ]),
+            SizedBox(width: dPadding * 2),
+            Text(
+              "AssetYug",
+              style: TextStyle(
+                color: tWhite,
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -483,61 +329,303 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  TextButton buildTextButton(
-      IconData icon, Color bgColor, Color fgColor, String text) {
-    return TextButton(
-      onPressed: () {},
-      style: TextButton.styleFrom(
-          side: const BorderSide(width: 1, color: lighterGrey),
-          minimumSize: const Size(125, 40),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(dBorderRadius),
+  // Build main login card
+  Widget _buildLoginCard() {
+    return Positioned(
+      top: MediaQuery.sizeOf(context).height / 3.2,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeIn,
+        padding: const EdgeInsets.all(dPadding * 3),
+        height: _isSignUpScreen ? 500 : 400,
+        width: MediaQuery.sizeOf(context).width - 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(21),
+          color: tWhite,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 15,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // Tab selection
+              _buildTabSelection(),
+
+              // Form content
+              if (_isSignUpScreen) _buildSignupSection(),
+              if (!_isSignUpScreen) _buildSignInSection(),
+
+              // Submit button
+              _buildSubmitButton(),
+            ],
           ),
-          backgroundColor: bgColor),
-      child: Row(children: [
-        FaIcon(
-          icon,
-          color: fgColor,
         ),
-        const SizedBox(
-          width: 5,
-        ),
-        Text(
-          text,
-          style: TextStyle(color: fgColor, fontWeight: FontWeight.w700),
-        )
-      ]),
+      ),
     );
   }
 
-//Text Form Field Builder Method
-  Widget buildTextField(IconData icon, String hintText, bool isPassword,
-      bool isEmail, TextEditingController fieldController) {
+  // Build tab selection
+  Widget _buildTabSelection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        // Login tab
+        _buildTab("LOGIN", !_isSignUpScreen, () {
+          setState(() => _isSignUpScreen = false);
+        }),
+
+        // Signup tab (disabled)
+        _buildTab("SIGNUP", _isSignUpScreen, () async {
+          final signupUrl = Uri.parse(
+              // 'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register'
+              'https://www.google.com');
+          if (await canLaunchUrl(signupUrl)) {
+            final launched = await launchUrl(signupUrl, mode: LaunchMode.externalApplication);
+            if (!launched && mounted) {
+              _showErrorSnackBar("Could not open signup page");
+            }
+          } else {
+            _showErrorSnackBar("Could not open signup page");
+          }
+        }),
+      ],
+    );
+  }
+
+  // Build individual tab
+  Widget _buildTab(String title, bool isActive, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: dTextSize,
+              color: isActive ? textColor1 : disabledText,
+            ),
+          ),
+          const SizedBox(height: 3),
+          if (isActive)
+            Container(
+              height: 3,
+              width: 55,
+              decoration: BoxDecoration(
+                color: title == "LOGIN" ? tPrimary : tYellow,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Build sign in section
+  Widget _buildSignInSection() {
+    return Column(
+      children: [
+        _buildTextField(
+          icon: Icons.mail,
+          hintText: "E-mail",
+          controller: _emailController,
+          isPassword: false,
+          isEmail: true,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter your email';
+            }
+            if (!_isValidEmail(value.trim())) {
+              return 'Please enter a valid email';
+            }
+            return null;
+          },
+        ),
+        _buildTextField(
+          icon: Icons.password,
+          hintText: "Password",
+          controller: _passwordController,
+          isPassword: true,
+          isEmail: false,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter your password';
+            }
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+            return null;
+          },
+        ),
+        _buildRememberMeSection(),
+      ],
+    );
+  }
+
+  // Build remember me section
+  Widget _buildRememberMeSection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Checkbox(
+              side: MaterialStateBorderSide.resolveWith(
+                (states) => const BorderSide(width: 1.0, color: tPrimary),
+              ),
+              value: _isRememberMe,
+              activeColor: tPrimary,
+              checkColor: tWhite,
+              onChanged: (value) {
+                setState(() => _isRememberMe = value ?? false);
+              },
+            ),
+            const Text(
+              "Remember me",
+              style: TextStyle(fontSize: 14, color: lighterGrey),
+            ),
+          ],
+        ),
+        TextButton(
+          onPressed: () {
+            // Implement forgot password functionality
+          },
+          child: const Text(
+            "Forgot Password?",
+            style: TextStyle(fontSize: 14, color: tPrimary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Build signup section
+  Widget _buildSignupSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: dPadding * 2),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildTextField(
+              icon: Icons.business,
+              hintText: "Company Name",
+              controller: _companyNameController,
+              isPassword: false,
+              isEmail: false,
+            ),
+            _buildTextField(
+              icon: Icons.mail,
+              hintText: "E-Mail",
+              controller: _emailController,
+              isPassword: false,
+              isEmail: true,
+            ),
+            _buildTextField(
+              icon: Icons.password,
+              hintText: "Password",
+              controller: _passwordController,
+              isPassword: true,
+              isEmail: false,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 250,
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: const TextSpan(
+                  text: "By pressing 'Submit' you agree to our ",
+                  style: TextStyle(color: lighterGrey),
+                  children: [
+                    TextSpan(
+                      text: "terms & conditions",
+                      style: TextStyle(color: Colors.deepOrange, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build submit button
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: 300,
+      height: 50,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: tPrimary,
+          foregroundColor: tWhite,
+          padding: const EdgeInsets.all(8.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+        ),
+        onPressed: _isLoading ? null : _signInUser,
+        child: _isLoading
+            ? const SizedBox(
+                height: 20.0,
+                width: 20.0,
+                child: CircularProgressIndicator(color: tWhite),
+              )
+            : const Text(
+                "Login",
+                style: TextStyle(fontSize: 16),
+              ),
+      ),
+    );
+  }
+
+  // Build text field
+  Widget _buildTextField({
+    required IconData icon,
+    required String hintText,
+    required TextEditingController controller,
+    required bool isPassword,
+    required bool isEmail,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: TextFormField(
         style: const TextStyle(color: tBlack),
-        controller: fieldController,
+        controller: controller,
         cursorColor: tBlack,
         obscureText: isPassword,
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        validator: validator,
         decoration: InputDecoration(
-
-            // border: OutlineInputBorder(borderRadius: BorderRadius.circular(dBorderRadius),),
-            prefixIcon: Icon(
-              icon,
-              color: tBlack,
-            ),
-            contentPadding: const EdgeInsets.all(dPadding * 2),
-            enabledBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: textColor1),
-              borderRadius: BorderRadius.circular(dBorderRadius),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: tPrimary),
-              borderRadius: BorderRadius.circular(dBorderRadius),
-            ),
-            hintText: hintText),
+          prefixIcon: Icon(icon, color: tBlack),
+          contentPadding: const EdgeInsets.all(dPadding * 2),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: textColor1),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: tPrimary),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.red),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.red),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          hintText: hintText,
+        ),
       ),
     );
   }

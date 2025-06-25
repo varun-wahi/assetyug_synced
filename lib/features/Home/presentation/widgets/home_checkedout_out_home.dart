@@ -23,7 +23,7 @@ class BuildAssetOverviewContainer extends ConsumerStatefulWidget {
 
 class _BuildAssetOverviewContainerState
     extends ConsumerState<BuildAssetOverviewContainer> {
-  int? companyId;
+  String? companyId;
 
   @override
   void initState() {
@@ -61,7 +61,7 @@ class _BuildAssetOverviewContainerState
       children: [
         // _buildStatusCard("Active Assets", "45", screenWidth * 0.35),
         FutureBuilder(
-          future: AssetsRepositoryImpl().getActiveAssets(companyId!),
+          future: AssetsRepositoryImpl().getActiveAssets(companyId ?? ""),
           // future: AssetsRepositoryImpl().getActiveAssets("66cb7047b00e537755e4d878"),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -115,7 +115,7 @@ class _BuildAssetOverviewContainerState
         const Spacer(),
 
         FutureBuilder(
-          future: AssetsRepositoryImpl().checkInCheckOutCount(companyId ?? 0),
+          future: AssetsRepositoryImpl().checkInCheckOutCount(companyId ?? ""),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return _buildStatusCard(
@@ -163,7 +163,7 @@ class _BuildAssetOverviewContainerState
 
 Widget _buildAssetCategorySection() {
   return FutureBuilder(
-    future: AssetsRepositoryImpl().getAssetsByCategories(companyId ?? 00),
+    future: AssetsRepositoryImpl().getAssetsByCategories(companyId ?? ""),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         // Show a loading indicator while waiting for data

@@ -99,7 +99,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   static const int pageSize = 10; // Increased page size for better performance
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
-  int? companyId;
+  String? companyId;
   Timer? _debounce;
 
   final assetIdController = TextEditingController();
@@ -193,7 +193,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         'location': locationController.text,
         'status': _assetStatus ?? '',
         'email': '',
-        'companyId': companyId!,
+        'companyId': companyId.toString(),
       };
 // http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true
 // http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true

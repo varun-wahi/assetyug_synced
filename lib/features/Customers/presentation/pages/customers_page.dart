@@ -84,7 +84,7 @@ class _CustomersSearchAndListState
   static const int pageSize = 10;
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
-  int? companyId;
+  String? companyId;
   Timer? _debounce;
 
   final customerNameController = TextEditingController();
@@ -151,7 +151,7 @@ class _CustomersSearchAndListState
 
       final filterForm = {
         "name": customerNameController.text,
-        "companyId": companyId,
+        "companyId": companyId.toString(),
         "category": _customerCategory ?? "",
         "status": _customerStatus ?? "",
         "phone": phoneNumberController.text,
@@ -162,7 +162,8 @@ class _CustomersSearchAndListState
         "state": "",
         "zipCode": ""
       };
-      print("Advanced filters being updated");
+      // print("Advanced filters being updated");
+      // print(filterForm);
 
       final response = await customersRepo.advanceFilter(
         filterForm,

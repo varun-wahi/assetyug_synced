@@ -15,6 +15,10 @@ class CompanyCustomerRepositoryImpl {
     var box = await Hive.openBox('auth_data');
     return box.get('auth_token');
   }
+  Future<String?> getCompanyId() async {
+    var box = await Hive.openBox('auth_data');
+    return box.get('companyId').toString();
+  }
 
   // Asynchronous headers getter
 Future<Map<String, String>> getHeaders() async {
@@ -26,6 +30,7 @@ Future<Map<String, String>> getHeaders() async {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $authToken',
     'mobile-id': mobileId,
+    'Companyid' : await getCompanyId() ?? 'UNKNOWN_COMPANY_ID',
   };
 }
 
@@ -126,8 +131,9 @@ Future<Map<String, String>> getHeaders() async {
     {String isAsc = 'true'}
   ) async {
     final url = Uri.parse('${companyCustomerEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData&asc=$isAsc');
-    print("ORIGINAL: http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/companycustomer/advanceFilter/0/10?category=&search=&asc=true");
     print(url);
+    print(await getHeaders());
+    print(jsonEncode(data));
     return await http.post(url, headers: await getHeaders(), body: jsonEncode(data));
   }
 

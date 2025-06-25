@@ -33,7 +33,7 @@ class CustomersModel {
         id: json["id"] ?? "",
         companyCustomerId: json["companyCustomerId"]?.toString() ?? "",
         name: json["name"] ?? "",
-        companyId: json["companyId"] ?? "",
+        companyId: json["companyId"].toString()?? "",
         category: json["category"] ?? "",
         status: json["status"] ?? "",
         phone: json["phone"] ?? "",

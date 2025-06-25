@@ -155,7 +155,8 @@ class _HomePageState extends State<HomePage> {
       // Perform logout logic here (e.g., call an API or service to log out)
       print('User confirmed logout');
       // Optionally, navigate to a login screen
-      await AuthServices().logoutUser();
+      final _box = await Hive.openBox('auth_data');
+      await AuthServices().logoutUser(_box.get('email'));
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
