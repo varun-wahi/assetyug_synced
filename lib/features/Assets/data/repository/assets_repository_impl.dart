@@ -82,6 +82,13 @@ Future<Map<String, String>> getHeaders() async {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
+  Future<http.Response> getCategoryList(String companyId) async {
+    final url = "${assetEndpoint}getCategoryList/$companyId";
+    print("URL: $url");
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
   Future<http.Response> getAssetsByCategories(String companyId) async {
     final url = "${assetEndpoint}getAssetByCategory/$companyId";
     var headers = await getHeaders();
@@ -185,6 +192,7 @@ Future<Map<String, String>> getHeaders() async {
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
+  
 
   // Get role and permission by name
   Future<http.Response> getRoleAndPermission(String id, String name) async {

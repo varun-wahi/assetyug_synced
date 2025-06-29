@@ -33,61 +33,64 @@ class BuildOptionsSection extends ConsumerWidget {
     void showSearchOptions() {
       showModalBottomSheet(
         context: context,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         builder: (BuildContext context) {
-          return Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.qr_code_scanner),
-                title: const Text("Scan Asset ID"),
-                onTap: () {
-                  Navigator.pop(context); // Close the BottomSheet
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ScanCodePage(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.qr_code_2),
-                title: const Text("Scan Serial Barcode"),
-                onTap: () {
-                  Navigator.pop(context); // Close the BottomSheet
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ScanCodePage(), // Add relevant page for serial barcode
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.search),
-                title: const Text("Search Asset by Asset ID"),
-                onTap: () async {
-                  Navigator.pop(context); // Close the BottomSheet
-                  String? assetId = await SerialSearchDialog.show(context);
-                  if (assetId != null && assetId.isNotEmpty) {
-                    searchAsset(assetId);
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.search),
-                title: const Text("Search Asset by Serial Number"),
-                onTap: () async {
-                  Navigator.pop(context); // Close the BottomSheet
-                  String? serialNumber = await SerialSearchDialog.show(context);
-                  if (serialNumber != null && serialNumber.isNotEmpty) {
-                    searchAsset(serialNumber);
-                  }
-                },
-              ),
-            ],
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Wrap(
+              children: [
+                // ListTile(
+                //   leading: const Icon(Icons.qr_code_scanner),
+                //   title: const Text("Scan Asset ID"),
+                //   onTap: () {
+                //     Navigator.pop(context); // Close the BottomSheet
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const ScanCodePage(),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // ListTile(
+                //   leading: const Icon(Icons.qr_code_2),
+                //   title: const Text("Scan Serial Barcode"),
+                //   onTap: () {
+                //     Navigator.pop(context); // Close the BottomSheet
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const ScanCodePage(), // Add relevant page for serial barcode
+                //       ),
+                //     );
+                //   },
+                // ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text("Search Asset by Asset ID"),
+                  onTap: () async {
+                    Navigator.pop(context); // Close the BottomSheet
+                    String? assetId = await SerialSearchDialog.show(context);
+                    if (assetId != null && assetId.isNotEmpty) {
+                      searchAsset(assetId);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text("Search Asset by Serial Number"),
+                  onTap: () async {
+                    Navigator.pop(context); // Close the BottomSheet
+                    String? serialNumber = await SerialSearchDialog.show(context);
+                    if (serialNumber != null && serialNumber.isNotEmpty) {
+                      searchAsset(serialNumber);
+                    }
+                  },
+                ),
+              ],
+            ),
           );
         },
       );

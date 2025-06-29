@@ -5,6 +5,7 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
 import 'package:asset_yug_debugging/config/theme/container_styles.dart';
@@ -58,13 +59,15 @@ class AssetsPage extends ConsumerWidget {
       title: const Text("Assets"),
       actions: [
         // IconButton(
-        //   onPressed: () async {
-        //     String? serialNumber = await SerialSearchDialog.show(context);
-        //     if (serialNumber != null && serialNumber.isNotEmpty) {
-        //       searchAsset(serialNumber);
-        //     }
+        //   onPressed: () {
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(
+        //         builder: (context) => const AddAssetPage(),
+        //       ),
+        //     );
         //   },
-        //   icon: const Icon(Icons.numbers),
+        //   icon: const Icon(Icons.add_circle_outline_rounded),
         // ),
         IconButton(
           onPressed: () {
@@ -110,7 +113,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   final locationController = TextEditingController();
   final statusController = TextEditingController();
 
-  String? _assetStatus;
+  String? _assetStatus = 'Active';
   String? _assetCategory;
   String? _customer;
 
@@ -187,7 +190,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       final Map<String, dynamic> filterForm = {
         'assetId': assetIdController.text,
         'name': assetNameController.text,
-        'customer': _customer ?? '',
+        'customer': customerController.text ?? '',
         'serialNumber': serialNumberController.text,
         'category': _assetCategory ?? '',
         'location': locationController.text,
@@ -195,6 +198,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         'email': '',
         'companyId': companyId.toString(),
       };
+      print(jsonEncode(filterForm));
 // http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true
 // http://assetyug-lb-551711242.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/10?category=&search=&asc=true
 
@@ -257,20 +261,44 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       _fetchAssets();
     }
 
-    return LayoutBuilder(builder: (context, constraints) {
-      return Column(
-        children: [
-          _buildSearchBar(),
-          Container(
-              padding: const EdgeInsets.all(dPadding),
-              height: 70,
-              child: _buildFiltersSection()),
-          Expanded(
-            child: _buildAssetsList(),
-          ),
-        ],
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: [
+            Column(
+              children: [
+                _buildSearchBar(),
+                Container(
+                  padding: const EdgeInsets.all(dPadding),
+                  height: 70,
+                  child: _buildFiltersSection(),
+                ),
+                Expanded(
+                  child: _buildAssetsList(),
+                ),
+              ],
+            ),
+            Positioned(
+              bottom: 24,
+              right: 24,
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddAssetPage(),
+                    ),
+                  );
+                },
+                backgroundColor: tPrimary,
+                tooltip: 'Add Asset',
+                child: const Icon(Icons.add, color: tWhite),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildSearchBar() {
@@ -401,15 +429,20 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                     icon: const Icon(Icons.person),
                     hintText: "Asset Name",
                     controller: assetNameController),
-                DDropdown(
-                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
-                  label: "Customer",
-                  items: customerNamesMenuItems,
-                  onChanged: (value) => setState(() {
-                    _customer = value;
-                  }),
-                  value: _customer,
-                ),
+                // DDropdown(
+                //   padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                //   label: "Customer",
+                //   items: customerNamesMenuItems,
+                //   onChanged: (value) => setState(() {
+                //     _customer = value;
+                //   }),
+                //   value: _customer,
+                // ),
+
+                DTextField(
+                    icon: const Icon(Icons.person),
+                    hintText: "Customer Name",
+                    controller: customerController),
                 DTextField(
                     icon: const Icon(Icons.confirmation_number),
                     hintText: "Serial Number",

@@ -49,19 +49,19 @@ class CustomersPage extends ConsumerWidget {
   AppBar _buildAppBar(BuildContext context, WidgetRef ref) {
     return AppBar(
       title: const Text("Customers"),
-      actions: [
-        IconButton(
-          onPressed: () => {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AddCustomerPage(fromCustomersPage: true,),
-              ),
-            )
-          },
-          icon: const Icon(Icons.person_add),
-        ),
-      ],
+      // actions: [
+      //   IconButton(
+      //     onPressed: () => {
+      //       Navigator.pushReplacement(
+      //         context,
+      //         MaterialPageRoute(
+      //           builder: (context) => const AddCustomerPage(fromCustomersPage: true,),
+      //         ),
+      //       )
+      //     },
+      //     icon: const Icon(Icons.person_add),
+      //   ),
+      // ],
     );
   }
 }
@@ -92,7 +92,7 @@ class _CustomersSearchAndListState
   final customerController = TextEditingController();
   final phoneNumberController = TextEditingController();
 
-  String? _customerStatus;
+  String? _customerStatus = "Active";
   String? _customerCategory;
 
   @override
@@ -225,21 +225,36 @@ class _CustomersSearchAndListState
       _fetchCustomers();
     }
 
-    return LayoutBuilder(builder: (context, constraints) {
-      return Column(
-        children: [
-          _buildSearchBar(),
-          Container(
-            padding: const EdgeInsets.all(dPadding),
-            height: 70,
-            child: _buildFiltersSection(),
-          ),
-          Expanded(
-            child: _buildCustomersList(),
-          ),
-        ],
-      );
-    });
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: tPrimary,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddCustomerPage(fromCustomersPage: true,),
+            ),
+          );
+        },
+        child: const Icon(Icons.person_add),
+      ),
+      backgroundColor: Colors.transparent,
+      body: LayoutBuilder(builder: (context, constraints) {
+        return Column(
+          children: [
+            _buildSearchBar(),
+            Container(
+              padding: const EdgeInsets.all(dPadding),
+              height: 70,
+              child: _buildFiltersSection(),
+            ),
+            Expanded(
+              child: _buildCustomersList(),
+            ),
+          ],
+        );
+      }),
+    );
   }
 
   Widget _buildSearchBar() {

@@ -41,6 +41,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _isSignUpScreen = false;
   bool _isRememberMe = false;
+  bool _isPasswordVisible = false;
   String? _deviceId;
   String? mobileId;
 
@@ -384,10 +385,10 @@ class _LoginPageState extends State<LoginPage> {
         // Signup tab (disabled)
         _buildTab("SIGNUP", _isSignUpScreen, () async {
           final signupUrl = Uri.parse(
-              // 'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register'
-              'https://www.google.com');
+              'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register');
+              // 'https://google.com');
           if (await canLaunchUrl(signupUrl)) {
-            final launched = await launchUrl(signupUrl, mode: LaunchMode.externalApplication);
+            final launched = await launchUrl(signupUrl, mode: LaunchMode.inAppWebView);
             if (!launched && mounted) {
               _showErrorSnackBar("Could not open signup page");
             }
@@ -449,21 +450,22 @@ class _LoginPageState extends State<LoginPage> {
           },
         ),
         _buildTextField(
-          icon: Icons.password,
-          hintText: "Password",
-          controller: _passwordController,
-          isPassword: true,
-          isEmail: false,
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter your password';
-            }
-            if (value.length < 6) {
-              return 'Password must be at least 6 characters';
-            }
-            return null;
-          },
-        ),
+  icon: Icons.password,
+  hintText: "Password",
+  controller: _passwordController,
+  isPassword: true,
+  isEmail: false,
+  showToggle: true,
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter your password';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  },
+),
         _buildRememberMeSection(),
       ],
     );
@@ -589,44 +591,58 @@ class _LoginPageState extends State<LoginPage> {
 
   // Build text field
   Widget _buildTextField({
-    required IconData icon,
-    required String hintText,
-    required TextEditingController controller,
-    required bool isPassword,
-    required bool isEmail,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: TextFormField(
-        style: const TextStyle(color: tBlack),
-        controller: controller,
-        cursorColor: tBlack,
-        obscureText: isPassword,
-        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
-        validator: validator,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: tBlack),
-          contentPadding: const EdgeInsets.all(dPadding * 2),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: textColor1),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: tPrimary),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.red),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.red),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          hintText: hintText,
+  required IconData icon,
+  required String hintText,
+  required TextEditingController controller,
+  required bool isPassword,
+  required bool isEmail,
+  String? Function(String?)? validator,
+  bool showToggle = false,
+}) {
+  return Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: TextFormField(
+      style: const TextStyle(color: tBlack),
+      controller: controller,
+      cursorColor: tBlack,
+      obscureText: isPassword && !(_isPasswordVisible),
+      keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+      validator: validator,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: tBlack),
+        suffixIcon: isPassword && showToggle
+            ? IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: tBlack,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              )
+            : null,
+        contentPadding: const EdgeInsets.all(dPadding * 2),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: textColor1),
+          borderRadius: BorderRadius.circular(dBorderRadius),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: tPrimary),
+          borderRadius: BorderRadius.circular(dBorderRadius),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red),
+          borderRadius: BorderRadius.circular(dBorderRadius),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.red),
+          borderRadius: BorderRadius.circular(dBorderRadius),
+        ),
+        hintText: hintText,
       ),
-    );
-  }
+    ),
+  );
+}
 }

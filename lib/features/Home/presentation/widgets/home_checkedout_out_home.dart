@@ -45,8 +45,8 @@ class _BuildAssetOverviewContainerState
     return Column(
       children: [
         _buildAssetStatusRow(screenWidth),
-        const SizedBox(height: 20),
-        Text("Total Average Asset Uptime: 91%", style: boldHeading(size: 16)),
+        // const SizedBox(height: 20),
+        // Text("Total Average Asset Uptime: 91%", style: boldHeading(size: 16)),
         const SizedBox(height: 20),
         _buildAssetCategorySection(),
         const SizedBox(height: 20),
@@ -164,6 +164,7 @@ class _BuildAssetOverviewContainerState
 Widget _buildAssetCategorySection() {
   return FutureBuilder(
     future: AssetsRepositoryImpl().getAssetsByCategories(companyId ?? ""),
+    // future: AssetsRepositoryImpl().getCategoryList(companyId ?? ""),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         // Show a loading indicator while waiting for data
@@ -176,11 +177,15 @@ Widget _buildAssetCategorySection() {
         );
       } else if (snapshot.hasData && snapshot.data is http.Response) {
         final response = snapshot.data as http.Response;
+          print('ASSET CATEGORIES RESPONSE: ${response.body}');
+
 
         if (response.statusCode == 200 && response.body.isNotEmpty) {
+          print('ASSET CATEGORIES RESPONSE: ${response.body}');
           try {
             // Parse the API response
             final Map<String, dynamic> assetCategories = json.decode(response.body);
+            print('Parsed Asset Categories: ${assetCategories.keys}');
 
             // Extract categories and their counts
             final categories = assetCategories.keys.toList();
@@ -271,7 +276,7 @@ Widget _buildAssetCategorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Asset by Customer Category", style: boldHeading(size: 18)),
+        Text("Asset by Customer (change show top 20)", style: boldHeading(size: 18)),
         const SizedBox(height: dGap),
         SizedBox(
           height: 70,

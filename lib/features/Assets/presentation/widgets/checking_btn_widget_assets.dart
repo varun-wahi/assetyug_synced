@@ -150,6 +150,7 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   'assetId': widget.data.id!,
                   'status': switchAssetCheckingStatus(assetCheckingStatus),
                   'employee': _selectedEmployee,
+                  'companyId': widget.data.companyId,
                   'notes': _notesController.text,
                   'location': _locationController.text,
                   'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),

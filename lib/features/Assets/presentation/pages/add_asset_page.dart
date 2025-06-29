@@ -309,6 +309,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
       final checkInData = {
         'assetId': newAssetObjectId,
         'status': checkInString,
+        'companyId': companyId,
         'employee': customer,
         'notes': null,
         'location': location,

@@ -141,4 +141,18 @@ Future<Map<String, String>> getHeaders() async {
     final url = Uri.parse('${companyCustomerEndpoint}working');
     return await http.get(url, headers: await getHeaders());
   }
+
+  Future<http.Response> getCategoryList(String companyId) async {
+    final url = "${companyCustomerEndpoint}getCategoryList/$companyId";
+    print("URL: $url");
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  Future<http.Response> getAssetsByCategories(String companyId) async {
+    final url = "${companyCustomerEndpoint}getAssetByCategory/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
 }

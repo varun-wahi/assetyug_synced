@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/tab_notifier.dart';
 import 'package:asset_yug_debugging/features/More%20Options/presentation/pages/more_options_page.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
@@ -26,9 +27,9 @@ class MainPage extends ConsumerWidget {
     final pages = [
       const HomePage(),
       const AssetsPage(),
-      // const WorkOrdersPage(),
+      const InventoryPage(),
       const CustomersPage(),
-      MoreOptionsPage(),
+      const MoreOptionsPage(),
     ];
 
     return PopScope(
@@ -51,8 +52,9 @@ class MainPage extends ConsumerWidget {
         bottomNavigationBar: BottomNavigationBar(
             currentIndex: currentTabIndex,
             backgroundColor: tBackground,
-            selectedItemColor: blackGrey,
+            selectedItemColor: tPrimary,
             unselectedItemColor: darkGrey,
+
             onTap: (index) {
               // Update the tab index
               ref.read(tabProvider.notifier).setTab(index);
@@ -62,8 +64,8 @@ class MainPage extends ConsumerWidget {
                   icon: Icon(Icons.home_filled), label: "Home"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.account_balance_wallet), label: "Assets"),
-              // BottomNavigationBarItem(
-              //     icon: Icon(Icons.work), label: "Work Orders"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.inventory), label: "Inventory"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.people_alt), label: "Customers"),
               BottomNavigationBarItem(icon: Icon(Icons.menu), label: "More"),

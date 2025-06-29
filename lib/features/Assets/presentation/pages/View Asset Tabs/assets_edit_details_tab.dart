@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
@@ -92,11 +93,11 @@ class AssetEditDetailsPage extends ConsumerWidget {
                       DDetailsRow(
                           title: "Status: ",
                           value: assetData.status.isNotEmpty
-                              ? assetData.status
+                              ? assetData.status.toCapitalized()
                               : "No status data"),
                       // const DDivider(),
                       DDetailsRow(
-                        title: "Checking Status: ",
+                        title: "Current Status: ",
                         value: _getCheckingStatusValue(snapshot),
                       ),
                       const DDivider(),
@@ -116,75 +117,136 @@ class AssetEditDetailsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildCheckingStatusSection(AssetsModel assetData, WidgetRef ref, AsyncSnapshot<dynamic> snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: CircularProgressIndicator(color: tWhite,),
-        ),
-      );
-    } else if (snapshot.hasError) {
-      return Text('Error: ${snapshot.error}');
-    } else if (snapshot.hasData && snapshot.data.statusCode == 202) {
+  Map<String, dynamic>? _getLastCheckEntry(AsyncSnapshot snapshot) {
+  try {
+    if (snapshot.hasData && snapshot.data.statusCode == 202) {
       final List<dynamic> jsonData = json.decode(snapshot.data.body);
-      print("jsonData: $jsonData");
       if (jsonData.isNotEmpty) {
-        try {
-          final checkingDetails = AssetCheckInOutModel.fromJson(jsonData.first);              
-          if (checkingDetails.detailsList.isNotEmpty) {
-            final detailsListLast = checkingDetails.detailsList.last;
-            print("detailsListLast: ${detailsListLast}");
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(//!TO Fix Here
-                  "${detailsListLast.status} by ${detailsListLast.employee} on \n${DateFormat('yyyy/MM/dd').format(detailsListLast.date ?? DateTime.now())}",
-                  style: containerText(),
-                ),
-                AssetStatusButton(data: assetData, ref: ref)
-              ],
-            );
-          }
-        } catch (e) {
-          print("Error parsing JSON: $e");
-          print("jsonData: $jsonData");
-          return Text('Error parsing data: $e');
+        final checkingDetails = AssetCheckInOutModel.fromJson(jsonData.first);
+        if (checkingDetails.detailsList.isNotEmpty) {
+          return {
+            "status": checkingDetails.detailsList.last.status,
+            "employee": checkingDetails.detailsList.last.employee,
+            "date": checkingDetails.detailsList.last.date,
+          };
         }
-      }else{
-        return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(//!TO Fix Here
-                  "Checked in (default state)",
-                  style: containerText(),
-                ),
-                AssetStatusButton(data: assetData, ref: ref)
-              ],
-            );
       }
     }
-    return const NoDataFoundPage();
+  } catch (e) {
+    debugPrint("Error extracting last check-in/out: $e");
+  }
+  return null;
+}
+
+  // Widget _buildCheckingStatusSection(AssetsModel assetData, WidgetRef ref, AsyncSnapshot<dynamic> snapshot) {
+  //   if (snapshot.connectionState == ConnectionState.waiting) {
+  //     return const Center(
+  //       child: SizedBox(
+  //         width: 30,
+  //         height: 30,
+  //         child: CircularProgressIndicator(color: tWhite,),
+  //       ),
+  //     );
+  //   } else if (snapshot.hasError) {
+  //     return Text('Error: ${snapshot.error}');
+  //   } else if (snapshot.hasData && snapshot.data.statusCode == 202) {
+  //     final List<dynamic> jsonData = json.decode(snapshot.data.body);
+  //     print("jsonData: $jsonData");
+  //     if (jsonData.isNotEmpty) {
+  //       try {
+  //         final checkingDetails = AssetCheckInOutModel.fromJson(jsonData.first);              
+  //         if (checkingDetails.detailsList.isNotEmpty) {
+  //           final detailsListLast = checkingDetails.detailsList.last;
+  //           print("detailsListLast: ${detailsListLast}");
+  //           return Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text(//!TO Fix Here
+  //                 "${detailsListLast.status} by ${detailsListLast.employee} on \n${DateFormat('yyyy/MM/dd').format(detailsListLast.date ?? DateTime.now())}",
+  //                 style: containerText(),
+  //               ),
+  //               AssetStatusButton(data: assetData, ref: ref)
+  //             ],
+  //           );
+  //         }
+  //       } catch (e) {
+  //         print("Error parsing JSON: $e");
+  //         print("jsonData: $jsonData");
+  //         return Text('Error parsing data: $e');
+  //       }
+  //     }else{
+  //       return Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text(//!TO Fix Here
+
+  //                 "Checked in by ${assetData.customer} on (fix) \n${DateFormat('yyyy/MM/dd').format(DateTime.now())}",
+  //                 style: containerText(),
+  //               ),
+  //               AssetStatusButton(data: assetData, ref: ref)
+  //             ],
+  //           );
+  //     }
+  //   }
+  //   return const NoDataFoundPage();
+  // }
+
+  Widget _buildCheckingStatusSection(
+    AssetsModel assetData, WidgetRef ref, AsyncSnapshot snapshot) {
+  if (snapshot.connectionState == ConnectionState.waiting) {
+    return const Center(child: CircularProgressIndicator());
+  } else if (snapshot.hasError) {
+    return Text('Error: ${snapshot.error}');
   }
 
-  String _getCheckingStatusValue(AsyncSnapshot<dynamic> snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return "Loading...";
-    } else if (snapshot.hasError) {
-      print("ERROR: ${snapshot.error}");
-      return "Error loading status";
-    } else if (snapshot.hasData) {
-      final checkInOutData = snapshot.data;
-      if (checkInOutData != null && checkInOutData.statusCode == 202) {
-        final decodedData = json.decode(checkInOutData.body);
-        if (decodedData.isNotEmpty) {
-          final lastStatus = decodedData.last['status'];
-          print("LAST STATUS: $lastStatus");
-          return lastStatus ?? "No checking status";
-        }
-      }
-    }
-    return "No checking status available";
+  final entry = _getLastCheckEntry(snapshot);
+  final statusText = entry != null
+      ? "${entry['status']} by ${entry['employee']} on \n${DateFormat('yyyy/MM/dd').format(entry['date'] ?? DateTime.now())}"
+      : "Checked in by ${assetData.customer} on \n${DateFormat('yyyy/MM/dd').format(DateTime.now())}";
+
+  return Container(
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: tGreyLight,
+    borderRadius: BorderRadius.circular(8),
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Expanded(
+        child: Text(statusText, style: containerText()),
+      ),
+      AssetStatusButton(data: assetData, ref: ref),
+    ],
+  ),
+);
+}
+
+  // String _getCheckingStatusValue(AsyncSnapshot<dynamic> snapshot) {
+  //   if (snapshot.connectionState == ConnectionState.waiting) {
+  //     return "Loading...";
+  //   } else if (snapshot.hasError) {
+  //     print("ERROR: ${snapshot.error}");
+  //     return "Error loading status";
+  //   } else if (snapshot.hasData) {
+  //     final checkInOutData = snapshot.data;
+  //     if (checkInOutData != null && checkInOutData.statusCode == 202) {
+  //       final decodedData = json.decode(checkInOutData.body);
+  //       if (decodedData.isNotEmpty) {
+  //         final lastStatus = decodedData.last['status'];
+  //         print("LAST STATUS: $lastStatus");
+  //         return lastStatus ?? "Checked In (default)";
+  //       }
+  //     }
+  //   }
+  //   return "Checked In";
+  // }
+
+  String _getCheckingStatusValue(AsyncSnapshot snapshot) {
+  final entry = _getLastCheckEntry(snapshot);
+  if (entry != null) {
+    return "${entry['status']} by ${entry['employee']} on ${DateFormat('yyyy/MM/dd').format(entry['date'] ?? DateTime.now())}";
   }
+  return "Checked In";
+}
 }

@@ -39,7 +39,7 @@ class SerialSearchDialog {
                       MaterialPageRoute(
                         builder: (context) => const ScanSerialBarcode(),
                       )),
-                  child: const Text("Scan Serial Number"))
+                  child: const Text("Scan QR Code"))
             ],
           ),
           actions: <Widget>[

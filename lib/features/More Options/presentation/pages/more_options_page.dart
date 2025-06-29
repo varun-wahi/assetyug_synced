@@ -495,7 +495,7 @@ class _BuildExtraSettingsSection extends ConsumerWidget {
       }
 
       // Clear all stored data
-      await box.clear();
+      // await box.clear();
 
       // Reset tab state
       ref.read(tabProvider.notifier).setTab(0);
