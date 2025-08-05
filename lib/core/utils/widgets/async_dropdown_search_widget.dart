@@ -1,3 +1,4 @@
+import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 
@@ -67,42 +68,48 @@ class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownSearch<T>(
-      selectedItem: widget.selectedItem,
-      items: (filter, loadProps) => _getItems(filter),
-      itemAsString: widget.displayString,
-      onChanged: widget.enabled ? widget.onChanged : null,
-      compareFn: widget.compareFn ?? (item1, item2) {
-        // Default comparison using display string
-        return widget.displayString(item1) == widget.displayString(item2);
-      },
-      popupProps: PopupProps.menu(
-        showSearchBox: true,
-        searchFieldProps: TextFieldProps(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Search...',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: DropdownSearch<T>(
+        selectedItem: widget.selectedItem,
+        items: (filter, loadProps) => _getItems(filter),
+        itemAsString: widget.displayString,
+        onChanged: widget.enabled ? widget.onChanged : null,
+        compareFn: widget.compareFn ?? (item1, item2) {
+          // Default comparison using display string
+          return widget.displayString(item1) == widget.displayString(item2);
+        },
+        popupProps: PopupProps.menu(
+          showSearchBox: true,
+          searchFieldProps: TextFieldProps(
+            controller: _searchController,
+            decoration:  InputDecoration(
+              hintText: 'Search...',
+              prefixIcon: const Icon(Icons.search),
+              // border: OutlineInputBorder(),
+            border:  OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: tPrimary)),
+
+            ),
+          ),
+          loadingBuilder: (context, _) => const Padding(
+            padding: EdgeInsets.all(12),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          emptyBuilder: (context, _) => const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('No items found'),
           ),
         ),
-        loadingBuilder: (context, _) => const Padding(
-          padding: EdgeInsets.all(12),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        emptyBuilder: (context, _) => const Padding(
-          padding: EdgeInsets.all(12),
-          child: Text('No items found'),
-        ),
-      ),
-      decoratorProps: DropDownDecoratorProps(
-        decoration: InputDecoration(
-          labelText: widget.label,
-          hintText: widget.hintText,
-          border: const OutlineInputBorder(),
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          enabled: widget.enabled,
+        decoratorProps: DropDownDecoratorProps(
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hintText,
+            border:  OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: tPrimary)),
+            
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            enabled: widget.enabled,
+          ),
         ),
       ),
     );

@@ -20,16 +20,7 @@ class BuildOptionsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    void searchAsset(String serialNumber) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AssetsPage(
-            serialNumber: serialNumber,
-          ),
-        ),
-      );
-    }
+   
 
     void showSearchOptions() {
       showModalBottomSheet(
@@ -73,10 +64,8 @@ class BuildOptionsSection extends ConsumerWidget {
                   title: const Text("Search Asset by ID"),
                   onTap: () async {
                     Navigator.pop(context); // Close the BottomSheet
-                    String? assetId = await AssetidSearchDialog.show(context);
-                    if (assetId != null && assetId.isNotEmpty) {
-                      searchAsset(assetId);
-                    }
+                    await AssetidSearchDialog.show(context);
+                    
                   },
                 ),
                 ListTile(
@@ -84,10 +73,8 @@ class BuildOptionsSection extends ConsumerWidget {
                   title: const Text("Search Asset by Serial Number"),
                   onTap: () async {
                     Navigator.pop(context); // Close the BottomSheet
-                    String? serialNumber = await SerialSearchDialog.show(context);
-                    if (serialNumber != null && serialNumber.isNotEmpty) {
-                      searchAsset(serialNumber);
-                    }
+                    await SerialSearchDialog.show(context);
+                    
                   },
                 ),
               ],

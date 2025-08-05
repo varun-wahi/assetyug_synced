@@ -12,6 +12,8 @@ import '../../../../core/utils/constants/colors.dart';
 import '../../../../config/theme/text_styles.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../Assets/presentation/pages/assets_page.dart';
+
 class BuildAssetOverviewContainer extends ConsumerStatefulWidget {
   const BuildAssetOverviewContainer({super.key});
 
@@ -140,23 +142,33 @@ class _BuildAssetOverviewContainerState
   }
 
   Widget _buildStatusCard(String title, String count, double width) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(dPadding),
-      decoration: BoxDecoration(
-        color: tWhite,
-        borderRadius: BorderRadius.circular(dBorderRadius),
-        boxShadow: dBoxShadow(),
-        border: Border.all(width: 0.2, color: lighterGrey),
-      ),
-      height: 130,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(count, style: boldHeading(size: 30)),
-          const SizedBox(height: dGap),
-          Text(title, style: subheading(weight: FontWeight.w400)),
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AssetsPage(predefinedFilters:{"status": "Active"},),
+                  ),
+                );
+      },
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.all(dPadding),
+        decoration: BoxDecoration(
+          color: tWhite,
+          borderRadius: BorderRadius.circular(dBorderRadius),
+          boxShadow: dBoxShadow(),
+          border: Border.all(width: 0.2, color: lighterGrey),
+        ),
+        height: 130,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(count, style: boldHeading(size: 30)),
+            const SizedBox(height: dGap),
+            Text(title, style: subheading(weight: FontWeight.w400)),
+          ],
+        ),
       ),
     );
   }

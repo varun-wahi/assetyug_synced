@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 
+import '../../../Assets/presentation/pages/assets_page.dart';
+
 class SerialSearchDialog {
   static Future<String?> show(BuildContext context) {
     TextEditingController searchController = TextEditingController();
@@ -51,12 +53,21 @@ class SerialSearchDialog {
             ),
             DElevatedButton(
               child: const Text('Search'),
-              onPressed: () async {
+
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+
+                 Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AssetsPage(predefinedFilters:{"serialNumber": searchController.text.trim()},),
+                  ),
+                );
                 //navigate to that asset
-                String serialNumber = searchController.text.trim();
-                await searchAsset(serialNumber);
-                Navigator.of(context)
-                    .pop(serialNumber); // Return the serial number
+                // String serialNumber = searchController.text.trim();
+                // await searchAsset(serialNumber);
+                // Navigator.of(context)
+                //     .pop(serialNumber); // Return the serial number
               },
             ),
           ],
@@ -69,7 +80,7 @@ class SerialSearchDialog {
     var box = await Hive.openBox('auth_data');
     final String companyId = box.get('companyId');
     print("company ID: $companyId");
-    Response result = await AssetsRepositoryImpl().assetFromSerialNumber(
+    final result = await AssetsRepositoryImpl().assetFromSerialNumber(
         AssetBySerialDTO(companyId: companyId, serialNumber: serialNumber));
     print(result.body);
   }

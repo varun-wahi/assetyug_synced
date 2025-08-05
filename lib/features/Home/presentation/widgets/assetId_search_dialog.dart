@@ -3,6 +3,8 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/asset_by_serial_dto_model.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_serial_barcode.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -52,11 +54,19 @@ class AssetidSearchDialog {
             DElevatedButton(
               child: const Text('Search'),
               onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+
                 //navigate to that asset
-                String serialNumber = searchController.text.trim();
-                await searchAsset(serialNumber);
-                Navigator.of(context)
-                    .pop(serialNumber); // Return the serial number
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AssetsPage(predefinedFilters:{"assetId": searchController.text.trim()},),
+                  ),
+                );
+                // String serialNumber = searchController.text.trim();
+                // await searchAsset(serialNumber);
+                // Navigator.of(context)
+                //     .pop(serialNumber); // Return the serial number
               },
             ),
           ],

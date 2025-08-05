@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/theme/snackbar__types_enum.dart';
 import '../../../../core/utils/constants/colors.dart';
@@ -276,11 +277,16 @@ Future<void> _loadMoreCustomers() async {
 
   void _showAdvancedFilters() {
     showModalBottomSheet(
+            showDragHandle: true,
+      isScrollControlled: true,
       context: context,
-      builder: (context) => CustomerFilterForm(
-        initialData: _filterData,
-        onApplyFilters: _onFiltersApplied,
-        onClearFilters: _onFiltersClear,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.55,
+        child: CustomerFilterForm(
+          initialData: _filterData,
+          onApplyFilters: _onFiltersApplied,
+          onClearFilters: _onFiltersClear,
+        ),
       ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30.0)),
@@ -288,37 +294,32 @@ Future<void> _loadMoreCustomers() async {
     );
   }
 
-//   Widget _buildCustomersList() {
-//     if (_customerState.customers.isEmpty && !_customerState.isLoading) {
-//       return const NoDataFoundPage();
-//     }
-
-//     return ListView.separated(
-//       controller: _scrollController,
-//       itemCount: _customerState.customers.length + (_customerState.hasMore ? 1 : 0),
-//       separatorBuilder: (context, index) => const SizedBox(height: dGap),
-//       itemBuilder: (context, index) {
-//         if (index < _customerState.customers.length) {
-//           final customerData = CustomersModel.fromJson(_customerState.customers[index]);
-//           return CustomerDetailsCard(
-//             data: customerData,
-//             onCustomerDeleted: _onCustomerDeleted,
-//           );
-//         } else if (_customerState.hasMore) {
-//           return const Center(child: CircularProgressIndicator());
-//         }
-//         return const SizedBox.shrink();
-//       },
-//     );
-//   }
-// }
-
 Widget _buildCustomersList() {
   // 1) No items at all?
   if (_customerState.customers.isEmpty) {
     // • still loading? → show a centered spinner
     if (_customerState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+       return SingleChildScrollView(
+         child: Column(
+                children: List.generate(
+                6,
+                (i) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Shimmer.fromColors(
+                  baseColor: Colors.white,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(dBorderRadius),
+                    ),
+                  ),
+                  ),
+                ),
+                ),
+              ),
+       );
     }
     // • done loading (but zero results)? → show “no data”
     return const NoDataFoundPage();

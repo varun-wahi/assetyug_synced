@@ -12,6 +12,7 @@ import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../config/theme/container_styles.dart';
 import '../../../../config/theme/text_styles.dart';
@@ -460,6 +461,24 @@ class _inventorySearchAndListState
 
     if (inventory.isEmpty && !isLoading) {
       return const NoDataFoundPage();
+    }else if (isLoading && inventory.isEmpty) {
+      return ListView.separated(
+        itemCount: 10, // Show 10 shimmer placeholders
+        separatorBuilder: (context, index) => const SizedBox(height: dGap),
+        itemBuilder: (context, index) {
+          return Shimmer.fromColors(
+            baseColor: Colors.white,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(dBorderRadius),
+              ),
+            ),
+          );
+        },
+      );
     }
 
     return ListView.separated(
