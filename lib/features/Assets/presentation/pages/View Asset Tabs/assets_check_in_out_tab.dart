@@ -8,6 +8,7 @@ import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repos
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'package:shimmer/shimmer.dart';
 
 class AssetCheckInOutPage extends StatefulWidget {
   final String objectId;
@@ -19,6 +20,7 @@ class AssetCheckInOutPage extends StatefulWidget {
 
 class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
   List<AssetCheckInOutModel> checkInOutData = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -37,16 +39,42 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
         });
       } else {
         print("Error: ${response.statusCode}");
-        // Handle error state
       }
     } catch (e) {
       print("Error fetching check-in/out data: $e");
-      // Handle error state
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return SingleChildScrollView(
+        child: Column(
+          children: List.generate(
+            6,
+            (i) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: dPadding),
+              child: Shimmer.fromColors(
+                baseColor: tPrimary,
+                highlightColor: tPrimary.withAlpha(50),
+                child: Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(dBorderRadius),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (checkInOutData.isEmpty) {
       return const NoDataFoundPage();
     }
@@ -81,7 +109,7 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
           itemCount: data.length,
         );
       },
-      separatorBuilder: (context, index) => const DGap(),
+      separatorBuilder: (context, index) => const DGap(gap: 0,),
       itemCount: checkInOutData.length,
     );
   }
@@ -91,7 +119,7 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: containerText(size: 15, weight: FontWeight.w600, color: tWhite)),
-        Text(value, style: containerText(color: tWhite)),
+        Flexible(child: Text(value, style: containerText(color: tWhite), overflow: TextOverflow.ellipsis)),
       ],
     );
   }
