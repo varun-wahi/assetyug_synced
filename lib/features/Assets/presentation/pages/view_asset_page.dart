@@ -42,6 +42,7 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
               return Text('Error: ${snapshot.error}');
             } else {
               final assetData = snapshot.data;
+              print("ASSET DATA: ${assetData?.body}");
               if (assetData != null) {
                 final assetMap = jsonDecode(assetData.body) as Map<String, dynamic>;
                 return BuildAssetDetailCard(assetData: assetMap);

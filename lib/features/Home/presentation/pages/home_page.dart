@@ -7,6 +7,7 @@ import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_pag
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
+import 'package:asset_yug_debugging/features/Locations%20and%20Bins/presentation/pages/locations_and_bins_page.dart';
 import 'package:asset_yug_debugging/features/Work%20Orders/data/repository/work_orders_mongodb.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
@@ -240,14 +241,14 @@ class _HomePageState extends State<HomePage> {
 
               const BuildAssetOverviewContainer(),
 
-              const DGap(gap: dGap * 2),
+              // const DGap(gap: dGap * 2),
 
               //Work Orders by status
               // _buildWoCategorisedSection(),
 
               //Checked Out Assets
 
-              const DGap(gap: dGap * 2),
+              // const DGap(gap: dGap * 2),
             ],
           ),
         ),
@@ -370,9 +371,17 @@ class _HomePageState extends State<HomePage> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AddCustomerPage(),
+                          builder: (context) => const AddCustomerPage(),
                         ));
-                  } else {
+                  } else if (index == 1) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LocationBinScreen(),
+                        ));
+                  } 
+                  
+                  else {
                     dSnackBar(context, "Feature coming to mobile later.",
                         TypeSnackbar.info);
                   }

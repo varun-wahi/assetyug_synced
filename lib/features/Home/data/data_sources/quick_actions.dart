@@ -1,1 +1,1 @@
-const QUICK_ACTIONS = ["Add Customer", "Locations","Bins" ];
+const QUICK_ACTIONS = ["Add Customer", "Locations & Bins" ];

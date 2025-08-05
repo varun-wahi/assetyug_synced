@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_category_data.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/tab_notifier.dart';
@@ -18,16 +20,19 @@ import '../../../data/repository/company_customer_repository_impl.dart';
 
 import 'package:http/http.dart' as http;
 
-class AddCustomerPage extends ConsumerStatefulWidget { 
+class AddCustomerPage extends ConsumerStatefulWidget {
   final bool fromCustomersPage;
 
-  const AddCustomerPage({super.key, this.fromCustomersPage = false});// Change to ConsumerStatefulWidget
+  const AddCustomerPage(
+      {super.key,
+      this.fromCustomersPage = false}); // Change to ConsumerStatefulWidget
   @override
   // ignore: library_private_types_in_public_api
   _AddCustomerPageState createState() => _AddCustomerPageState();
 }
 
-class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update to use ConsumerState
+class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
+  // Update to use ConsumerState
   final _nameField = TextEditingController();
   final _phoneField = TextEditingController();
   final _emailField = TextEditingController();
@@ -35,23 +40,83 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
   final _cityField = TextEditingController();
   final _stateField = TextEditingController();
   final _zipCodeField = TextEditingController();
+  final _locationField = TextEditingController();
+
+  List<DropdownMenuItem<String>> _categoryItems = [];
+  List<DropdownMenuItem<String>> _stateItems = [];
+  String? _selectedState;
+  String? _customerLocation;
 
   String? _category;
   String? _status = "Active";
 
-  late final String companyId;
+  // late final String companyId;
+  String? companyId;
   bool loadingCustomerInsertion = false;
 
-  final CompanyCustomerRepositoryImpl _customerRepo = CompanyCustomerRepositoryImpl();
+  final CompanyCustomerRepositoryImpl _customerRepo =
+      CompanyCustomerRepositoryImpl();
 
   void _changeCategoryValue(String? option) => _category = option;
   void _changeStatusValue(String? option) => _status = option;
+bool _hasLoadedDropdowns = false;
 
-  @override
-  void initState() {
-    super.initState();
-    getCompanyId();
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    var box = await Hive.openBox('auth_data');
+    setState(() {
+      companyId = box.get('companyId');
+    });
+    await fetchDropdownData();
+  });
+}
+
+  Future<void> initCompanyData() async {
+  var box = await Hive.openBox('auth_data');
+  final id = box.get('companyId');
+  setState(() {
+    companyId = id;
+  });
+  await fetchDropdownData(); // safe now — context is ready
+}
+
+  Future<void> fetchDropdownData() async {
+  if (companyId == null) return;
+
+  try {
+    final catRes = await _customerRepo.getActiveCategories(companyId!);
+    final stateRes = await _customerRepo.statelist();
+
+    if (catRes.statusCode == 200) {
+      final List<dynamic> categoryList = jsonDecode(catRes.body);
+      setState(() {
+        _categoryItems = categoryList.map<DropdownMenuItem<String>>((item) {
+          return DropdownMenuItem(
+            value: item['name'], // ← FIXED from item['categoryName']
+            child: Text(item['name']),
+          );
+        }).toList();
+      });
+    }
+
+    if (stateRes.statusCode == 200) {
+      final List<dynamic> stateList = jsonDecode(stateRes.body);
+      setState(() {
+        _stateItems = stateList.map<DropdownMenuItem<String>>((state) {
+          return DropdownMenuItem(
+            value: state,
+            child: Text(state),
+          );
+        }).toList();
+      });
+    }
+  } catch (e) {
+    dSnackBar(context, "Failed to load dropdowns: ${e.toString()}",
+        TypeSnackbar.error);
   }
+}
 
   Future<void> getCompanyId() async {
     var box = await Hive.openBox('auth_data');
@@ -71,20 +136,20 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
           centerTitle: true,
           title: const Text("Add Customer"),
           leading: IconButton(
-  onPressed: () {
-    if (widget.fromCustomersPage) {
-      // Wrap in a function to delay execution
-      ref.read(tabProvider.notifier).setTab(3);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainPage()),
-      );
-    } else {
-      Navigator.pop(context);
-    }
-  },
-  icon: const Icon(Icons.arrow_back_ios_new),
-),
+            onPressed: () {
+              if (widget.fromCustomersPage) {
+                // Wrap in a function to delay execution
+                ref.read(tabProvider.notifier).setTab(3);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MainPage()),
+                );
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            icon: const Icon(Icons.arrow_back_ios_new),
+          ),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -103,7 +168,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
                       const DGap(),
                       DDropdown(
                         label: "Category",
-                        items: customerCategoryTypeMenuItems,
+                        items: _categoryItems,
                         onChanged: (value) => _changeCategoryValue(value),
                         value: _category,
                       ),
@@ -111,8 +176,10 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
                       DDropdown(
                         label: "Status",
                         items: const [
-                          DropdownMenuItem(value: 'Active', child: Text('Active')),
-                          DropdownMenuItem(value: 'InActive', child: Text('Inactive')),
+                          DropdownMenuItem(
+                              value: 'Active', child: Text('Active')),
+                          DropdownMenuItem(
+                              value: 'InActive', child: Text('Inactive')),
                         ],
                         onChanged: (value) => _changeStatusValue(value),
                         value: _status,
@@ -121,8 +188,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
                       buildCustomTextField(
                           "Phone", TextInputType.phone, _phoneField, true),
                       const DGap(),
-                      buildCustomTextField(
-                          "Email", TextInputType.emailAddress, _emailField, true),
+                      buildCustomTextField("Email", TextInputType.emailAddress,
+                          _emailField, true),
                       const DGap(),
                       buildCustomTextField(
                           "Address", TextInputType.text, _addressField, true),
@@ -130,12 +197,19 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
                       buildCustomTextField(
                           "City", TextInputType.text, _cityField, true),
                       const DGap(),
-                      buildCustomTextField(
-                          "State", TextInputType.text, _stateField, true),
+                      DDropdown(
+                        label: "State",
+                        items: _stateItems,
+                        onChanged: (value) =>
+                            setState(() => _selectedState = value),
+                        value: _selectedState,
+                      ),
                       const DGap(),
                       buildCustomTextField(
                           "ZipCode", TextInputType.number, _zipCodeField, true),
                       const DGap(),
+                      buildCustomTextField("Customer Location",
+                          TextInputType.text, _locationField, true),
                     ],
                   ),
                   const DGap(),
@@ -147,7 +221,8 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
                         loadingCustomerInsertion = true;
                       });
                       // Submit form data
-                      _submitCustomerData(ref);  // Pass ref to _submitCustomerData
+                      _submitCustomerData(
+                          ref); // Pass ref to _submitCustomerData
                     },
                     child: loadingCustomerInsertion
                         ? const SizedBox(
@@ -167,17 +242,42 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
   }
 
   void _submitCustomerData(WidgetRef ref) async {
-    if (_nameField.text.isEmpty ||
-        _category == null ||
-        _status == null ||
-        _phoneField.text.isEmpty ||
-        _emailField.text.isEmpty) {
-      setState(() {
-        loadingCustomerInsertion = false;
-      });
-      dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
-      return;
-    }
+    String phone = _phoneField.text.trim();
+String email = _emailField.text.trim();
+
+if (_nameField.text.isEmpty ||
+    _category == null ||
+    _status == null ||
+    phone.isEmpty ||
+    email.isEmpty) {
+  setState(() {
+    loadingCustomerInsertion = false;
+  });
+  dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
+  return;
+}
+
+// ✅ Phone number validation (10 digits, starts with 6–9)
+final phoneRegex = RegExp(r'^\d{10}$');
+if (!phoneRegex.hasMatch(phone)) {
+  setState(() {
+    loadingCustomerInsertion = false;
+  });
+  dSnackBar(context, "Enter a valid 10-digit phone number", TypeSnackbar.error);
+  return;
+}
+
+// ✅ Email validation
+final emailRegex = RegExp(
+  r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+);
+if (!emailRegex.hasMatch(email)) {
+  setState(() {
+    loadingCustomerInsertion = false;
+  });
+  dSnackBar(context, "Enter a valid email address", TypeSnackbar.error);
+  return;
+}
 
     Map<String, dynamic> customerData = {
       'name': _nameField.text,
@@ -187,13 +287,16 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
       'phone': _phoneField.text,
       'email': _emailField.text,
       'address': _addressField.text,
+      'apartment': null,
       'city': _cityField.text,
-      'state': _stateField.text,
+      'state': _selectedState,
       'zipCode': _zipCodeField.text,
+      'Customer Location': _locationField.text,
     };
 
     try {
-      http.Response response = await _customerRepo.addCompanyCustomer(customerData);
+      http.Response response =
+          await _customerRepo.addCompanyCustomer(customerData);
       if (response.statusCode == 200) {
         dSnackBar(context, "Customer Added Successfully", TypeSnackbar.success);
         clearFields();
@@ -222,6 +325,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {  // Update 
       _cityField.clear();
       _stateField.clear();
       _zipCodeField.clear();
+      _locationField.clear();
     });
   }
 }

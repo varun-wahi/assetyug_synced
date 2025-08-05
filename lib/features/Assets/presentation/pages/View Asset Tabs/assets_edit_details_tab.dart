@@ -4,13 +4,9 @@ import 'dart:typed_data';
 import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Assets/domain/usecases/switch_asset_status_string.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_check_in_out_model.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
-import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/config/theme/image_strings.dart';
@@ -30,8 +26,13 @@ class AssetEditDetailsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print("ASSET DATA: ${assetData.toJson()}");
+    
+
     final shouldRefresh = ref.watch(refreshProvider);
-    Uint8List bytes = base64.decode(assetData.image ?? defaultImage);
+    // Uint8List bytes = base64.decode(assetData.image ?? defaultImage);
+    final rawBase64 = (assetData.image ?? defaultImage).split(',').last;
+Uint8List bytes = base64.decode(rawBase64);
 
     return FutureBuilder(
       future: AssetsRepositoryImpl().getCheckInOutList(assetData.id!),

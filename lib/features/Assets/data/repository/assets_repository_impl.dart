@@ -54,6 +54,12 @@ Future<Map<String, String>> getHeaders() async {
     var headers = await getHeaders();
     return await http.post(Uri.parse(url), body: myFile, headers: headers);
   }
+  // Update assets
+  Future<http.Response> updateAsset(Map<String, dynamic> updateData) async {
+    final url = "$assetEndpoint/addassets";
+    var headers = await getHeaders();
+    return await http.put(Uri.parse(url), body: jsonEncode(updateData), headers: headers);
+  }
 
   // Upload image
   Future<http.Response> uploadImage(dynamic data) async {
@@ -256,20 +262,16 @@ Future<Map<String, String>> getHeaders() async {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-  // Integrate new APIs
-
-  // Update asset
-  // NEW API
-  Future<http.Response> updateAsset(dynamic data) async {
-    final url = "${assetEndpoint}addassets";
-    var headers = await getHeaders();
-    return await http.put(Uri.parse(url), body: data, headers: headers);
-  }
-
   // Get extra fields
   // NEW API
   Future<http.Response> getExtraFields(String id) async {
     final url = "${assetEndpoint}getExtraFields/$id";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+    Future<http.Response> getActiveCategories(String companyId) async {
+    final url = "${assetEndpoint}getCategoryActiveList/$companyId";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }

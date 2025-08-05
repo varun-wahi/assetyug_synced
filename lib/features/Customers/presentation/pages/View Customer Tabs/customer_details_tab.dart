@@ -67,9 +67,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ? widget.data.address!
                         : "--"),
                 const DDivider(),
-                _buildDetailRow(
-                    "Apartment: ", widget.data.apartment.toString()),
-                const DDivider(),
+                // _buildDetailRow(
+                //     "Apartment: ", widget.data.apartment.toString()),
+                // const DDivider(),
                 _buildDetailRow(
                     "City: ",
                     widget.data.city!.isNotEmpty == true
