@@ -54,13 +54,30 @@ Future<Map<String, String>> getHeaders() async {
     var headers = await getHeaders();
     return await http.post(Uri.parse(url), body: myFile, headers: headers);
   }
-  // Update assets
-  Future<http.Response> updateAsset(Map<String, dynamic> updateData) async {
-    final url = "$assetEndpoint/addassets";
-    var headers = await getHeaders();
-    return await http.put(Uri.parse(url), body: jsonEncode(updateData), headers: headers);
-  }
+ Future<http.Response> updateAsset(Map<String, dynamic> updateData) async {
+  final url = "${assetEndpoint}addassets";
+  final uri = Uri.parse(url);
+  final headers = await getHeaders();
+  final body = jsonEncode(updateData);
 
+  print("⬆️ Sending PUT request to: $url");
+  print("📝 Request Headers: $headers");
+  print("📦 Request Body: $body");
+
+  try {
+    final response = await http.put(uri, body: body, headers: headers);
+
+    print("✅ Response Status Code: ${response.statusCode}");
+    print("📥 Response Body: ${response.body}");
+
+    return response;
+  } catch (e, stackTrace) {
+    print("❌ HTTP PUT Request failed");
+    print("🧾 Error: $e");
+    print("🧵 StackTrace: $stackTrace");
+    rethrow; // Rethrow to let calling code handle it
+  }
+}
   // Upload image
   Future<http.Response> uploadImage(dynamic data) async {
     final url = "${assetEndpoint}imageUpload";
@@ -234,7 +251,9 @@ Future<Map<String, String>> getHeaders() async {
   Future<http.Response> getCheckInOutList(String id) async {
     final url = "${assetEndpoint}getCheckInOutList/$id";
     var headers = await getHeaders();
-    return await http.get(Uri.parse(url), headers: headers);
+    final result = await http.get(Uri.parse(url), headers: headers);
+    print("Check In/Out List Response: ${result.body}");
+    return result;
   }
 
   // Subject and Stream for event handling

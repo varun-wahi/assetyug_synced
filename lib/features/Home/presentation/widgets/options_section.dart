@@ -7,6 +7,7 @@ import '../../../../core/utils/constants/sizes.dart';
 import '../../../Assets/presentation/pages/add_asset_page.dart';
 import '../../../Assets/presentation/pages/assets_page.dart';
 import '../pages/scan_qr_page.dart';
+import 'assetId_search_dialog.dart';
 import 'serial_search_dialog.dart';
 
 class BuildOptionsSection extends ConsumerWidget {
@@ -69,10 +70,10 @@ class BuildOptionsSection extends ConsumerWidget {
                 // ),
                 ListTile(
                   leading: const Icon(Icons.search),
-                  title: const Text("Search Asset by Asset ID"),
+                  title: const Text("Search Asset by ID"),
                   onTap: () async {
                     Navigator.pop(context); // Close the BottomSheet
-                    String? assetId = await SerialSearchDialog.show(context);
+                    String? assetId = await AssetidSearchDialog.show(context);
                     if (assetId != null && assetId.isNotEmpty) {
                       searchAsset(assetId);
                     }

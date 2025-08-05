@@ -360,6 +360,8 @@ Future<void> _fetchAssetsPage() async {
             flex: 4,
             child: _buildSelectedFilters(selectedFilters),
           ),
+          Expanded(child: _buildRefreshButton()),
+
           Expanded(
             child: IconButton(
               onPressed: () => _buildAdvancedFilters(),
@@ -394,6 +396,16 @@ Future<void> _fetchAssetsPage() async {
           },
         );
       },
+    );
+  }
+
+    Widget _buildRefreshButton() {
+    return IconButton(
+      onPressed: () {
+        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
+        _fetchAssets();
+      },
+      icon: const Icon(Icons.refresh, color: darkGrey),
     );
   }
 

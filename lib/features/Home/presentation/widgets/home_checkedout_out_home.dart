@@ -119,15 +119,16 @@ class _BuildAssetOverviewContainerState
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return _buildStatusCard(
-                  "Checked Out Asset", "...", screenWidth * 0.45);
+                  "Checked Out Assets", "...", screenWidth * 0.45);
             } else if (snapshot.hasError) {
               return _buildStatusCard(
-                  "Checked Out Asset", "Error", screenWidth * 0.45);
+                  "Checked Out Assets", "Error", screenWidth * 0.45);
             } else if (snapshot.hasData && snapshot.data is http.Response) {
               final response = snapshot.data as http.Response;
               final assetData = json.decode(response.body);
-              return _buildStatusCard("Checked Out Asset",
-                  "${assetData['checkOut'] ?? 0}", screenWidth * 0.45);
+              return _buildStatusCard("Checked Out Assets",
+                  "${assetData['checkIn'] ?? 0}", screenWidth * 0.45);
+                  // "${assetData['checkOut'] ?? 0}", screenWidth * 0.45);
             } else {
               return _buildStatusCard(
                   "Checked Out Asset", "No data", screenWidth * 0.45);

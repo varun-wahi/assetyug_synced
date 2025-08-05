@@ -2,252 +2,228 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
-import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_check_in_out_model.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
+import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
-import 'package:asset_yug_debugging/config/theme/image_strings.dart';
-import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/details_row_widget_assets.dart';
+import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
-import '../../../../../core/utils/widgets/details_row_widget_assets.dart';
-
-class AssetEditDetailsPage extends ConsumerWidget {
+class AssetEditDetailsPage extends ConsumerStatefulWidget {
   final AssetsModel assetData;
 
   const AssetEditDetailsPage({super.key, required this.assetData});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    print("ASSET DATA: ${assetData.toJson()}");
-    
+  ConsumerState<AssetEditDetailsPage> createState() =>
+      _AssetEditDetailsPageState();
+}
 
-    final shouldRefresh = ref.watch(refreshProvider);
-    // Uint8List bytes = base64.decode(assetData.image ?? defaultImage);
-    final rawBase64 = (assetData.image ?? defaultImage).split(',').last;
-Uint8List bytes = base64.decode(rawBase64);
+class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
+  Map<String, dynamic>? lastCheckEntry;
+  bool isLoading = true;
+  bool hasError = false;
 
-    return FutureBuilder(
-      future: AssetsRepositoryImpl().getCheckInOutList(assetData.id!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else {
-          return Column(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(dBorderRadius),
-                child: Image.memory(
-                  bytes,
+  @override
+  void initState() {
+    super.initState();
+    _fetchLastCheckEntry();
+  }
+
+  Future<void> _fetchLastCheckEntry() async {
+    try {
+      final response =
+          await AssetsRepositoryImpl().getCheckInOutList(widget.assetData.id!);
+      if (response.statusCode == 202) {
+        final List<dynamic> jsonData = json.decode(response.body);
+        if (jsonData.isNotEmpty) {
+          final checkModel =
+              AssetCheckInOutModel.fromJson(jsonData.last).detailsList;
+          if (checkModel.isNotEmpty) {
+            final last = checkModel.first;
+            setState(() {
+              lastCheckEntry = {
+                "status": last.status,
+                "employee": last.employee,
+                "date": last.date,
+              };
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading check-in/out: $e");
+      setState(() => hasError = true);
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rawBase64 = (widget.assetData.image)?.split(',').last??"";
+    final bytes = base64.decode(rawBase64);
+
+    return Column(
+      children: [
+        Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(dBorderRadius),
+              child: Image.memory(
+                bytes,
+                height: 200,
+                width: MediaQuery.of(context).size.width - (4 * dPadding),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
                   height: 200,
                   width: MediaQuery.of(context).size.width - (4 * dPadding),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(child: Text('Error loading image'));
-                  },
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: dPadding * 3, vertical: dPadding * 2),
-                  color: tWhite,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DDetailsRow(
-                          title: "Asset Name", value: assetData.name),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Asset ID: ", value: assetData.assetId.toString()),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Serial No: ", value: assetData.serialNumber),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Category: ",
-                          value:
-                              assetData.category.isNotEmpty ? assetData.category : "--"),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Customer: ",
-                          value: (assetData.customer?.isNotEmpty ?? false)
-                              ? assetData.customer!
-                              : "--"),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Location: ",
-                          value: assetData.location.isNotEmpty
-                              ? assetData.location
-                              : "No location data"),
-                      // const DDivider(),
-                      DDetailsRow(
-                          title: "Status: ",
-                          value: assetData.status.isNotEmpty
-                              ? assetData.status.toCapitalized()
-                              : "No status data"),
-                      // const DDivider(),
-                      DDetailsRow(
-                        title: "Current Status: ",
-                        value: _getCheckingStatusValue(snapshot),
-                      ),
-                      const DDivider(),
-                      SizedBox(
-                        height: 60,
-                        child: _buildCheckingStatusSection(assetData, ref, snapshot),
-                      ),
-                      const DGap(),
-                    ],
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
                   ),
-                ),
+                  );
+                },
+                
               ),
-            ],
-          );
-        }
-      },
+            ),
+            Positioned(
+              right: 10,
+              top: 10,
+              child: IconButton.filled(
+                style: IconButton.styleFrom(
+                  backgroundColor: tPrimary,
+                  shape: const CircleBorder(),
+                ),
+                icon: const Icon(Icons.edit, color: tWhite),
+                onPressed: _navigateToEditPage,
+              ),
+            ),
+          ],
+        ),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: dPadding * 3,
+              vertical: dPadding * 2,
+            ),
+            color: tWhite,
+            child: isLoading
+                ? _buildShimmer()
+                : hasError
+                    ? const Center(child: Text("Failed to load check-in data"))
+                    : _buildDetails(),
+          ),
+        ),
+      ],
     );
   }
 
-  Map<String, dynamic>? _getLastCheckEntry(AsyncSnapshot snapshot) {
-  try {
-    if (snapshot.hasData && snapshot.data.statusCode == 202) {
-      final List<dynamic> jsonData = json.decode(snapshot.data.body);
-      if (jsonData.isNotEmpty) {
-        final checkingDetails = AssetCheckInOutModel.fromJson(jsonData.first);
-        if (checkingDetails.detailsList.isNotEmpty) {
-          return {
-            "status": checkingDetails.detailsList.last.status,
-            "employee": checkingDetails.detailsList.last.employee,
-            "date": checkingDetails.detailsList.last.date,
-          };
-        }
-      }
-    }
-  } catch (e) {
-    debugPrint("Error extracting last check-in/out: $e");
-  }
-  return null;
-}
-
-  // Widget _buildCheckingStatusSection(AssetsModel assetData, WidgetRef ref, AsyncSnapshot<dynamic> snapshot) {
-  //   if (snapshot.connectionState == ConnectionState.waiting) {
-  //     return const Center(
-  //       child: SizedBox(
-  //         width: 30,
-  //         height: 30,
-  //         child: CircularProgressIndicator(color: tWhite,),
-  //       ),
-  //     );
-  //   } else if (snapshot.hasError) {
-  //     return Text('Error: ${snapshot.error}');
-  //   } else if (snapshot.hasData && snapshot.data.statusCode == 202) {
-  //     final List<dynamic> jsonData = json.decode(snapshot.data.body);
-  //     print("jsonData: $jsonData");
-  //     if (jsonData.isNotEmpty) {
-  //       try {
-  //         final checkingDetails = AssetCheckInOutModel.fromJson(jsonData.first);              
-  //         if (checkingDetails.detailsList.isNotEmpty) {
-  //           final detailsListLast = checkingDetails.detailsList.last;
-  //           print("detailsListLast: ${detailsListLast}");
-  //           return Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(//!TO Fix Here
-  //                 "${detailsListLast.status} by ${detailsListLast.employee} on \n${DateFormat('yyyy/MM/dd').format(detailsListLast.date ?? DateTime.now())}",
-  //                 style: containerText(),
-  //               ),
-  //               AssetStatusButton(data: assetData, ref: ref)
-  //             ],
-  //           );
-  //         }
-  //       } catch (e) {
-  //         print("Error parsing JSON: $e");
-  //         print("jsonData: $jsonData");
-  //         return Text('Error parsing data: $e');
-  //       }
-  //     }else{
-  //       return Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(//!TO Fix Here
-
-  //                 "Checked in by ${assetData.customer} on (fix) \n${DateFormat('yyyy/MM/dd').format(DateTime.now())}",
-  //                 style: containerText(),
-  //               ),
-  //               AssetStatusButton(data: assetData, ref: ref)
-  //             ],
-  //           );
-  //     }
-  //   }
-  //   return const NoDataFoundPage();
-  // }
-
-  Widget _buildCheckingStatusSection(
-    AssetsModel assetData, WidgetRef ref, AsyncSnapshot snapshot) {
-  if (snapshot.connectionState == ConnectionState.waiting) {
-    return const Center(child: CircularProgressIndicator());
-  } else if (snapshot.hasError) {
-    return Text('Error: ${snapshot.error}');
+  Widget _buildDetails() {
+    final asset = widget.assetData;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DDetailsRow(title: "Asset Name", value: asset.name),
+        DDetailsRow(title: "Asset ID", value: asset.assetId ?? "--"),
+        DDetailsRow(title: "Serial No", value: asset.serialNumber ?? "--"),
+        DDetailsRow(title: "Category", value: asset.category.isNotEmpty ? asset.category : "--"),
+        DDetailsRow(title: "Customer", value: asset.customer?.isNotEmpty == true ? asset.customer! : "--"),
+        DDetailsRow(title: "Location", value: asset.location.isNotEmpty ? asset.location : "No location data"),
+        DDetailsRow(title: "Status", value: asset.status.isNotEmpty ? asset.status.toCapitalized() : "No status data"),
+        DDetailsRow(title: "Current Status", value: _formatCheckStatus()),
+        const DDivider(),
+        const DGap(gap: 4),
+        _buildStatusSection(),
+        const DGap(gap: 8),
+      ],
+    );
   }
 
-  final entry = _getLastCheckEntry(snapshot);
-  final statusText = entry != null
-      ? "${entry['status']} by ${entry['employee']} on \n${DateFormat('yyyy/MM/dd').format(entry['date'] ?? DateTime.now())}"
-      : "Checked in by ${assetData.customer} on \n${DateFormat('yyyy/MM/dd').format(DateTime.now())}";
+  Widget _buildStatusSection() {
+    final asset = widget.assetData;
+    final dateText = lastCheckEntry != null
+        ? DateFormat('yyyy/MM/dd').format(lastCheckEntry!['date'])
+        : DateFormat('yyyy/MM/dd').format(DateTime.now());
 
-  return Container(
-  padding: const EdgeInsets.all(12),
-  decoration: BoxDecoration(
-    color: tGreyLight,
-    borderRadius: BorderRadius.circular(8),
-  ),
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Expanded(
-        child: Text(statusText, style: containerText()),
+    final text = lastCheckEntry != null
+        ? "${lastCheckEntry!['status']} by ${lastCheckEntry!['employee']} on \n$dateText"
+        : "Checked in by ${asset.customer} on \n$dateText";
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tGreyLight,
+        borderRadius: BorderRadius.circular(8),
       ),
-      AssetStatusButton(data: assetData, ref: ref),
-    ],
-  ),
-);
-}
-
-  // String _getCheckingStatusValue(AsyncSnapshot<dynamic> snapshot) {
-  //   if (snapshot.connectionState == ConnectionState.waiting) {
-  //     return "Loading...";
-  //   } else if (snapshot.hasError) {
-  //     print("ERROR: ${snapshot.error}");
-  //     return "Error loading status";
-  //   } else if (snapshot.hasData) {
-  //     final checkInOutData = snapshot.data;
-  //     if (checkInOutData != null && checkInOutData.statusCode == 202) {
-  //       final decodedData = json.decode(checkInOutData.body);
-  //       if (decodedData.isNotEmpty) {
-  //         final lastStatus = decodedData.last['status'];
-  //         print("LAST STATUS: $lastStatus");
-  //         return lastStatus ?? "Checked In (default)";
-  //       }
-  //     }
-  //   }
-  //   return "Checked In";
-  // }
-
-  String _getCheckingStatusValue(AsyncSnapshot snapshot) {
-  final entry = _getLastCheckEntry(snapshot);
-  if (entry != null) {
-    return "${entry['status']} by ${entry['employee']} on ${DateFormat('yyyy/MM/dd').format(entry['date'] ?? DateTime.now())}";
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(text, style: containerText())),
+          AssetStatusButton(data: asset, ref: ref),
+        ],
+      ),
+    );
   }
-  return "Checked In";
-}
+
+  Widget _buildShimmer() {
+    return Column(
+      children: List.generate(
+        6,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              height: 20,
+              width: double.infinity,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToEditPage() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddAssetPage(editAsset: widget.assetData),
+      ),
+    );
+
+    if (result == true) {
+      Navigator.pop(context, true);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewAssetPage(assetObjectId: widget.assetData.id!),
+        ),
+      );
+    }
+  }
+
+  String _formatCheckStatus() {
+    if (lastCheckEntry != null) {
+      final date = lastCheckEntry!['date'];
+      final formattedDate = DateFormat('yyyy/MM/dd').format(date);
+      return "${lastCheckEntry!['status']} by ${lastCheckEntry!['employee']} on $formattedDate";
+    }
+    return "Checked In";
+  }
 }
