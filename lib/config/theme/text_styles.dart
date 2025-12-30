@@ -2,20 +2,6 @@ import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:flutter/material.dart';
 
 TextStyle boldHeading(
-    {double size = 22,
-    FontStyle style = FontStyle.normal,
-    FontWeight weight = FontWeight.w600,
-    Color color = Colors.black87,
-    Color bgColor = Colors.transparent}) {
-  return TextStyle(
-      fontSize: size,
-      fontStyle: style,
-      fontWeight: weight,
-      color: color,
-      backgroundColor: bgColor);
-}
-
-TextStyle headline(
     {double size = 17,
     FontStyle style = FontStyle.normal,
     FontWeight weight = FontWeight.w600,
@@ -29,8 +15,22 @@ TextStyle headline(
       backgroundColor: bgColor);
 }
 
+TextStyle headline(
+    {double size = 15,
+    FontStyle style = FontStyle.normal,
+    FontWeight weight = FontWeight.w600,
+    Color color = Colors.black87,
+    Color bgColor = Colors.transparent}) {
+  return TextStyle(
+      fontSize: size,
+      fontStyle: style,
+      fontWeight: weight,
+      color: color,
+      backgroundColor: bgColor);
+}
+
 TextStyle appBarHeading(
-    {double size = 28,
+    {double size = 23,
     FontStyle style = FontStyle.normal,
     FontWeight weight = FontWeight.w700,
     Color color = tWhite,
@@ -71,7 +71,7 @@ TextStyle subtitle(
 }
 
 TextStyle body(
-    {double size = 15,
+    {double size = 13,
     FontStyle style = FontStyle.normal,
     FontWeight weight = FontWeight.w400,
     Color color = Colors.black87}) {
@@ -97,7 +97,7 @@ TextStyle containerText(
 }
 
 TextStyle subheading(
-    {double size = 16,
+    {double size = 14,
     FontStyle style = FontStyle.normal,
     FontWeight weight = FontWeight.w600,
     Color color = Colors.black87}) {

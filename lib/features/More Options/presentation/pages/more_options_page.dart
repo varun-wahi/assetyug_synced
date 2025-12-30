@@ -313,13 +313,13 @@ class _BuildExtraSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        _buildSettingsTile(
-          context: context,
-          icon: Icons.notifications,
-          title: 'Notifications',
-          onTap: () => _navigateToPage(context, const NotificationsPage()),
-        ),
-        const DDivider(),
+        // _buildSettingsTile(
+        //   context: context,
+        //   icon: Icons.notifications,
+        //   title: 'Notifications',
+        //   onTap: () => _navigateToPage(context, const NotificationsPage()),
+        // ),
+        // const DDivider(),
         
         _buildSettingsTile(
           context: context,

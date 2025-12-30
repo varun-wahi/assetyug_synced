@@ -1,24 +1,17 @@
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/pages/assets_page.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
-import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_mongodb.dart';
-import 'package:asset_yug_debugging/features/Home/presentation/widgets/serial_search_dialog.dart';
 import 'package:asset_yug_debugging/features/Locations%20and%20Bins/presentation/pages/locations_and_bins_page.dart';
-import 'package:asset_yug_debugging/features/Work%20Orders/data/repository/work_orders_mongodb.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:badges/badges.dart' as badges;
 
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
-import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
@@ -44,7 +37,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _fetchCompanyName();
-    // _connectToDb();
   }
 
   Future<void> _fetchCompanyName() async {
@@ -57,24 +49,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _connectToDb() async {
-    try {
-      await WorkOrdersMongodb.connect();
-      await AssetsMongoDB.connect();
-      print("Connected to both DBs");
-
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        dSnackBar(context, "Failed to connect to DB", TypeSnackbar.error);
-      }
-      print("Failed to connect to DB: $e");
-    }
-  }
 
   //LOGOUT FUNCTION
   Future<bool> _showLogoutDialog(BuildContext context) async {
@@ -205,7 +179,7 @@ class _HomePageState extends State<HomePage> {
         //TITLE
         title: const Padding(
           padding: EdgeInsets.all(8.0),
-          child: Text("AssetYug"),
+          child: Text("AssetYug", style: TextStyle(fontSize: 24)),
         ),
 
         actions: [
@@ -228,11 +202,12 @@ class _HomePageState extends State<HomePage> {
             children: [
               //Greetings
               _buildGreetingsSection(),
-              const DGap(gap: dPadding * 2),
-
               //quick actions
               _buildQuickActionsSection(),
+              const DGap(gap: dPadding),
 
+
+              // _buildWoCategorisedSection(),
               //Scan or Add Asset Container
               BuildOptionsSection(
                 context: context,
@@ -264,13 +239,13 @@ class _HomePageState extends State<HomePage> {
           children: [
             Text(
               "Welcome $companyName",
-              style: boldHeading(size: 24),
+              style: boldHeading(size: 22),
             ),
             const DGap(),
             Text(
                 DateFormat('MMMM d, y').format(DateTime
                     .now()), //Update Date and Time whenever user logs in
-                style: body(size: 18)),
+                style: body()),
           ],
         ));
   }
@@ -349,10 +324,10 @@ class _HomePageState extends State<HomePage> {
 
   Container _buildQuickActionsSection() {
     return Container(
-      padding: const EdgeInsets.all(dPadding),
+      padding: const EdgeInsets.all(0),
       height: 75,
       child: ListView.separated(
-        padding: const EdgeInsets.all(dPadding),
+        padding: const EdgeInsets.symmetric(vertical : dPadding*2),
         itemBuilder: (context, index) {
           return SizedBox(
               height: 60,
@@ -362,9 +337,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(dBorderRadius * 2),
                   ),
                   backgroundColor: tPrimary, // Background color
-                  // backgroundColor: tWhite,// Background color
                   foregroundColor: tWhite, // Text color
-                  // foregroundColor: tPrimary, // Text color
                 ),
                 onPressed: () {
                   if (index == 0) {

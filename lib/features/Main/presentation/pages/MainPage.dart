@@ -27,7 +27,7 @@ class MainPage extends ConsumerWidget {
     final pages = [
       const HomePage(),
       const AssetsPage(),
-      const InventoryPage(),
+      // const InventoryPage(),
       const CustomersPage(),
       const MoreOptionsPage(),
     ];
@@ -54,6 +54,7 @@ class MainPage extends ConsumerWidget {
             backgroundColor: tBackground,
             selectedItemColor: tPrimary,
             unselectedItemColor: darkGrey,
+            type: BottomNavigationBarType.fixed,
 
             onTap: (index) {
               // Update the tab index
@@ -64,8 +65,8 @@ class MainPage extends ConsumerWidget {
                   icon: Icon(Icons.home_filled), label: "Home"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.account_balance_wallet), label: "Assets"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory), label: "Inventory"),
+              // BottomNavigationBarItem(
+              //     icon: Icon(Icons.inventory), label: "Inventory"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.people_alt), label: "Customers"),
               BottomNavigationBarItem(icon: Icon(Icons.menu), label: "More"),

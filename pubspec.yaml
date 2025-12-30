@@ -64,6 +64,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.2
 
 flutter:
   uses-material-design: true
@@ -72,3 +73,17 @@ flutter:
   - assets/images/
   - assets/icons/
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/asset_yug_logo.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/asset_yug_logo.png"
+  remove_alpha_android: true
+
+  web:
+    generate: true
+    image_path: "assets/images/asset_yug_logo.png"
+    background_color: "#ffffff"
+    theme_color: "#000000"

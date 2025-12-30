@@ -5,8 +5,6 @@ import '../../../../config/theme/text_styles.dart';
 import '../../../../core/utils/constants/colors.dart';
 import '../../../../core/utils/constants/sizes.dart';
 import '../../../Assets/presentation/pages/add_asset_page.dart';
-import '../../../Assets/presentation/pages/assets_page.dart';
-import '../pages/scan_qr_page.dart';
 import 'assetId_search_dialog.dart';
 import 'serial_search_dialog.dart';
 
@@ -20,8 +18,6 @@ class BuildOptionsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-   
-
     void showSearchOptions() {
       showModalBottomSheet(
         context: context,
@@ -90,7 +86,7 @@ class BuildOptionsSection extends ConsumerWidget {
         borderRadius: BorderRadius.circular(dBorderRadius),
         border: Border.all(width: .1, color: lighterGrey),
       ),
-      height: 150,
+      height: 130,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -103,8 +99,8 @@ class BuildOptionsSection extends ConsumerWidget {
                 height: 80,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: tWhite,
-                    foregroundColor: tBlack,
+                    backgroundColor: tPrimary,
+                    foregroundColor: tWhite,
                     elevation: 2.0,
                   ),
                   onPressed: showSearchOptions,
@@ -131,8 +127,8 @@ class BuildOptionsSection extends ConsumerWidget {
                 height: 80,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: tWhite,
-                    foregroundColor: tBlack,
+                    backgroundColor: tPrimary,
+                    foregroundColor: tWhite,
                     elevation: 2.0,
                   ),
                   onPressed: () {
