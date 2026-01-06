@@ -191,6 +191,184 @@ Future<Map<String, String>> getHeaders() async {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
+//!_--------------------------    INSPECTION  APIS   --------------------------_!
+//GET
+//assets/getAllAssetInspectionInstanceByAssetId/694cc46e4df01d3deaa3bf27
+// Get all inspection instances for a specific asset
+Future<http.Response> getAssetInspectionInstancesByAssetId(
+    String assetId,
+) async {
+  final url =
+      "${assetEndpoint}getAllAssetInspectionInstanceByAssetId/$assetId";
+  var headers = await getHeaders();
+  return await http.get(Uri.parse(url), headers: headers);
+}
+ //RESPONSE: [
+//     {
+//         "id": "69509eb68cb604593305ed98",
+//         "assetId": "694cc46e4df01d3deaa3bf27",
+//         "companyId": 100004,
+//         "createdAt": "12/27/2025, 10:06:31 PM",
+//         "updatedAt": "12/27/2025, 10:06:31 PM",
+//         "actionPerformedBy": "Harsh Nisar",
+//         "notes": "Pre trip inspection",
+//         "status": "PENDING",
+//         "assetCategoryInspectionId": "",
+//         "assetCategoryInspectionName": "undefined ",
+//         "stepValues": [
+//             {
+//                 "id": null,
+//                 "name": "Engine Oil filter",
+//                 "inspectionStepId": null,
+//                 "inspectionName": null,
+//                 "type": "TEXT",
+//                 "value": "Need to change"
+//             },
+//             {
+//                 "id": null,
+//                 "name": "Brake pads",
+//                 "inspectionStepId": null,
+//                 "inspectionName": null,
+//                 "type": "CHECKBOX",
+//                 "value": "true"
+//             },
+//             {
+//                 "id": null,
+//                 "name": "Odometer",
+//                 "inspectionStepId": null,
+//                 "inspectionName": null,
+//                 "type": "NUMBER",
+//                 "value": "21450"
+//             }
+//         ],
+//         "inspectionTemplates": [
+//             {
+//                 "inspectionName": null,
+//                 "stepValues": [
+//                     {
+//                         "id": null,
+//                         "name": "Engine Oil filter",
+//                         "inspectionStepId": null,
+//                         "inspectionName": null,
+//                         "type": "TEXT",
+//                         "value": "Need to change"
+//                     },
+//                     {
+//                         "id": null,
+//                         "name": "Brake pads",
+//                         "inspectionStepId": null,
+//                         "inspectionName": null,
+//                         "type": "CHECKBOX",
+//                         "value": "true"
+//                     },
+//                     {
+//                         "id": null,
+//                         "name": "Odometer",
+//                         "inspectionStepId": null,
+//                         "inspectionName": null,
+//                         "type": "NUMBER",
+//                         "value": "21450"
+//                     }
+//                 ]
+//             }
+//         ],
+//         "selectedItemList": [
+//             {
+//                 "id": "69509dfa8cb604593305ed97",
+//                 "name": null
+//             }
+//         ]
+//     }
+// ] 
+
+//GET
+// assets/getAllAssetInspectionByCategory/100004?category=Automobile
+// Get all asset inspections by category
+Future<http.Response> getAssetInspectionsByCategory(
+    String companyId,
+    String category,
+) async {
+  final url =
+      "${assetEndpoint}getAllAssetInspectionByCategory/$companyId?category=$category";
+  var headers = await getHeaders();
+  return await http.get(Uri.parse(url), headers: headers);
+}
+// [
+//     {
+//         "id": "69509dfa8cb604593305ed97",
+//         "name": "12-point Inspection",
+//         "categoryName": "Automobile",
+//         "categoryId": "692242a8c857cd4c82d3cb6e",
+//         "companyId": 100004,
+//         "steps": [
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Engine Oil filter",
+//                 "type": "TEXT"
+//             },
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Brake pads",
+//                 "type": "CHECKBOX"
+//             },
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Odometer",
+//                 "type": "NUMBER"
+//             }
+//         ],
+//         "status": "active"
+//     },
+//     {
+//         "id": "69509f4f8cb604593305ed9b",
+//         "name": "14-point inspection",
+//         "categoryName": "Automobile",
+//         "categoryId": "692242a8c857cd4c82d3cb6e",
+//         "companyId": 100004,
+//         "steps": [
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Tyres",
+//                 "type": "CHECKBOX"
+//             },
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Brake oil",
+//                 "type": "TEXT"
+//             },
+//             {
+//                 "id": null,
+//                 "stepNumber": 0,
+//                 "name": "Engine RPM",
+//                 "type": "NUMBER"
+//             }
+//         ],
+//         "status": "active"
+//     }
+// ]
+
+// Add asset inspection instance
+Future<http.Response> addAssetInspectionInstance(
+    Map<String, dynamic> payload,
+) async {
+  final url = "${assetEndpoint}addAssetInspectionInstance";
+  var headers = await getHeaders();
+  return await http.post(
+    Uri.parse(url),
+    headers: headers,
+    body: jsonEncode(payload),
+  );
+}
+
+//EXAMPLE PAYLOAD:
+// {"assetId":"694cc46e4df01d3deaa3bf27","companyId":"100004","assetCategoryInspectionId":"","assetCategoryInspectionName":"undefined ","actionPerformedBy":"Varun Wahi","notes":"test","createdAt":"06/01/2026, 22:41:56","updatedAt":"06/01/2026, 22:41:56","status":"COMPLETED","stepValues":[{"name":"Engine Oil filter","inspectionStepId":null,"value":"sdsd","type":"TEXT"},{"name":"Brake pads","inspectionStepId":null,"value":true,"type":"CHECKBOX"},{"name":"Odometer","inspectionStepId":null,"value":"232323","type":"NUMBER"}],"inspectionTemplates":[{"stepValues":[{"name":"Engine Oil filter","inspectionStepId":null,"value":"sdsd","type":"TEXT"},{"name":"Brake pads","inspectionStepId":null,"value":true,"type":"CHECKBOX"},{"name":"Odometer","inspectionStepId":null,"value":"232323","type":"NUMBER"}]}],"selectedItemList":[{"id":"69509dfa8cb604593305ed97"}]}
+
+
   // // Get searched asset list
   // Future<http.Response> getSearchedAssetList(
   //     String companyId, String data, String category) async {
@@ -208,6 +386,9 @@ Future<Map<String, String>> getHeaders() async {
   //   var headers = await getHeaders();
   //   return await http.get(Uri.parse(url), headers: headers);
   // }
+
+
+//!_--------------------------    COMPANY CUSTOMER  APIS   --------------------------_!
 
   // Get company customer list
   Future<http.Response> getCompanyCustomerList(String companyId) async {

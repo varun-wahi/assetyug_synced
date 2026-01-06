@@ -9,8 +9,8 @@ import 'dart:convert'; // Add this import
 
 import '../../data/models/assets_model.dart';
 import 'View Asset Tabs/assets_check_in_out_tab.dart';
-import 'View Asset Tabs/assets_custom_tab.dart';
 import 'View Asset Tabs/assets_edit_details_tab.dart';
+import 'View Asset Tabs/assets_inspection_tab.dart';
 
 class ViewAssetPage extends StatefulWidget {
   final String assetObjectId;
@@ -74,7 +74,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
   Widget build(BuildContext context) {
     var data = AssetsModel.fromJson(widget.assetData!);
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(
         children: [
           TabBar(
@@ -110,6 +110,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
             tabs: const [
               Tab(child: SizedBox(width: 100, child: Center(child: Text("Edit Details")))),
               Tab(child: SizedBox(width: 100, child: Center(child: Text("Check In/Out")))),
+              Tab(child: SizedBox(width: 100, child: Center(child: Text("Inspection")))),
               Tab(child: SizedBox(width: 100, child: Center(child: Text("Files")))),
               Tab(child: SizedBox(width: 100, child: Center(child: Text("WOs")))),
               // Tab(child: SizedBox(width: 100, child: Center(child: Text("Parts")))),
@@ -122,6 +123,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
               children: [
                 AssetEditDetailsPage(assetData: data),
                 AssetCheckInOutPage(objectId: data.id!),
+                AssetInspectionPage(assetId: data.assetId!, category: data.category, companyId: data.companyId,),
                 AssetFilesPage(objectId: data.id!),
 
 
