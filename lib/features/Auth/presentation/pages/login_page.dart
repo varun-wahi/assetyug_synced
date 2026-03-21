@@ -387,13 +387,23 @@ class _LoginPageState extends State<LoginPage> {
           final signupUrl = Uri.parse(
               'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register');
               // 'https://google.com');
-          if (await canLaunchUrl(signupUrl)) {
-            final launched = await launchUrl(signupUrl, mode: LaunchMode.inAppWebView);
-            if (!launched && mounted) {
+          try {
+            if (await canLaunchUrl(signupUrl)) {
+              final launched = await launchUrl(signupUrl, mode: LaunchMode.inAppWebView);
+              if (!launched && mounted) {
+                _showErrorSnackBar("Could not open signup page");
+              }
+            } else {
+              // Fallback to directly launching if canLaunchUrl returns false
+              final launched = await launchUrl(signupUrl, mode: LaunchMode.externalApplication);
+              if (!launched && mounted) {
+                _showErrorSnackBar("Could not open signup page");
+              }
+            }
+          } catch (e) {
+            if (mounted) {
               _showErrorSnackBar("Could not open signup page");
             }
-          } else {
-            _showErrorSnackBar("Could not open signup page");
           }
         }),
       ],

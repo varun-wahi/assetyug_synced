@@ -44,7 +44,8 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Select Inspections', style: body(weight: FontWeight.w600)),
+          title: Text('Select Inspections', style: body(weight: FontWeight.w600, size: 15), textAlign: TextAlign.center,),
+          
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -53,21 +54,28 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
               itemBuilder: (context, index) {
                 final template = widget.availableTemplates[index];
                 final isSelected = selectedTemplates.contains(template);
-                return CheckboxListTile(
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: CheckboxListTile(
                   value: isSelected,
                   onChanged: (value) {
                     setDialogState(() {
-                      if (value == true) {
-                        selectedTemplates.add(template);
-                      } else {
-                        selectedTemplates.remove(template);
-                      }
+                    if (value == true) {
+                      selectedTemplates.add(template);
+                    } else {
+                      selectedTemplates.remove(template);
+                    }
                     });
                   },
                   title: Text(template.name, style: body()),
                   subtitle: Text(
                     '${template.steps.length} steps',
                     style: body(size: 12, color: Colors.grey),
+                  ),
                   ),
                 );
               },
@@ -83,7 +91,11 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
                 setState(() {});
                 Navigator.pop(context);
               },
+              
               style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 backgroundColor: tPrimary,
                 foregroundColor: tWhite,
               ),

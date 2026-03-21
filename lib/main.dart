@@ -1,3 +1,4 @@
+import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/pages/splash_screen.dart';
 
 import 'package:asset_yug_debugging/config/theme/light_theme_data.dart';
@@ -11,10 +12,9 @@ Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
-);
+  );
 
   runApp(
     const ProviderScope(child: MyApp()),
@@ -28,12 +28,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'AssetYug',
-      theme: lightThemeData,
-      // home: const LoginPage(),
-      home: const SplashScreen(),
-      // home: const MainPage(),
-    );
+        debugShowCheckedModeBanner: false,
+        title: 'AssetYug',
+        theme: lightThemeData,
+        // home: const LoginPage(),
+        home: const SplashScreen());
+    // home: const MainPage());
   }
 }
