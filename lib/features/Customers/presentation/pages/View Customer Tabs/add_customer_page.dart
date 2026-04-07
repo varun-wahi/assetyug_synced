@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_category_data.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/tab_notifier.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +15,7 @@ import '../../../../../core/utils/widgets/d_snackbar.dart';
 import '../../../../../core/utils/widgets/my_elevated_button.dart';
 import '../../../../Assets/presentation/widgets/custom_text_field.dart';
 import '../../../../Main/presentation/riverpod/refresh_provider.dart';
+import '../../riverpod/customer_category_provider.dart';
 import '../../../data/repository/company_customer_repository_impl.dart';
 
 import 'package:http/http.dart' as http;
@@ -42,7 +42,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   final _zipCodeField = TextEditingController();
   final _locationField = TextEditingController();
 
-  List<DropdownMenuItem<String>> _categoryItems = [];
   List<DropdownMenuItem<String>> _stateItems = [];
   String? _selectedState;
   String? _customerLocation;
@@ -59,64 +58,65 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
   void _changeCategoryValue(String? option) => _category = option;
   void _changeStatusValue(String? option) => _status = option;
-bool _hasLoadedDropdowns = false;
+  bool _hasLoadedDropdowns = false;
 
-@override
-void initState() {
-  super.initState();
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    var box = await Hive.openBox('auth_data');
-    setState(() {
-      companyId = box.get('companyId');
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      var box = await Hive.openBox('auth_data');
+      setState(() {
+        companyId = box.get('companyId');
+      });
+      await fetchDropdownData();
     });
-    await fetchDropdownData();
-  });
-}
+  }
 
   Future<void> initCompanyData() async {
-  var box = await Hive.openBox('auth_data');
-  final id = box.get('companyId');
-  setState(() {
-    companyId = id;
-  });
-  await fetchDropdownData(); // safe now — context is ready
-}
+    var box = await Hive.openBox('auth_data');
+    final id = box.get('companyId');
+    setState(() {
+      companyId = id;
+    });
+    await fetchDropdownData(); // safe now — context is ready
+  }
 
   Future<void> fetchDropdownData() async {
-  if (companyId == null) return;
+    if (companyId == null) return;
 
-  try {
-    final catRes = await _customerRepo.getActiveCategories(companyId!);
-    final stateRes = await _customerRepo.statelist();
+    try {
+      // final catRes =
+      //     await _customerRepo.getActiveCustomerCategories(companyId!);
+      final stateRes = await _customerRepo.statelist();
 
-    if (catRes.statusCode == 200) {
-      final List<dynamic> categoryList = jsonDecode(catRes.body);
-      setState(() {
-        _categoryItems = categoryList.map<DropdownMenuItem<String>>((item) {
-          return DropdownMenuItem(
-            value: item['name'], // ← FIXED from item['categoryName']
-            child: Text(item['name']),
-          );
-        }).toList();
-      });
+      // if (catRes.statusCode == 200) {
+      //   final List<dynamic> categoryList = jsonDecode(catRes.body);
+      //   setState(() {
+      //     _categoryItems = categoryList.map<DropdownMenuItem<String>>((item) {
+      //       return DropdownMenuItem(
+      //         value: item['name'], // ← FIXED from item['categoryName']
+      //         child: Text(item['name']),
+      //       );
+      //     }).toList();
+      //   });
+      // }
+
+      if (stateRes.statusCode == 200) {
+        final List<dynamic> stateList = jsonDecode(stateRes.body);
+        setState(() {
+          _stateItems = stateList.map<DropdownMenuItem<String>>((state) {
+            return DropdownMenuItem(
+              value: state,
+              child: Text(state),
+            );
+          }).toList();
+        });
+      }
+    } catch (e) {
+      dSnackBar(context, "Failed to load dropdowns: ${e.toString()}",
+          TypeSnackbar.error);
     }
-
-    if (stateRes.statusCode == 200) {
-      final List<dynamic> stateList = jsonDecode(stateRes.body);
-      setState(() {
-        _stateItems = stateList.map<DropdownMenuItem<String>>((state) {
-          return DropdownMenuItem(
-            value: state,
-            child: Text(state),
-          );
-        }).toList();
-      });
-    }
-  } catch (e) {
-    dSnackBar(context, "Failed to load dropdowns: ${e.toString()}",
-        TypeSnackbar.error);
   }
-}
 
   Future<void> getCompanyId() async {
     var box = await Hive.openBox('auth_data');
@@ -166,12 +166,24 @@ void initState() {
                       buildCustomTextField(
                           "Name", TextInputType.text, _nameField, true),
                       const DGap(),
-                      DDropdown(
-                        label: "Category",
-                        items: _categoryItems,
-                        onChanged: (value) => _changeCategoryValue(value),
-                        value: _category,
-                      ),
+                      ref.watch(customerCategoriesProvider).when(
+                            data: (categories) => DDropdown(
+                              label: "Category",
+                              items: categories
+                                  .map((cat) => DropdownMenuItem(
+                                      value: cat, child: Text(cat)))
+                                  .toList(),
+                              onChanged: (value) => _changeCategoryValue(value),
+                              value: _category,
+                            ),
+                            loading: () => DDropdown(
+                              label: "Category",
+                              items: const [],
+                              onChanged: (val) {},
+                              value: null,
+                            ),
+                            error: (err, stack) => const Text("Error"),
+                          ),
                       const DGap(),
                       DDropdown(
                         label: "Status",
@@ -243,41 +255,41 @@ void initState() {
 
   void _submitCustomerData(WidgetRef ref) async {
     String phone = _phoneField.text.trim();
-String email = _emailField.text.trim();
+    String email = _emailField.text.trim();
 
-if (_nameField.text.isEmpty ||
-    _category == null ||
-    _status == null ||
-    phone.isEmpty ||
-    email.isEmpty) {
-  setState(() {
-    loadingCustomerInsertion = false;
-  });
-  dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
-  return;
-}
+    if (_nameField.text.isEmpty ||
+        _category == null ||
+        _status == null ||
+        phone.isEmpty ||
+        email.isEmpty) {
+      setState(() {
+        loadingCustomerInsertion = false;
+      });
+      dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
+      return;
+    }
 
 // ✅ Phone number validation (10 digits, starts with 6–9)
-final phoneRegex = RegExp(r'^\d{10}$');
-if (!phoneRegex.hasMatch(phone)) {
-  setState(() {
-    loadingCustomerInsertion = false;
-  });
-  dSnackBar(context, "Enter a valid 10-digit phone number", TypeSnackbar.error);
-  return;
-}
+    final phoneRegex = RegExp(r'^\d{10}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      setState(() {
+        loadingCustomerInsertion = false;
+      });
+      dSnackBar(
+          context, "Enter a valid 10-digit phone number", TypeSnackbar.error);
+      return;
+    }
 
 // ✅ Email validation
-final emailRegex = RegExp(
-  r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-);
-if (!emailRegex.hasMatch(email)) {
-  setState(() {
-    loadingCustomerInsertion = false;
-  });
-  dSnackBar(context, "Enter a valid email address", TypeSnackbar.error);
-  return;
-}
+    final emailRegex =
+        RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    if (!emailRegex.hasMatch(email)) {
+      setState(() {
+        loadingCustomerInsertion = false;
+      });
+      dSnackBar(context, "Enter a valid email address", TypeSnackbar.error);
+      return;
+    }
 
     Map<String, dynamic> customerData = {
       'name': _nameField.text,

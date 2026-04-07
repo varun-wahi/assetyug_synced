@@ -32,10 +32,12 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
     try {
       final assetRepo = AssetsRepositoryImpl();
       final response = await assetRepo.getCheckInOutList(widget.objectId);
-      if (response.statusCode == 202) {
+      if (response.statusCode == 200 || response.statusCode == 202) {
         final List<dynamic> jsonData = json.decode(response.body);
         setState(() {
-          checkInOutData = jsonData.map((data) => AssetCheckInOutModel.fromJson(data)).toList();
+          checkInOutData = jsonData
+              .map((data) => AssetCheckInOutModel.fromJson(data))
+              .toList();
         });
       } else {
         print("Error: ${response.statusCode}");
@@ -57,7 +59,8 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
           children: List.generate(
             6,
             (i) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: dPadding),
+              padding: const EdgeInsets.symmetric(
+                  vertical: 8.0, horizontal: dPadding),
               child: Shimmer.fromColors(
                 baseColor: tPrimary,
                 highlightColor: tPrimary.withAlpha(50),
@@ -89,7 +92,9 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
             final detail = data[detailIndex];
             return Container(
               padding: const EdgeInsets.all(dPadding * 2),
-              margin: const EdgeInsets.symmetric(horizontal: dPadding, vertical: dPadding),
+              margin: const EdgeInsets.symmetric(
+                horizontal: dPadding,
+              ),
               decoration: BoxDecoration(
                 color: tPrimary,
                 borderRadius: BorderRadius.circular(dBorderRadius),
@@ -97,19 +102,32 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
               child: Column(
                 children: [
                   _buildRow("Status:", detail.status ?? "--"),
-                  _buildRow("Notes:", detail.notes?.isNotEmpty ?? false ? detail.notes! : "--"),
+                  _buildRow("Notes:",
+                      detail.notes?.isNotEmpty ?? false ? detail.notes! : "--"),
                   _buildRow("Employee:", detail.employee ?? "--"),
-                  _buildRow("Location:", detail.location?.isNotEmpty ?? false ? detail.location! : "--"),
-                  _buildRow("Date:", detail.date != null ? DateFormat('yyyy-MM-dd').format(detail.date!) : "--"),
+                  _buildRow(
+                      "Location:",
+                      detail.location?.isNotEmpty ?? false
+                          ? detail.location!
+                          : "--"),
+                  _buildRow(
+                      "Date:",
+                      detail.date != null
+                          ? DateFormat('yyyy-MM-dd HH:mm').format(detail.date!)
+                          : "--"),
                 ],
               ),
             );
           },
-          separatorBuilder: (context, index) => const DGap(),
+          separatorBuilder: (context, index) => const DGap(
+            gap: 2.0,
+          ),
           itemCount: data.length,
         );
       },
-      separatorBuilder: (context, index) => const DGap(gap: 0,),
+      separatorBuilder: (context, index) => const DGap(
+        gap: 0,
+      ),
       itemCount: checkInOutData.length,
     );
   }
@@ -118,8 +136,13 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: containerText(size: 15, weight: FontWeight.w600, color: tWhite)),
-        Flexible(child: Text(value, style: containerText(color: tWhite), overflow: TextOverflow.ellipsis)),
+        Text(label,
+            style: containerText(
+                size: 15, weight: FontWeight.w600, color: tWhite)),
+        Flexible(
+            child: Text(value,
+                style: containerText(color: tWhite),
+                overflow: TextOverflow.ellipsis)),
       ],
     );
   }

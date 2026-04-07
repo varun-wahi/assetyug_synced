@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/theme/container_styles.dart';
 import '../../../../config/theme/text_styles.dart';
 import '../../../../core/utils/constants/colors.dart';
@@ -7,10 +8,10 @@ import '../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../../core/utils/widgets/d_gap.dart';
 import '../../../../core/utils/widgets/d_text_field.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
-import '../../data/data_sources/customer_category_data.dart';
+import '../riverpod/customer_category_provider.dart';
 import '../../data/data_sources/customer_status_data.dart';
 
-class CustomerFilterForm extends StatefulWidget {
+class CustomerFilterForm extends ConsumerStatefulWidget {
   final CustomerFilterData initialData;
   final Function(CustomerFilterData) onApplyFilters;
   final VoidCallback onClearFilters;
@@ -23,10 +24,10 @@ class CustomerFilterForm extends StatefulWidget {
   });
 
   @override
-  State<CustomerFilterForm> createState() => _CustomerFilterFormState();
+  ConsumerState<CustomerFilterForm> createState() => _CustomerFilterFormState();
 }
 
-class _CustomerFilterFormState extends State<CustomerFilterForm> {
+class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
   late final TextEditingController _nameController;
   late final TextEditingController _addressController;
   late final TextEditingController _phoneController;
@@ -112,12 +113,25 @@ class _CustomerFilterFormState extends State<CustomerFilterForm> {
             hintText: "Phone Number",
             controller: _phoneController,
           ),
-          DDropdown(
-            padding: const EdgeInsets.symmetric(horizontal: dPadding),
-            label: "Category",
-            items: customerCategoryTypeMenuItems,
-            onChanged: (value) => setState(() => _selectedCategory = value),
-            value: _selectedCategory,
+          ref.watch(customerCategoriesProvider).when(
+            data: (categories) => DDropdown(
+              padding: const EdgeInsets.symmetric(horizontal: dPadding),
+              label: "Category",
+              items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+              onChanged: (value) => setState(() => _selectedCategory = value),
+              value: _selectedCategory,
+            ),
+            loading: () => DDropdown(
+              padding: const EdgeInsets.symmetric(horizontal: dPadding),
+              label: "Category",
+              items: const [],
+              onChanged: (val) {},
+              value: null,
+            ),
+            error: (err, stack) => const DTextField(
+              hintText: "Error loading categories",
+              enabled: false,
+            ),
           ),
           const DGap(),
           DDropdown(

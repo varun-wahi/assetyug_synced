@@ -72,7 +72,7 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final rawBase64 = (widget.assetData.image)?.split(',').last??"";
+    final rawBase64 = (widget.assetData.image)?.split(',').last ?? "";
     final bytes = base64.decode(rawBase64);
 
     return Column(
@@ -88,15 +88,15 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                  height: 200,
-                  width: MediaQuery.of(context).size.width - (4 * dPadding),
-                  color: Colors.grey[300],
-                  child: const Center(
-                    child: Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
-                  ),
+                    height: 200,
+                    width: MediaQuery.of(context).size.width - (4 * dPadding),
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported,
+                          size: 48, color: Colors.grey),
+                    ),
                   );
                 },
-                
               ),
             ),
             Positioned(
@@ -140,11 +140,24 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
         DDetailsRow(title: "Asset Name", value: asset.name),
         DDetailsRow(title: "Asset ID", value: asset.assetId ?? "--"),
         DDetailsRow(title: "Serial No", value: asset.serialNumber ?? "--"),
-        DDetailsRow(title: "Category", value: asset.category.isNotEmpty ? asset.category : "--"),
-        DDetailsRow(title: "Customer", value: asset.customer?.isNotEmpty == true ? asset.customer! : "--"),
-        DDetailsRow(title: "Location", value: asset.location.isNotEmpty ? asset.location : "No location data"),
-        DDetailsRow(title: "Status", value: asset.status.isNotEmpty ? asset.status.toCapitalized() : "No status data"),
-        DDetailsRow(title: "Current Status", value: _formatCheckStatus()),
+        DDetailsRow(
+            title: "Category",
+            value: asset.category.isNotEmpty ? asset.category : "--"),
+        DDetailsRow(
+            title: "Customer",
+            value: asset.customer?.isNotEmpty == true ? asset.customer! : "--"),
+        DDetailsRow(
+            title: "Location",
+            value: asset.location.isNotEmpty
+                ? asset.location
+                : "No location data"),
+        DDetailsRow(
+            title: "Status",
+            value: asset.status.isNotEmpty
+                ? asset.status.toCapitalized()
+                : "No status data"),
+        // DDetailsRow(title: "Current Status", value: ""),
+        Text(_formatCheckStatus()),
         const DDivider(),
         const DGap(gap: 4),
         _buildStatusSection(),
@@ -156,8 +169,8 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
   Widget _buildStatusSection() {
     final asset = widget.assetData;
     final dateText = lastCheckEntry != null
-        ? DateFormat('yyyy/MM/dd').format(lastCheckEntry!['date'])
-        : DateFormat('yyyy/MM/dd').format(DateTime.now());
+        ? DateFormat('yyyy/MM/dd HH:mm').format(lastCheckEntry!['date'])
+        : DateFormat('yyyy/MM/dd HH:mm').format(DateTime.now());
 
     final text = lastCheckEntry != null
         ? "${lastCheckEntry!['status']} by ${lastCheckEntry!['employee']} on \n$dateText"
@@ -166,7 +179,7 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: tGreyLight,
+        color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -212,7 +225,8 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ViewAssetPage(assetObjectId: widget.assetData.id!),
+          builder: (context) =>
+              ViewAssetPage(assetObjectId: widget.assetData.id!),
         ),
       );
     }
@@ -221,7 +235,7 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
   String _formatCheckStatus() {
     if (lastCheckEntry != null) {
       final date = lastCheckEntry!['date'];
-      final formattedDate = DateFormat('yyyy/MM/dd').format(date);
+      final formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(date);
       return "${lastCheckEntry!['status']} by ${lastCheckEntry!['employee']} on $formattedDate";
     }
     return "Checked In";

@@ -13,6 +13,7 @@ import '../../../../config/theme/text_styles.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../Assets/presentation/pages/assets_page.dart';
+import '../../../Main/presentation/riverpod/refresh_provider.dart';
 
 class BuildAssetOverviewContainer extends ConsumerStatefulWidget {
   const BuildAssetOverviewContainer({super.key});
@@ -43,6 +44,8 @@ class _BuildAssetOverviewContainerState
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    // Watch refreshProvider to trigger rebuilds when assets change
+    ref.watch(refreshProvider);
 
     return Column(
       children: [
@@ -128,19 +131,23 @@ class _BuildAssetOverviewContainerState
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return _buildStatusCard(
-                  "Checked Out Assets", "...", screenWidth * 0.45);
+                  "Checked Out Assets", "...", screenWidth * 0.45,
+                  isCheckOutButton: true);
             } else if (snapshot.hasError) {
               return _buildStatusCard(
-                  "Checked Out Assets", "Error", screenWidth * 0.45);
+                  "Checked Out Assets", "Error", screenWidth * 0.45,
+                  isCheckOutButton: true);
             } else if (snapshot.hasData && snapshot.data is http.Response) {
               final response = snapshot.data as http.Response;
               final assetData = json.decode(response.body);
               return _buildStatusCard("Checked Out Assets",
-                  "${assetData['checkIn'] ?? 0}", screenWidth * 0.45);
+                  "${assetData['checkIn'] ?? 0}", screenWidth * 0.45,
+                  isCheckOutButton: true);
               // "${assetData['checkOut'] ?? 0}", screenWidth * 0.45);
             } else {
               return _buildStatusCard(
-                  "Checked Out Asset", "No data", screenWidth * 0.45);
+                  "Checked Out Assets", "No data", screenWidth * 0.45,
+                  isCheckOutButton: true);
             }
           },
         ),
@@ -148,14 +155,17 @@ class _BuildAssetOverviewContainerState
     );
   }
 
-  Widget _buildStatusCard(String title, String count, double width) {
+  Widget _buildStatusCard(String title, String count, double width,
+      {bool isCheckOutButton = false}) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const AssetsPage(
-              predefinedFilters: {"status": "Active"},
+            builder: (context) => AssetsPage(
+              predefinedFilters: isCheckOutButton
+                  ? {"status": "", "Checking Status": "Checked Out"}
+                  : {"status": "Active", "Checking Status": "All"},
             ),
           ),
         );

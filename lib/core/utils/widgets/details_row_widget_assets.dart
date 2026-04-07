@@ -2,20 +2,17 @@ import 'package:asset_yug_debugging/core/utils/widgets/d_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 
-
-
 class DDetailsRow extends StatelessWidget {
   final String title;
   final String value;
   final double? titleFontSize;
   final double? valueFontSize;
-  const DDetailsRow({
-    super.key,
-    required this.title,
-    required this.value,
-    this.titleFontSize,
-    this.valueFontSize
-  });
+  const DDetailsRow(
+      {super.key,
+      required this.title,
+      required this.value,
+      this.titleFontSize,
+      this.valueFontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +21,15 @@ class DDetailsRow extends StatelessWidget {
       children: [
         Text(
           title,
-          style: containerText(size: titleFontSize ?? 16.0 , weight: FontWeight.w600),
+          style: containerText(
+              size: titleFontSize ?? 16.0, weight: FontWeight.w600),
         ),
-        Text(value, style: TextStyle(fontSize: valueFontSize),),
+        Text(
+          value,
+          style: TextStyle(fontSize: valueFontSize),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         //TODO : Use this later
         // SizedBox(
         //   width: 180,

@@ -7,23 +7,17 @@ import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
 
 class AssetsRepositoryImpl {
+  Future<Map<String, String>> getHeaders() async {
+    final box = await Hive.openBox('auth_data');
+    final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+    final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
 
-
-
-
-Future<Map<String, String>> getHeaders() async {
-  final box = await Hive.openBox('auth_data');
-  final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
-  final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
-
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $authToken',
-    'mobile-id': mobileId,
-  };
-}
-
-
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $authToken',
+      'mobile-id': mobileId,
+    };
+  }
 
   // // Asynchronous headers getter
   // Future<Map<String, String>> getHeaders() async {
@@ -38,6 +32,7 @@ Future<Map<String, String>> getHeaders() async {
   String get customerEndpoint => "${ApiConfig.baseUrl}customer/";
   String get assetEndpoint => "${ApiConfig.baseUrl}assets/";
   String get companyCustomerEndpoint => "${ApiConfig.baseUrl}companycustomer/";
+  String get userEndpoint => "${ApiConfig.baseUrl}users/";
 
   // Get assets by company ID
   //*DONE
@@ -54,30 +49,32 @@ Future<Map<String, String>> getHeaders() async {
     var headers = await getHeaders();
     return await http.post(Uri.parse(url), body: myFile, headers: headers);
   }
- Future<http.Response> updateAsset(Map<String, dynamic> updateData) async {
-  final url = "${assetEndpoint}addassets";
-  final uri = Uri.parse(url);
-  final headers = await getHeaders();
-  final body = jsonEncode(updateData);
 
-  print("⬆️ Sending PUT request to: $url");
-  print("📝 Request Headers: $headers");
-  print("📦 Request Body: $body");
+  Future<http.Response> updateAsset(Map<String, dynamic> updateData) async {
+    final url = "${assetEndpoint}addassets";
+    final uri = Uri.parse(url);
+    final headers = await getHeaders();
+    final body = jsonEncode(updateData);
 
-  try {
-    final response = await http.put(uri, body: body, headers: headers);
+    print("⬆️ Sending PUT request to: $url");
+    print("📝 Request Headers: $headers");
+    print("📦 Request Body: $body");
 
-    print("✅ Response Status Code: ${response.statusCode}");
-    print("📥 Response Body: ${response.body}");
+    try {
+      final response = await http.put(uri, body: body, headers: headers);
 
-    return response;
-  } catch (e, stackTrace) {
-    print("❌ HTTP PUT Request failed");
-    print("🧾 Error: $e");
-    print("🧵 StackTrace: $stackTrace");
-    rethrow; // Rethrow to let calling code handle it
+      print("✅ Response Status Code: ${response.statusCode}");
+      print("📥 Response Body: ${response.body}");
+
+      return response;
+    } catch (e, stackTrace) {
+      print("❌ HTTP PUT Request failed");
+      print("🧾 Error: $e");
+      print("🧵 StackTrace: $stackTrace");
+      rethrow; // Rethrow to let calling code handle it
+    }
   }
-}
+
   // Upload image
   Future<http.Response> uploadImage(dynamic data) async {
     final url = "${assetEndpoint}imageUpload";
@@ -102,7 +99,23 @@ Future<Map<String, String>> getHeaders() async {
   Future<http.Response> getActiveAssets(String companyId) async {
     final url = "${assetEndpoint}getActiveAssets/$companyId";
     var headers = await getHeaders();
-    return await http.get(Uri.parse(url), headers: headers);
+    print("🔍 Fetching Active Assets: $url");
+    print("📝 Headers: $headers");
+    final response = await http.get(Uri.parse(url), headers: headers);
+    print("📥 Response ASSETS [${response.statusCode}]: ${response.body}");
+
+    if (response.statusCode == 200) {
+      try {
+        final List<dynamic> assets = json.decode(response.body);
+        final names =
+            assets.map((e) => e['name']?.toString() ?? 'Unnamed').toList();
+        print("📊 Active Assets Count: ${assets.length}");
+        print("🏷️ Active Asset Names: $names");
+      } catch (e) {
+        print("⚠️ Error parsing asset log: $e");
+      }
+    }
+    return response;
   }
 
   Future<http.Response> getCategoryList(String companyId) async {
@@ -177,7 +190,7 @@ Future<Map<String, String>> getHeaders() async {
     return await http.post(Uri.parse(url), body: data, headers: headers);
   }
 
-    // Add extra fields
+  // Add extra fields
   Future<http.Response> addExtraFieldsName(dynamic data) async {
     final url = "${assetEndpoint}addExtraFieldName";
     var headers = await getHeaders();
@@ -195,15 +208,15 @@ Future<Map<String, String>> getHeaders() async {
 //GET
 //assets/getAllAssetInspectionInstanceByAssetId/694cc46e4df01d3deaa3bf27
 // Get all inspection instances for a specific asset
-Future<http.Response> getAssetInspectionInstancesByAssetId(
+  Future<http.Response> getAssetInspectionInstancesByAssetId(
     String assetId,
-) async {
-  final url =
-      "${assetEndpoint}getAllAssetInspectionInstanceByAssetId/$assetId";
-  var headers = await getHeaders();
-  return await http.get(Uri.parse(url), headers: headers);
-}
- //RESPONSE: [
+  ) async {
+    final url =
+        "${assetEndpoint}getAllAssetInspectionInstanceByAssetId/$assetId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+  //RESPONSE: [
 //     {
 //         "id": "69509eb68cb604593305ed98",
 //         "assetId": "694cc46e4df01d3deaa3bf27",
@@ -279,20 +292,20 @@ Future<http.Response> getAssetInspectionInstancesByAssetId(
 //             }
 //         ]
 //     }
-// ] 
+// ]
 
 //GET
 // assets/getAllAssetInspectionByCategory/100004?category=Automobile
 // Get all asset inspections by category
-Future<http.Response> getAssetInspectionsByCategory(
+  Future<http.Response> getAssetInspectionsByCategory(
     String companyId,
     String category,
-) async {
-  final url =
-      "${assetEndpoint}getAllAssetInspectionByCategory/$companyId?category=$category";
-  var headers = await getHeaders();
-  return await http.get(Uri.parse(url), headers: headers);
-}
+  ) async {
+    final url =
+        "${assetEndpoint}getAllAssetInspectionByCategory/$companyId?category=$category";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
 // [
 //     {
 //         "id": "69509dfa8cb604593305ed97",
@@ -353,21 +366,20 @@ Future<http.Response> getAssetInspectionsByCategory(
 // ]
 
 // Add asset inspection instance
-Future<http.Response> addAssetInspectionInstance(
+  Future<http.Response> addAssetInspectionInstance(
     Map<String, dynamic> payload,
-) async {
-  final url = "${assetEndpoint}addAssetInspectionInstance";
-  var headers = await getHeaders();
-  return await http.post(
-    Uri.parse(url),
-    headers: headers,
-    body: jsonEncode(payload),
-  );
-}
+  ) async {
+    final url = "${assetEndpoint}addAssetInspectionInstance";
+    var headers = await getHeaders();
+    return await http.post(
+      Uri.parse(url),
+      headers: headers,
+      body: jsonEncode(payload),
+    );
+  }
 
 //EXAMPLE PAYLOAD:
 // {"assetId":"694cc46e4df01d3deaa3bf27","companyId":"100004","assetCategoryInspectionId":"","assetCategoryInspectionName":"undefined ","actionPerformedBy":"Varun Wahi","notes":"test","createdAt":"06/01/2026, 22:41:56","updatedAt":"06/01/2026, 22:41:56","status":"COMPLETED","stepValues":[{"name":"Engine Oil filter","inspectionStepId":null,"value":"sdsd","type":"TEXT"},{"name":"Brake pads","inspectionStepId":null,"value":true,"type":"CHECKBOX"},{"name":"Odometer","inspectionStepId":null,"value":"232323","type":"NUMBER"}],"inspectionTemplates":[{"stepValues":[{"name":"Engine Oil filter","inspectionStepId":null,"value":"sdsd","type":"TEXT"},{"name":"Brake pads","inspectionStepId":null,"value":true,"type":"CHECKBOX"},{"name":"Odometer","inspectionStepId":null,"value":"232323","type":"NUMBER"}]}],"selectedItemList":[{"id":"69509dfa8cb604593305ed97"}]}
-
 
   // // Get searched asset list
   // Future<http.Response> getSearchedAssetList(
@@ -387,7 +399,6 @@ Future<http.Response> addAssetInspectionInstance(
   //   return await http.get(Uri.parse(url), headers: headers);
   // }
 
-
 //!_--------------------------    COMPANY CUSTOMER  APIS   --------------------------_!
 
   // Get company customer list
@@ -396,7 +407,6 @@ Future<http.Response> addAssetInspectionInstance(
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
-  
 
   // Get role and permission by name
   Future<http.Response> getRoleAndPermission(String id, String name) async {
@@ -408,7 +418,8 @@ Future<http.Response> addAssetInspectionInstance(
   // Advance filter
   //*MAIN
   Future<http.Response> advanceFilter(dynamic data, int pageIndex, int pageSize,
-      String category, String? searchData, {String isAsc = 'true'}) async {
+      String category, String? searchData,
+      {String isAsc = 'true'}) async {
     final url =
         // "http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/5/cycle?category='Name'";
 
@@ -451,7 +462,7 @@ Future<http.Response> addAssetInspectionInstance(
     var headers = await getHeaders();
     var request = http.Request('GET', Uri.parse(url));
     request.headers.addAll(headers);
-    
+
     return await http.Client().send(request);
   }
 
@@ -470,7 +481,7 @@ Future<http.Response> addAssetInspectionInstance(
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-    Future<http.Response> getActiveCategories(String companyId) async {
+  Future<http.Response> getActiveCategories(String companyId) async {
     final url = "${assetEndpoint}getCategoryActiveList/$companyId";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
@@ -489,7 +500,15 @@ Future<http.Response> addAssetInspectionInstance(
   Future<http.Response> addCheckInOut(dynamic data) async {
     final url = "${assetEndpoint}addCheckInOut";
     var headers = await getHeaders();
-    return await http.post(Uri.parse(url), body: data, headers: headers);
+    print("📤 Adding Check-In/Out Detail: $url");
+    print("📦 Payload: $data");
+    print("📝 Headers: $headers");
+    final response =
+        await http.post(Uri.parse(url), body: data, headers: headers);
+
+    print(
+        "📥 Check-In/Out Response [${response.statusCode}]: ${response.body}");
+    return response;
   }
 
   // Add asset file
@@ -526,7 +545,7 @@ Future<http.Response> addAssetInspectionInstance(
   // Get work orders
   // NEW API
   Future<http.Response> getWorkOrders(String id) async {
-    final url = "http://localhost:8083/workorder/getworkorderlist/$id";
+    final url = "http://localhost:8080/workorder/getworkorderlist/$id";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
@@ -534,8 +553,10 @@ Future<http.Response> addAssetInspectionInstance(
   // Get technical users
   // NEW API
   Future<http.Response> getTechnicalUsers(String companyId) async {
-    final url = "http://localhost:8082/users/getTechnicalUser/$companyId";
+    final url = "${userEndpoint}getTechnicalUser/$companyId";
     var headers = await getHeaders();
+    print("🔍 Fetching Technical Users: $url");
+    print("📝 Headers: $headers");
     return await http.get(Uri.parse(url), headers: headers);
   }
 
@@ -547,9 +568,7 @@ Future<http.Response> addAssetInspectionInstance(
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-
-      // Adding new APIs
-
+  // Adding new APIs
 
   Future<dynamic> checkInCheckOutCount(String companyId) async {
     final response = await http.get(
@@ -560,8 +579,9 @@ Future<http.Response> addAssetInspectionInstance(
   }
 
   // API to get assets by serial number
-  
-  Future<http.Response> assetFromSerialNumber(AssetBySerialDTO assetBySerialDTO) async {
+
+  Future<http.Response> assetFromSerialNumber(
+      AssetBySerialDTO assetBySerialDTO) async {
     final url = "${assetEndpoint}assetBySerialNumber";
 
     var headers = await getHeaders();
@@ -571,16 +591,17 @@ Future<http.Response> addAssetInspectionInstance(
     return await http.post(
       Uri.parse(url),
       headers: headers,
-      body: json.encode(assetBySerialDTO.toJson()),  // Convert the DTO object to JSON
+      body: json
+          .encode(assetBySerialDTO.toJson()), // Convert the DTO object to JSON
     );
   }
 
   // API to get check-in/check-out assets based on companyId and checkedIn status
-  
-  Future<http.Response> checkInOutAsset(String companyId, bool checkedIn) async {
+
+  Future<http.Response> checkInOutAsset(
+      String companyId, bool checkedIn) async {
     final url = "${assetEndpoint}checkInOutAsset/$companyId/$checkedIn";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
   }
-
 }

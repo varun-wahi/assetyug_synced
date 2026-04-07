@@ -74,7 +74,7 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
   Widget build(BuildContext context) {
     var data = CustomersModel.fromJson(widget.customerData!);
     return DefaultTabController(
-      length: 4,
+      length: 3,
       // length: 6,
       child: Column(
         children: [
@@ -122,9 +122,9 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
                 Tab(
                     child: SizedBox(
                         width: 100, child: Center(child: Text("Files")))),
-                Tab(
-                    child: SizedBox(
-                        width: 100, child: Center(child: Text("WOs")))),
+                // Tab(
+                //     child: SizedBox(
+                //         width: 100, child: Center(child: Text("WOs")))),
                 // Tab(
                 //     child: SizedBox(
                 //         width: 100, child: Center(child: Text("Invoices")))),
@@ -142,7 +142,7 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
                 CustomerDetailsPage(data: data),
                 CustomerAssetsPage(data: data),
                 CustomerFilesPage(objectId: widget.customerData?['id']),
-                CustomerWOsPage(data: data),
+                // CustomerWOsPage(data: data),
                 // CustomerInvoicesPage(data: data),
                 // CustomersCustomPage(
                 //   companyId: widget.customerData?['companyId'],

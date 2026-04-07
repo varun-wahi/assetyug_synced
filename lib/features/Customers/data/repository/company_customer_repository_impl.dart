@@ -188,7 +188,7 @@ class CompanyCustomerRepositoryImpl {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-  Future<http.Response> getActiveCategories(String companyId) async {
+  Future<http.Response> getActiveCustomerCategories(String companyId) async {
     final url = "${companyCustomerEndpoint}getCategoryActiveList/$companyId";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);

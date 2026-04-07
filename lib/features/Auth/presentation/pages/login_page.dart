@@ -382,47 +382,68 @@ class _LoginPageState extends State<LoginPage> {
           setState(() => _isSignUpScreen = false);
         }),
 
-        // Signup tab (disabled)
-        _buildTab("SIGNUP", _isSignUpScreen, () async {
-          final signupUrl = Uri.parse(
-              'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register');
-              // 'https://google.com');
-          try {
-            if (await canLaunchUrl(signupUrl)) {
-              final launched = await launchUrl(signupUrl, mode: LaunchMode.inAppWebView);
-              if (!launched && mounted) {
-                _showErrorSnackBar("Could not open signup page");
+        // Signup tab (Web Link)
+        _buildTab(
+          "SIGNUP",
+          _isSignUpScreen,
+          () async {
+            final signupUrl = Uri.parse(
+                'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register');
+            try {
+              if (await canLaunchUrl(signupUrl)) {
+                final launched =
+                    await launchUrl(signupUrl, mode: LaunchMode.inAppWebView);
+                if (!launched && mounted) {
+                  _showErrorSnackBar("Could not open signup page");
+                }
+              } else {
+                final launched = await launchUrl(signupUrl,
+                    mode: LaunchMode.externalApplication);
+                if (!launched && mounted) {
+                  _showErrorSnackBar("Could not open signup page");
+                }
               }
-            } else {
-              // Fallback to directly launching if canLaunchUrl returns false
-              final launched = await launchUrl(signupUrl, mode: LaunchMode.externalApplication);
-              if (!launched && mounted) {
+            } catch (e) {
+              if (mounted) {
                 _showErrorSnackBar("Could not open signup page");
               }
             }
-          } catch (e) {
-            if (mounted) {
-              _showErrorSnackBar("Could not open signup page");
-            }
-          }
-        }),
+          },
+          isExternalLink: true,
+        ),
       ],
     );
   }
 
   // Build individual tab
-  Widget _buildTab(String title, bool isActive, VoidCallback? onTap) {
+  Widget _buildTab(String title, bool isActive, VoidCallback? onTap,
+      {bool isExternalLink = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: dTextSize,
-              color: isActive ? textColor1 : disabledText,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: dTextSize,
+                  color:
+                      (isActive || isExternalLink) ? textColor1 : disabledText,
+                ),
+              ),
+              if (isExternalLink) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.open_in_new,
+                  size: 14,
+                  color:
+                      (isActive || isExternalLink) ? textColor1 : disabledText,
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 3),
           if (isActive)
@@ -460,22 +481,22 @@ class _LoginPageState extends State<LoginPage> {
           },
         ),
         _buildTextField(
-  icon: Icons.password,
-  hintText: "Password",
-  controller: _passwordController,
-  isPassword: true,
-  isEmail: false,
-  showToggle: true,
-  validator: (value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please enter your password';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    return null;
-  },
-),
+          icon: Icons.password,
+          hintText: "Password",
+          controller: _passwordController,
+          isPassword: true,
+          isEmail: false,
+          showToggle: true,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter your password';
+            }
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+            return null;
+          },
+        ),
         _buildRememberMeSection(),
       ],
     );
@@ -601,58 +622,60 @@ class _LoginPageState extends State<LoginPage> {
 
   // Build text field
   Widget _buildTextField({
-  required IconData icon,
-  required String hintText,
-  required TextEditingController controller,
-  required bool isPassword,
-  required bool isEmail,
-  String? Function(String?)? validator,
-  bool showToggle = false,
-}) {
-  return Padding(
-    padding: const EdgeInsets.all(8.0),
-    child: TextFormField(
-      style: const TextStyle(color: tBlack),
-      controller: controller,
-      cursorColor: tBlack,
-      obscureText: isPassword && !(_isPasswordVisible),
-      keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
-      validator: validator,
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: tBlack),
-        suffixIcon: isPassword && showToggle
-            ? IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: tBlack,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
-              )
-            : null,
-        contentPadding: const EdgeInsets.all(dPadding * 2),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: textColor1),
-          borderRadius: BorderRadius.circular(dBorderRadius),
+    required IconData icon,
+    required String hintText,
+    required TextEditingController controller,
+    required bool isPassword,
+    required bool isEmail,
+    String? Function(String?)? validator,
+    bool showToggle = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: TextFormField(
+        style: const TextStyle(color: tBlack),
+        controller: controller,
+        cursorColor: tBlack,
+        obscureText: isPassword && !(_isPasswordVisible),
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        validator: validator,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: tBlack),
+          suffixIcon: isPassword && showToggle
+              ? IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    color: tBlack,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                )
+              : null,
+          contentPadding: const EdgeInsets.all(dPadding * 2),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: textColor1),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: tPrimary),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.red),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.red),
+            borderRadius: BorderRadius.circular(dBorderRadius),
+          ),
+          hintText: hintText,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: tPrimary),
-          borderRadius: BorderRadius.circular(dBorderRadius),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red),
-          borderRadius: BorderRadius.circular(dBorderRadius),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.red),
-          borderRadius: BorderRadius.circular(dBorderRadius),
-        ),
-        hintText: hintText,
       ),
-    ),
-  );
-}
+    );
+  }
 }

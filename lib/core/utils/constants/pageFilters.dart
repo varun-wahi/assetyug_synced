@@ -4,8 +4,6 @@
 
 import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 
-
-
 // const Map<String, Map<String, dynamic>> assetsFilters = {
 //   "Sort by": {
 //     'Newest first' : {'Newest first': 1 },
@@ -34,7 +32,16 @@ const Map<String, Map<String, String>> assetsFilters = {
     'Customer': 'customer',
     'Serial Number': 'serialNumber',
   },
-
+  // "Checking Status": {
+  //   "All": "All",
+  //   "Checked In": "Checked In",
+  //   "Checked Out": "Checked Out",
+  // },
+  // "Status": {
+  //   "All": "All",
+  //   "Active": "Active",
+  //   "Inactive": "Inactive",
+  // },
 };
 
 const Map<String, Map<String, String>> customerFilters = {

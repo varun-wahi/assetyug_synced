@@ -6,9 +6,9 @@ import 'package:asset_yug_debugging/core/utils/widgets/no_data_found.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/usecases/assets_show_filters_modal_sheet.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset_page.dart';
-import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/customer_files_tab.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
+import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 import 'package:asset_yug_debugging/config/theme/container_styles.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
@@ -25,9 +25,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
 import '../../../../core/utils/widgets/d_dropdown.dart';
-import '../../../Customers/data/data_sources/customer_names_data.dart';
 import '../../../Customers/data/repository/company_customer_repository_impl.dart';
-import '../../data/data_sources/asset_category_data.dart';
 import '../../data/data_sources/asset_status_data.dart';
 import '../riverpod/asset_filter_notifier.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
@@ -121,6 +119,9 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   String? companyId;
   Timer? _debounce;
 
+  // Track check-in status for each asset since it's fetched asynchronously
+  final Map<String, String> _assetCheckingStatusMap = {};
+
   final assetIdController = TextEditingController();
   final assetNameController = TextEditingController();
   final customerController = TextEditingController();
@@ -161,6 +162,18 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     _assetStatus = filters['status']?.toString() ?? 'Active';
     _assetCategory = filters['category']?.toString();
     _customer = filters['customer']?.toString();
+
+    final checkingStatus = filters['Checking Status']?.toString();
+    if (checkingStatus != null && checkingStatus.isNotEmpty) {
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(assetFiltersProvider.notifier).updateFilter(
+            {checkingStatus: checkingStatus},
+            "Checking Status",
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -628,7 +641,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                   selectedItem: selectedLocationBin,
                 ),
 
-                /// Static Dropdown for Asset Status
+                /// Static Dropdown for Asset Status (Lifecycle)
                 DDropdown(
                   padding: const EdgeInsets.symmetric(horizontal: dPadding),
                   label: "Status",
@@ -637,6 +650,31 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                   onChanged: (value) => setState(() {
                     _assetStatus = value;
                   }),
+                ),
+                const DGap(),
+
+                /// Static Dropdown for Checking Status
+                DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                  label: "Checking Status",
+                  items: const [
+                    DropdownMenuItem(value: "All", child: Text("All")),
+                    DropdownMenuItem(
+                        value: "Checked In", child: Text("Checked In")),
+                    DropdownMenuItem(
+                        value: "Checked Out", child: Text("Checked Out")),
+                  ],
+                  value: ref
+                          .read(assetFiltersProvider.notifier)
+                          .selectedFilters['Checking Status'] ??
+                      'All',
+                  onChanged: (value) {
+                    ref.read(assetFiltersProvider.notifier).updateFilter(
+                      {value: value},
+                      "Checking Status",
+                    );
+                    setState(() {});
+                  },
                 ),
               ],
             ),
@@ -680,7 +718,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     serialNumberController.clear();
     _assetCategory = null;
     locationController.clear();
-    _assetStatus = null;
+    _assetStatus = '';
 
     setState(() {});
 
@@ -691,44 +729,57 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   Widget _buildAssetsList() {
     ref.watch(refreshProvider);
+    final selectedFilters =
+        ref.watch(assetFiltersProvider.notifier).selectedFilters;
+    final checkingFilter = selectedFilters['Checking Status'];
 
-    if (assets.isEmpty && !isLoading) {
+    // Filter list locally based on check-in status if filter is active
+    final filteredAssets = assets.where((asset) {
+      if (checkingFilter == null ||
+          checkingFilter == 'All' ||
+          checkingFilter == '') return true;
+      final assetId = asset['id']?.toString();
+      if (assetId == null) return true; // Can't filter if no ID
+      final status = _assetCheckingStatusMap[assetId];
+      if (status == null) return true; // Show while loading status
+      return status == checkingFilter;
+    }).toList();
+
+    if (filteredAssets.isEmpty && !isLoading) {
       return const NoDataFoundPage();
     }
 
     return ListView.separated(
       controller: _scrollController,
       padding: EdgeInsets.zero,
-      itemCount: assets.length + (hasMore ? 1 : 0),
+      itemCount: filteredAssets.length + (hasMore ? 1 : 0),
       separatorBuilder: (context, index) => const DGap(gap: 8),
       scrollDirection: Axis.vertical,
       itemBuilder: (context, index) {
-        if (index < assets.length) {
-          // var assetData = AssetsModel.fromJson(assets[index]);
-          var assetData = AssetsModel.fromJson(assets[index]);
-
+        if (index < filteredAssets.length) {
+          var assetData = AssetsModel.fromJson(filteredAssets[index]);
           return assetsDetailsCard(data: assetData, ref: ref);
         } else {
-            // Show shimmer placeholders while loading more assets
-            return Column(
-              children: List.generate(
+          // Show shimmer placeholders while loading more assets
+          return Column(
+            children: List.generate(
               4,
               (i) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Shimmer.fromColors(
-                baseColor: Colors.white,
-                highlightColor: Colors.grey.shade100,
-                child: Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(dBorderRadius),
+                  baseColor: Colors.white,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(dBorderRadius),
+                    ),
                   ),
                 ),
-                ),
               ),
-              ),
-            );
+            ),
+          );
         }
       },
     );
@@ -753,9 +804,37 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.only(left: dPadding * 2, right: 0),
-          title: Text(
-            data.name,
-            style: boldHeading(size: 19),
+          title: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  data.name,
+                  style: boldHeading(size: 19),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (data.status.toLowerCase() ==
+                  inactiveStatusString.toLowerCase()) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: tRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: tRed, width: 0.5),
+                  ),
+                  child: const Text(
+                    "INACTIVE",
+                    style: TextStyle(
+                      color: tRed,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,7 +861,25 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
             mainAxisAlignment: MainAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              AssetStatusButton(data: data, ref: ref),
+              AssetStatusButton(
+                data: data,
+                ref: ref,
+                onStatusChanged: (newStatus) {
+                  final assetId = data.id;
+                  if (assetId == null) return;
+
+                  // Only update if status actually changed to avoid rebuild loops
+                  if (_assetCheckingStatusMap[assetId] != newStatus) {
+                    Future.microtask(() {
+                      if (mounted) {
+                        setState(() {
+                          _assetCheckingStatusMap[assetId] = newStatus;
+                        });
+                      }
+                    });
+                  }
+                },
+              ),
               PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (value == 'delete') {

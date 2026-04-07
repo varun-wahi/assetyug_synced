@@ -1,4 +1,3 @@
-
 import 'package:riverpod/riverpod.dart';
 
 class AssetFilterNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -17,7 +16,8 @@ class AssetFilterNotifier extends StateNotifier<Map<String, dynamic>> {
 
     // Update selected filters
     if (filterKey != null) {
-      _selectedFilters[filterKey] = filter.isNotEmpty ? filter.keys.first : null;
+      _selectedFilters[filterKey] =
+          filter.isNotEmpty ? filter.keys.first : null;
     }
   }
 
@@ -27,6 +27,7 @@ class AssetFilterNotifier extends StateNotifier<Map<String, dynamic>> {
   }
 }
 
-final assetFiltersProvider = StateNotifierProvider.autoDispose<AssetFilterNotifier, Map<String, dynamic>>((ref) {
+final assetFiltersProvider = StateNotifierProvider.autoDispose<
+    AssetFilterNotifier, Map<String, dynamic>>((ref) {
   return AssetFilterNotifier();
 });

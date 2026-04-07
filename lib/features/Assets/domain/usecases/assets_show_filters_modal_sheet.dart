@@ -64,7 +64,7 @@ class AssetsShowFiltersModalSheet {
                           // Access the inner map associated with the selected option
                           final sortOptions = pagesFilters[filterKey] ?? {};
                           final String? selectedOption =
-                              sortOptions[option];
+                                sortOptions[option];
                           print("Relevant Option: $selectedOption");
             
                           if (selectedOption != null) {
@@ -83,7 +83,7 @@ class AssetsShowFiltersModalSheet {
                           // Access the inner map associated with the selected option
                           final filterOptions = pagesFilters[filterKey] ?? {};
                           final Map<String, dynamic>? selectedOption =
-                              filterOptions[option];
+                                filterOptions[option];
             
                           print("Relevant Map: $selectedOption");
             

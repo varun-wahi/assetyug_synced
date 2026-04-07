@@ -3,31 +3,33 @@ import 'dart:convert';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Customers/data/data_sources/customer_names_data.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../domain/usecases/switch_asset_status_string.dart';
 import '../../data/models/assets_model.dart';
 import '../../../../core/utils/constants/strings.dart';
 import '../../../../core/utils/constants/colors.dart';
-import 'package:intl/intl.dart';
+import '../riverpod/technical_users_provider.dart';
 
 class AssetStatusButton extends ConsumerStatefulWidget {
   final AssetsModel data;
   final WidgetRef ref;
+  final Function(String)? onStatusChanged;
 
-  const AssetStatusButton({super.key, required this.data, required this.ref});
+  const AssetStatusButton(
+      {super.key, required this.data, required this.ref, this.onStatusChanged});
 
   @override
   _AssetStatusButtonState createState() => _AssetStatusButtonState();
 }
 
 class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
-  late Future<dynamic> _statusFuture;
+  late Future<String> _statusFuture;
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   String? _selectedEmployee;
@@ -50,19 +52,19 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
     final repository = AssetsRepositoryImpl();
     try {
       final response = await repository.getCheckInOutList(widget.data.id!);
-      // print("response: ${response.body}");
-      if (response.statusCode == 202) {
+      if (response.statusCode == 200 || response.statusCode == 202) {
         final List<dynamic> checkInOutList = json.decode(response.body);
-        // print("checkInOutList: $checkInOutList");
-        final status = checkInOutList.last['status'];
-        // print("status: $status for widget ${widget.data.id.oid}");
-        // If the list is empty, the asset is checked in
+        if (checkInOutList.isEmpty) return checkInString;
+        final status = checkInOutList.last['status'] ?? "Checked In";
+        print("STATUS: $status");
+        widget.onStatusChanged?.call(status);
         return status;
       } else {
         throw Exception('Failed to fetch check-in/out status');
       }
     } catch (e) {
       print('Error fetching check-in/out status: $e');
+      widget.onStatusChanged?.call(checkInString);
       return checkInString; // Default to checked in if there's an error
     }
   }
@@ -70,7 +72,7 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: _fetchCheckInOutStatus(),
+      future: _statusFuture,
       builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
@@ -91,8 +93,10 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
               await showCheckInOutDialog(context, assetCheckingStatus);
             },
             child: (assetCheckingStatus == checkInString)
-                ?  Text("Check Out", style: subtitle(weight: FontWeight.w500, color: tWhite))
-                : Text("Check In", style: subtitle(weight: FontWeight.w500, color: tWhite)),
+                ? Text("Check Out",
+                    style: subtitle(weight: FontWeight.w500, color: tWhite))
+                : Text("Check In",
+                    style: subtitle(weight: FontWeight.w500, color: tWhite)),
           );
         }
         return const SizedBox();
@@ -100,7 +104,8 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
     );
   }
 
-  Future<void> showCheckInOutDialog(BuildContext context, var assetCheckingStatus) async {
+  Future<void> showCheckInOutDialog(
+      BuildContext context, var assetCheckingStatus) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -110,15 +115,37 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                DDropdown(
-                  label: "Employee",
-                  items: customerNamesMenuItems,
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedEmployee = newValue;
-                    });
-                  },
-                ),
+                Consumer(builder: (context, ref, child) {
+                  final technicalUsersAsync = ref.watch(
+                      technicalUsersProvider(widget.data.companyId.toString()));
+
+                  return technicalUsersAsync.when(
+                    data: (users) => StatefulBuilder(
+                      builder: (context, setDialogState) {
+                        return DDropdown(
+                          label: "Employee",
+                          items: users
+                              .map((name) => DropdownMenuItem(
+                                  value: name, child: Text(name)))
+                              .toList(),
+                          onChanged: (newValue) {
+                            setDialogState(() => _selectedEmployee = newValue);
+                            setState(() => _selectedEmployee = newValue);
+                          },
+                          value: _selectedEmployee,
+                        );
+                      },
+                    ),
+                    loading: () => DDropdown(
+                      label: "Loading employees...",
+                      items: const [],
+                      onChanged: (val) {},
+                      value: null,
+                    ),
+                    error: (err, stack) =>
+                        const Text("Error loading technical users"),
+                  );
+                }),
                 const DGap(),
                 DTextField(
                   hasLabel: true,
@@ -138,8 +165,11 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
             ),
           ),
           actions: <Widget>[
-
-            TextButton(onPressed: (){Navigator.of(context).pop();}, child: const Text("Cancel")),
+            TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("Cancel")),
             DElevatedButton(
               child: const Text('Submit'),
               onPressed: () async {
@@ -153,14 +183,20 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   'companyId': widget.data.companyId,
                   'notes': _notesController.text,
                   'location': _locationController.text,
-                  'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  'date': DateTime.now().toIso8601String(),
                 };
                 // Call addCheckInOut method
                 final repository = AssetsRepositoryImpl();
                 try {
-                  final response = await repository.addCheckInOut(json.encode(data));
+                  final response =
+                      await repository.addCheckInOut(json.encode(data));
                   print("data: $data");
                   if (response.statusCode == 200) {
+                    // Trigger global refresh for dashboard/home
+                    ref.read(refreshProvider.notifier).state =
+                        !ref.read(refreshProvider);
+                    widget.onStatusChanged
+                        ?.call(switchAssetCheckingStatus(assetCheckingStatus));
                   } else {
                     print('Failed to check in/out: ${response.body}');
                   }
@@ -176,8 +212,6 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                 }
               },
             ),
-
-            
           ],
         );
       },

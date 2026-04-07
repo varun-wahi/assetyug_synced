@@ -30,7 +30,9 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
       appBar: AppBar(
         title: const Text("Asset Details"),
         centerTitle: true,
-        actions: const [IconButton(onPressed: null, icon: Icon(Icons.more_vert))],
+        actions: const [
+          IconButton(onPressed: null, icon: Icon(Icons.more_vert))
+        ],
       ),
       body: Center(
         child: FutureBuilder(
@@ -44,7 +46,8 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
               final assetData = snapshot.data;
               // print("ASSET DATA: ${assetData?.body}");
               if (assetData != null) {
-                final assetMap = jsonDecode(assetData.body) as Map<String, dynamic>;
+                final assetMap =
+                    jsonDecode(assetData.body) as Map<String, dynamic>;
                 return BuildAssetDetailCard(assetData: assetMap);
               } else {
                 return const Text('Asset not found');
@@ -74,7 +77,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
   Widget build(BuildContext context) {
     var data = AssetsModel.fromJson(widget.assetData!);
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: Column(
         children: [
           TabBar(
@@ -90,8 +93,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
             indicatorColor: tPrimary,
             indicator: const UnderlineTabIndicator(
               borderSide: BorderSide(
-                  width: 5.0,
-                  color: tPrimary), // Adjust thickness and color
+                  width: 5.0, color: tPrimary), // Adjust thickness and color
               // insets: EdgeInsets.symmetric(horizontal: dPadding),
             ),
             // indicator: BoxDecoration(
@@ -108,11 +110,21 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
               //DO SOMETHING HERE
             },
             tabs: const [
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("Edit Details")))),
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("Check In/Out")))),
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("Inspection")))),
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("Files")))),
-              Tab(child: SizedBox(width: 100, child: Center(child: Text("WOs")))),
+              Tab(
+                  child: SizedBox(
+                      width: 100, child: Center(child: Text("Edit Details")))),
+              Tab(
+                  child: SizedBox(
+                      width: 100, child: Center(child: Text("Check In/Out")))),
+              Tab(
+                  child: SizedBox(
+                      width: 100, child: Center(child: Text("Inspection")))),
+              Tab(
+                  child: SizedBox(
+                      width: 100, child: Center(child: Text("Files")))),
+              // Tab(
+              //     child:
+              //         SizedBox(width: 100, child: Center(child: Text("WOs")))),
               // Tab(child: SizedBox(width: 100, child: Center(child: Text("Parts")))),
               // Tab(child: SizedBox(width: 100, child: Center(child: Text("Custom")))),
             ],
@@ -123,11 +135,14 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
               children: [
                 AssetEditDetailsPage(assetData: data),
                 AssetCheckInOutPage(objectId: data.id!),
-                AssetInspectionPage(assetId: data.assetId!, category: data.category, companyId: data.companyId,),
+                AssetInspectionPage(
+                  assetId: data.assetId!,
+                  category: data.category,
+                  companyId: data.companyId,
+                ),
                 AssetFilesPage(objectId: data.id!),
 
-
-                AssetWOsPage(objectId: data.id!),
+                // AssetWOsPage(objectId: data.id!),
                 // AssetPartsPage(serialNo: data.assetId),
                 // AssetCustomPage(companyId: data.companyId, assetId: data.id!),
               ],

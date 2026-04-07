@@ -16,18 +16,18 @@ class CompanyCustomerDetailsService {
   }
 
   // Asynchronous headers getter
-   // Asynchronous headers getter
-Future<Map<String, String>> getHeaders() async {
-  final box = await Hive.openBox('auth_data');
-  final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
-  final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
+  // Asynchronous headers getter
+  Future<Map<String, String>> getHeaders() async {
+    final box = await Hive.openBox('auth_data');
+    final mobileId = box.get('mobileId', defaultValue: 'UNKNOWN_MOBILE_ID');
+    final authToken = box.get('auth_token', defaultValue: 'UNKNOWN_AUTH_TOKEN');
 
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer $authToken',
-    'mobile-id': mobileId,
-  };
-}
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $authToken',
+      'mobile-id': mobileId,
+    };
+  }
 
   // Update Company Customer
   Future<http.Response> updateCompanyCustomer(Map<String, dynamic> data) async {
@@ -180,10 +180,19 @@ Future<Map<String, String>> getHeaders() async {
   // Get Asset By Customer ID
   Future<http.Response> getAssetByCustomerId(
       String customerId, int pageNumber) async {
+    final url = '${assetEndpoint}getByCutomerId/$customerId/$pageNumber';
+    final headers = await getHeaders();
+
+    print("🌐 API GET ASSET BY CUSTOMER ID URL: $url");
+    print("🗝️ HEADERS: $headers");
+
     final response = await http.get(
-      Uri.parse('$assetEndpoint/getByCutomerId/$customerId/$pageNumber'),
-      headers: await getHeaders(),
+      Uri.parse(url),
+      headers: headers,
     );
+
+    print("📥 RESPONSE [${response.statusCode}]: ${response.body}");
+
     return response;
   }
 

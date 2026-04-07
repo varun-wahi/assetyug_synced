@@ -19,13 +19,14 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:image/image.dart' as img;
-import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
 import '../widgets/custom_text_field.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LocationBinOption {
   final String locationId;
@@ -36,16 +37,16 @@ class LocationBinOption {
       {required this.locationId, this.binId, required this.label});
 }
 
-class AddAssetPage extends StatefulWidget {
+class AddAssetPage extends ConsumerStatefulWidget {
   final AssetsModel? editAsset; // Add this parameter
 
   const AddAssetPage({super.key, this.editAsset});
 
   @override
-  State<AddAssetPage> createState() => _AddAssetPageState();
+  ConsumerState<AddAssetPage> createState() => _AddAssetPageState();
 }
 
-class _AddAssetPageState extends State<AddAssetPage> {
+class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   final _serialField = TextEditingController();
   final _nameField = TextEditingController();
   final _assetLocationField = TextEditingController();
@@ -85,7 +86,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
     await _fetchUserInfo();
     await _fetchDropdownData();
     await _fetchLocationBinOptions();
-
   }
 
   void _populateFieldsForEdit() {
@@ -221,8 +221,11 @@ class _AddAssetPageState extends State<AddAssetPage> {
                         return [];
                       },
                       displayString: (category) => category['name'].toString(),
-                      onChanged: (value) => setState(
-                          () => _assetCategory = value?['name'].toString()),
+                      onChanged: (value) {
+                        setState(
+                            () => _assetCategory = value?['name'].toString());
+                        FocusScope.of(context).unfocus();
+                      },
                       selectedItem: _assetCategory != null
                           ? {'name': _assetCategory}
                           : null,
@@ -248,8 +251,10 @@ class _AddAssetPageState extends State<AddAssetPage> {
                         return [];
                       },
                       displayString: (customer) => customer['name'].toString(),
-                      onChanged: (value) =>
-                          setState(() => _customer = value?['name'].toString()),
+                      onChanged: (value) {
+                        setState(() => _customer = value?['name'].toString());
+                        FocusScope.of(context).unfocus();
+                      },
                       selectedItem:
                           _customer != null ? {'name': _customer} : null,
                     ),
@@ -293,17 +298,21 @@ class _AddAssetPageState extends State<AddAssetPage> {
                         }
                       },
                       displayString: (locationBin) => locationBin.label,
-                      onChanged: (value) =>
-                          setState(() => _selectedLocationBin = value),
+                      onChanged: (value) {
+                        setState(() => _selectedLocationBin = value);
+                        FocusScope.of(context).unfocus();
+                      },
                       selectedItem: _selectedLocationBin,
                     ),
                     const DGap(),
                     DDropdown(
                       label: "Status",
-                      items: assetStatusMenuItems,
+                      items: addAssetStatusMenuItems,
                       value: _assetStatus,
-                      onChanged: (value) =>
-                          setState(() => _assetStatus = value),
+                      onChanged: (value) {
+                        setState(() => _assetStatus = value);
+                        FocusScope.of(context).unfocus();
+                      },
                       isMandatory: true,
                     ),
                   ],
@@ -403,10 +412,10 @@ class _AddAssetPageState extends State<AddAssetPage> {
         await _insertAssetData(
           _nameField.text,
           _serialField.text,
-          _assetCategory ?? "",
+          _assetCategory ?? "Not Specified",
           _customer ?? "",
           _selectedLocationBin?.label ?? "",
-          _assetStatus ?? "",
+          _assetStatus?.toLowerCase() ?? "",
         );
       }
     } catch (e) {
@@ -434,7 +443,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
       "id": widget.editAsset!.id,
       "name": _nameField.text,
       "serialNumber": _serialField.text,
-      "category": _assetCategory ?? "",
+      "category": _assetCategory ?? "Not Specified",
       "customer": _customer ?? "",
       "customerId": widget.editAsset!.customerId, // Keep existing customerId
       "location": "${_selectedLocationBin?.label}" ?? "",
@@ -450,6 +459,8 @@ class _AddAssetPageState extends State<AddAssetPage> {
 
     if (response.statusCode == 200) {
       if (mounted) {
+        // Trigger global refresh for dashboard/home
+        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
         dSnackBar(context, "Asset Updated Successfully", TypeSnackbar.success);
         Navigator.pop(context, true); // Return true to indicate success
       }
@@ -470,7 +481,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     final data = AssetsModel(
       name: name,
       serialNumber: serialNumber,
-      category: category,
+      category: category ?? "Not Specified",
       customer: customer,
       customerId: "1",
       location: location,
@@ -488,11 +499,14 @@ class _AddAssetPageState extends State<AddAssetPage> {
         'employee': customer,
         'notes': null,
         'location': location,
-        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'date': DateTime.now().toIso8601String(),
       };
       await repo.addCheckInOut(json.encode(checkInData));
-      if (mounted)
+      if (mounted) {
+        // Trigger global refresh for dashboard/home
+        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
         dSnackBar(context, "Asset Inserted Successfully", TypeSnackbar.success);
+      }
       clearFields();
     } else {
       if (mounted)
@@ -515,7 +529,8 @@ class _AddAssetPageState extends State<AddAssetPage> {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: source);
+    final XFile? image =
+        await picker.pickImage(source: source, imageQuality: 85);
     if (image != null) {
       final compressed = await _compressImage(File(image.path));
       setState(() => _image = compressed);
