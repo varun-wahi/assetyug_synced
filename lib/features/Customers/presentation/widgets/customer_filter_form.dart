@@ -4,6 +4,7 @@ import '../../../../config/theme/container_styles.dart';
 import '../../../../config/theme/text_styles.dart';
 import '../../../../core/utils/constants/colors.dart';
 import '../../../../core/utils/constants/sizes.dart';
+import '../../../../core/utils/widgets/custom_fields_section.dart';
 import '../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../../core/utils/widgets/d_gap.dart';
 import '../../../../core/utils/widgets/d_text_field.dart';
@@ -125,28 +126,12 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // --- Dynamic custom fields from server ---
           Consumer(builder: (context, ref, _) {
             final customFields = ref.watch(customerCustomFieldsProvider);
-            return Column(
-              children: customFields.map((field) {
-                // Ensure a controller exists for each field
-                if (!_customFieldControllers.containsKey(field.id)) {
-                  _customFieldControllers[field.id] = TextEditingController();
-                }
-                final controller = _customFieldControllers[field.id]!;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: dPadding),
-                  child: DTextField(
-                    icon: const Icon(Icons.tune),
-                    hintText: field.name,
-                    controller: controller,
-                    textInputType: field.type == "number"
-                        ? TextInputType.number
-                        : TextInputType.text,
-                  ),
-                );
-              }).toList(),
+            return CustomFieldsSection(
+              customFields: customFields,
+              controllers: _customFieldControllers,
+              showClearButton: true,
             );
           }),
           // --- Static fields ---

@@ -5,10 +5,8 @@ import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
 import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 import 'package:asset_yug_debugging/features/Assets/data/data_sources/asset_status_data.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
-import 'package:asset_yug_debugging/features/Auth/data/repository/auth_token_repository_impl.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/custom_text_field.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
@@ -17,14 +15,15 @@ import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:http/http.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/utils/widgets/custom_fields_section.dart';
 import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
+import '../riverpod/asset_custom_fields_provider.dart';
 import '../widgets/custom_text_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,6 +49,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   final _serialField = TextEditingController();
   final _nameField = TextEditingController();
   final _assetLocationField = TextEditingController();
+  final Map<String, TextEditingController> _customFieldControllers = {};
 
   File? _image;
   String? base64Image;
@@ -84,6 +84,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     }
     box = await Hive.openBox('auth_data');
     await _fetchUserInfo();
+    ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
     await _fetchDropdownData();
     await _fetchLocationBinOptions();
   }
@@ -315,6 +316,14 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                       },
                       isMandatory: true,
                     ),
+                    Consumer(builder: (context, ref, _) {
+                      final customFields = ref.watch(assetCustomFieldsProvider);
+                      return CustomFieldsSection(
+                        customFields: customFields,
+                        controllers: _customFieldControllers,
+                        showClearButton: false,
+                      );
+                    }),
                   ],
                 ),
                 const DGap(),

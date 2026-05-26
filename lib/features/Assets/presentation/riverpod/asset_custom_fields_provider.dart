@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:asset_yug_debugging/features/Assets/data/models/custom_field.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+
+import '../../../../core/models/custom_field_model.dart';
 
 class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
   AssetCustomFieldsNotifier() : super([]);
@@ -11,8 +12,18 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
 
   Future<void> loadCustomFields(String companyId) async {
     try {
+      print('🔄 Loading custom fields for companyId: $companyId');
+
       final mandatoryRes = await _repo.getAllMandatoryFields(companyId);
+
+      if (!mounted) return; // ✅ Guard after every await
+      print(
+          '📦 Mandatory status: ${mandatoryRes.statusCode} body: ${mandatoryRes.body}');
+
       final showRes = await _repo.getAllShowFields(companyId);
+
+      if (!mounted) return; // ✅ Guard after every await
+      print('📦 Show status: ${showRes.statusCode} body: ${showRes.body}');
 
       List<CustomField> parse(http.Response res, bool isMandatory) {
         if (res.statusCode != 200) return [];
@@ -25,23 +36,33 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
             .toList();
       }
 
-      // Merge and deduplicate by id
       final Map<String, CustomField> fieldMap = {};
       for (var f in parse(mandatoryRes, true)) {
-        fieldMap[f.id] = f;
+        fieldMap[f.name] = f;
       }
       for (var f in parse(showRes, false)) {
-        fieldMap.putIfAbsent(f.id, () => f);
+        fieldMap.putIfAbsent(f.name, () => f);
       }
 
       state = fieldMap.values.toList();
-      print('✅ Loaded ${state.length} asset custom fields');
-    } catch (e) {
+      print('✅ Loaded ${state.length} custom fields');
+    } catch (e, stackTrace) {
       print('❌ Error loading custom fields: $e');
+      print('$stackTrace');
     }
   }
 }
 
-final assetCustomFieldsProvider = StateNotifierProvider.autoDispose<AssetCustomFieldsNotifier, List<CustomField>>(
+// final assetCustomFieldsProvider = StateNotifierProvider.autoDispose<
+//     AssetCustomFieldsNotifier, List<CustomField>>(
+//   (ref) => AssetCustomFieldsNotifier(),
+// );
+// ✅ Must NOT have autoDispose
+final assetCustomFieldsProvider =
+    StateNotifierProvider<AssetCustomFieldsNotifier, List<CustomField>>(
   (ref) => AssetCustomFieldsNotifier(),
 );
+
+// final assetCustomFieldsProvider = StateNotifierProvider<AssetCustomFieldsNotifier, List<CustomField>>(
+//   (ref) => AssetCustomFieldsNotifier(),
+// );

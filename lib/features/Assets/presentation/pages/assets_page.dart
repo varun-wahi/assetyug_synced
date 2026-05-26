@@ -17,24 +17,19 @@ import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_searchbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_selected_filter.dart';
-import 'package:asset_yug_debugging/core/utils/widgets/d_text_field.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
-import 'package:asset_yug_debugging/features/Assets/data/models/custom_field.dart';
-import '../../../../core/utils/widgets/d_dropdown.dart';
 import '../riverpod/asset_custom_fields_provider.dart';
-import '../../../Customers/data/repository/company_customer_repository_impl.dart';
-import '../../data/data_sources/asset_status_data.dart';
 import '../riverpod/asset_filter_notifier.dart';
-import '../../../../core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asset_page.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import '../riverpod/asset_sorting_notifier.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/icon_text_row.dart';
+
+import '../widgets/assets_filter_form.dart';
 
 class AssetsPage extends ConsumerWidget {
   const AssetsPage({
@@ -151,14 +146,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     final finalFilters = {
       ...newFilters,
     };
-    // Load custom fields for the company
-    if (companyId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(assetCustomFieldsProvider.notifier)
-            .loadCustomFields(companyId.toString());
-      });
-    }
 
     _initializeFiltersFromMap(finalFilters);
     fetchCompanyId();
@@ -208,6 +195,14 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   Future<void> fetchCompanyId() async {
     final box = await Hive.openBox('auth_data');
     companyId = box.get('companyId');
+
+    // ✅ Now companyId is guaranteed to be set
+    if (companyId != null && mounted) {
+      ref
+          .read(assetCustomFieldsProvider.notifier)
+          .loadCustomFields(companyId.toString());
+    }
+
     _fetchAssets();
   }
 
@@ -481,297 +476,63 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       isScrollControlled: true,
       context: context,
       builder: (BuildContext context) {
-        final height = MediaQuery.of(context).size.height * 0.75;
         return SizedBox(
-          height: height,
-          child: _buildFilterModalContent(),
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: AssetFilterForm(
+            initialData: AssetFilterData(
+              companyId: companyId ?? '',
+              assetId: assetIdController.text,
+              name: assetNameController.text,
+              customer: customerController.text,
+              serialNumber: serialNumberController.text,
+              category: _assetCategory ?? '',
+              location: locationController.text,
+              status: _assetStatus ?? '',
+              checkingStatus: ref
+                      .read(assetFiltersProvider.notifier)
+                      .selectedFilters['Checking Status'] ??
+                  'All',
+            ),
+            onApplyFilters: (filterData) {
+              setState(() {
+                assetIdController.text = filterData.assetId;
+                assetNameController.text = filterData.name;
+                customerController.text = filterData.customer;
+                serialNumberController.text = filterData.serialNumber;
+                _assetCategory =
+                    filterData.category.isEmpty ? null : filterData.category;
+                locationController.text = filterData.location;
+                _assetStatus = filterData.status;
+              });
+              ref.read(assetFiltersProvider.notifier).updateFilter(
+                {filterData.checkingStatus: filterData.checkingStatus},
+                "Checking Status",
+              );
+              _fetchAssets();
+              Navigator.pop(context);
+            },
+            onClearFilters: () {
+              ref.read(assetFiltersProvider.notifier).clearFilters();
+              setState(() {
+                assetIdController.clear();
+                assetNameController.clear();
+                customerController.clear();
+                serialNumberController.clear();
+                _assetCategory = null;
+                locationController.clear();
+                _assetStatus = '';
+                _customer = null;
+              });
+              _fetchAssets();
+              Navigator.pop(context);
+            },
+          ),
         );
       },
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30.0)),
       ),
     );
-  }
-
-  Widget _buildFilterModalContent() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2 * dPadding),
-      decoration: const BoxDecoration(
-        color: tWhite,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.0),
-          topRight: Radius.circular(30.0),
-        ),
-      ),
-      // height: 500,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            _buildFilterModalHeader(),
-            _buildFilterModalBody(),
-            _buildFilterModalFooter(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterModalHeader() {
-    return SizedBox(
-      // height: 40,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Text('Select Filters', style: boldHeading()),
-          TextButton(
-            onPressed: () => _clearFilters(),
-            child: Text("CLEAR", style: boldHeading(size: 16)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterModalBody() {
-    LocationBinOption? selectedLocationBin;
-
-    return SizedBox(
-      // height: 350,
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Column(
-              children: [
-                // Dynamic custom fields fetched from server
-                Consumer(builder: (context, ref, _) {
-                  final customFields = ref.watch(assetCustomFieldsProvider);
-                  return Column(
-                    children: customFields.map((field) {
-                      // Ensure a controller exists for each custom field
-                      if (!_customFieldControllers.containsKey(field.id)) {
-                        _customFieldControllers[field.id] =
-                            TextEditingController();
-                      }
-                      final controller = _customFieldControllers[field.id]!;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: dPadding),
-                        child: DTextField(
-                          icon: const Icon(Icons.tune),
-                          hintText: field.name,
-                          controller: controller,
-                          // Use numeric keyboard for number type
-                          textInputType: field.type == "number"
-                              ? TextInputType.number
-                              : TextInputType.text,
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }),
-                DTextField(
-                  icon: const Icon(Icons.tag),
-                  hintText: "Asset ID",
-                  controller: assetIdController,
-                ),
-                DTextField(
-                  icon: const Icon(Icons.person),
-                  hintText: "Asset Name",
-                  controller: assetNameController,
-                ),
-
-                /// AsyncDropdown for Customer
-                AsyncDropdownField<Map<String, dynamic>>(
-                  label: "Customer",
-                  asyncItemsFetcher: () async {
-                    final customerRepo = CompanyCustomerRepositoryImpl();
-                    try {
-                      final response = await customerRepo
-                          .getCompanyCustomer(companyId ?? "");
-                      if (response.statusCode == 200) {
-                        final customers = jsonDecode(response.body) as List;
-                        return customers
-                            .map((e) => e as Map<String, dynamic>)
-                            .toList();
-                      }
-                    } catch (e) {
-                      print("Error fetching customers: $e");
-                    }
-                    return [];
-                  },
-                  displayString: (customer) => customer['name'].toString(),
-                  onChanged: (value) => setState(() {
-                    _customer = value?['name'].toString();
-                    customerController.text = _customer ?? ''; // Add this line
-                  }),
-                  selectedItem: _customer != null ? {'name': _customer} : null,
-                ),
-
-                DTextField(
-                  icon: const Icon(Icons.confirmation_number),
-                  hintText: "Serial Number",
-                  controller: serialNumberController,
-                ),
-
-                /// AsyncDropdown for Category
-                AsyncDropdownField<Map<String, dynamic>>(
-                  label: "Category",
-                  asyncItemsFetcher: () async {
-                    final repo = AssetsRepositoryImpl();
-                    try {
-                      final response =
-                          await repo.getActiveCategories(companyId ?? "");
-                      if (response.statusCode == 200) {
-                        final categories = jsonDecode(response.body) as List;
-                        return categories
-                            .map((e) => e as Map<String, dynamic>)
-                            .toList();
-                      }
-                    } catch (e) {
-                      print("Error fetching categories: $e");
-                    }
-                    return [];
-                  },
-                  displayString: (category) => category['name'].toString(),
-                  onChanged: (value) => setState(() {
-                    _assetCategory = value?['name'].toString();
-                    categoryController.text =
-                        _assetCategory ?? ''; // Add this line
-                  }),
-                  selectedItem:
-                      _assetCategory != null ? {'name': _assetCategory} : null,
-                ),
-
-                /// AsyncDropdown for Location with Bins
-                AsyncDropdownField<LocationBinOption>(
-                  label: "Location",
-                  asyncItemsFetcher: () async {
-                    try {
-                      final response = await CompanyCustomerRepositoryImpl()
-                          .getCustomerLocationsAndBins(companyId ?? "");
-                      final List<dynamic> data = jsonDecode(response.body);
-                      final List<LocationBinOption> parsed = [];
-
-                      for (var location in data) {
-                        final locName = location['name'];
-                        final locId = location['id'];
-                        final bins = location['bins'] ?? [];
-
-                        // Always add location itself
-                        parsed.add(LocationBinOption(
-                          locationId: locId,
-                          binId: null,
-                          label: locName,
-                        ));
-
-                        // Then add bins
-                        for (var bin in bins) {
-                          parsed.add(LocationBinOption(
-                            locationId: locId,
-                            binId: bin['id'],
-                            label: '$locName -> ${bin['binNumber']}',
-                          ));
-                        }
-                      }
-                      return parsed;
-                    } catch (e) {
-                      print('Failed to load locations and bins: $e');
-                      return [];
-                    }
-                  },
-                  displayString: (locationBin) => locationBin.label,
-                  onChanged: (value) => setState(() {
-                    selectedLocationBin = value;
-                    locationController.text =
-                        value?.label ?? ''; // Add this line
-                  }),
-                  selectedItem: selectedLocationBin,
-                ),
-
-                /// Static Dropdown for Asset Status (Lifecycle)
-                DDropdown(
-                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
-                  label: "Status",
-                  items: assetStatusMenuItems,
-                  value: _assetStatus,
-                  onChanged: (value) => setState(() {
-                    _assetStatus = value;
-                  }),
-                ),
-                const DGap(),
-
-                /// Static Dropdown for Checking Status
-                DDropdown(
-                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
-                  label: "Checking Status",
-                  items: const [
-                    DropdownMenuItem(value: "All", child: Text("All")),
-                    DropdownMenuItem(
-                        value: "Checked In", child: Text("Checked In")),
-                    DropdownMenuItem(
-                        value: "Checked Out", child: Text("Checked Out")),
-                  ],
-                  value: ref
-                          .read(assetFiltersProvider.notifier)
-                          .selectedFilters['Checking Status'] ??
-                      'All',
-                  onChanged: (value) {
-                    ref.read(assetFiltersProvider.notifier).updateFilter(
-                      {value: value},
-                      "Checking Status",
-                    );
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
-            const DGap(),
-            _buildAdditionalFilters(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdditionalFilters() {
-    return Container(
-      decoration: dBoxDecoration(color: tBackground),
-      child: Text("Extra fields to be added soon", style: subtitle()),
-    );
-  }
-
-  Widget _buildFilterModalFooter() {
-    return SizedBox(
-      height: 40,
-      child: DElevatedButton(
-        buttonColor: tBlack,
-        textColor: tWhite,
-        child: const Text('Apply Filters'),
-        onPressed: () => setState(() {
-          _fetchAssets();
-          Navigator.pop(context);
-        }),
-      ),
-    );
-  }
-
-  void _clearFilters() {
-    ref.read(assetFiltersProvider.notifier).clearFilters();
-
-    assetIdController.clear();
-    assetNameController.clear();
-    _customer = null;
-    customerController.clear();
-    serialNumberController.clear();
-    _assetCategory = null;
-    locationController.clear();
-    _assetStatus = '';
-
-    setState(() {});
-
-    searchTextFieldController.clear();
-    _fetchAssets();
-    Navigator.pop(context);
   }
 
   Widget _buildAssetsList() {
