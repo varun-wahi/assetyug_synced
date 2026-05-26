@@ -210,4 +210,22 @@ class CompanyCustomerRepositoryImpl {
     final res = await http.delete(url, headers: await getHeaders());
     return res;
   }
+
+  Future<http.Response> getAssetCountByCustomer() async {
+    final url = Uri.parse('${companyCustomerEndpoint}assetCountByCustomer/');
+    final headers = await getHeaders();
+    print("🔍 [API Request] Fetching Asset Count by Customer: $url");
+    try {
+      final response = await http.get(url, headers: headers);
+      print(
+          "✅ [API Success] getAssetCountByCustomer response status: ${response.statusCode}");
+      print("📥 [API Response] Body: ${response.body}");
+      return response;
+    } catch (e, stackTrace) {
+      print("❌ [API Error] getAssetCountByCustomer failed");
+      print("🧾 Error: $e");
+      print("🧵 StackTrace: $stackTrace");
+      rethrow;
+    }
+  }
 }

@@ -1,4 +1,5 @@
 // screens/location_bin_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
@@ -87,7 +88,7 @@ class LocationBinScreen extends ConsumerWidget {
   }
 }
 
-class LocationsTab extends ConsumerWidget {
+class LocationsTab extends ConsumerStatefulWidget {
   final String companyId;
 
   const LocationsTab({
@@ -96,43 +97,72 @@ class LocationsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locationsAsync = ref.watch(locationsProvider(companyId));
+  ConsumerState<LocationsTab> createState() => _LocationsTabState();
+}
+
+class _LocationsTabState extends ConsumerState<LocationsTab> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-refresh from API every 30 seconds silently
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        ref.read(locationsProvider(widget.companyId).notifier).loadLocations(silent: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locationsAsync = ref.watch(locationsProvider(widget.companyId));
 
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(locationsProvider(companyId));
+          await ref.read(locationsProvider(widget.companyId).notifier).loadLocations(silent: true);
         },
         child: locationsAsync.when(
           data: (locations) {
             if (locations.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.location_off,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No locations found',
-                      style: TextStyle(
-                        fontSize: 18,
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 200,
+                  alignment: Alignment.center,
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.location_off,
+                        size: 64,
                         color: Colors.grey,
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Tap the + button to add a location',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+                      SizedBox(height: 16),
+                      Text(
+                        'No locations found',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      Text(
+                        'Tap the + button to add a location',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -142,58 +172,64 @@ class LocationsTab extends ConsumerWidget {
               itemCount: locations.length,
               itemBuilder: (context, index) {
                 final location = locations[index];
-                return LocationCard(location: location, companyId: companyId);
+                return LocationCard(location: location, companyId: widget.companyId);
               },
             );
           },
           loading: () => const Center(
             child: CircularProgressIndicator(),
           ),
-          error: (error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.red,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading locations',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.red[700],
+          error: (error, stack) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              height: MediaQuery.of(context).size.height - 200,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading locations',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.red[700],
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    ref.invalidate(locationsProvider(companyId));
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    error.toString(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.read(locationsProvider(widget.companyId).notifier).loadLocations();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => AddLocationScreen(companyId: companyId),
+              builder: (context) => AddLocationScreen(companyId: widget.companyId),
             ),
           );
+          ref.read(locationsProvider(widget.companyId).notifier).loadLocations(silent: true);
         },
         backgroundColor: tPrimary,
         foregroundColor: Colors.white,
@@ -203,7 +239,7 @@ class LocationsTab extends ConsumerWidget {
   }
 }
 
-class BinsTab extends ConsumerWidget {
+class BinsTab extends ConsumerStatefulWidget {
   final String companyId;
 
   const BinsTab({
@@ -212,43 +248,72 @@ class BinsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final binsAsync = ref.watch(binsProvider(companyId));
+  ConsumerState<BinsTab> createState() => _BinsTabState();
+}
+
+class _BinsTabState extends ConsumerState<BinsTab> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-refresh from API every 30 seconds silently
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        ref.read(binsProvider(widget.companyId).notifier).loadBins(silent: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final binsAsync = ref.watch(binsProvider(widget.companyId));
 
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(binsProvider(companyId));
+          await ref.read(binsProvider(widget.companyId).notifier).loadBins(silent: true);
         },
         child: binsAsync.when(
           data: (bins) {
             if (bins.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No bins found',
-                      style: TextStyle(
-                        fontSize: 18,
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height - 200,
+                  alignment: Alignment.center,
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inbox_outlined,
+                        size: 64,
                         color: Colors.grey,
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Tap the + button to add a bin',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+                      SizedBox(height: 16),
+                      Text(
+                        'No bins found',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      Text(
+                        'Tap the + button to add a bin',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -258,58 +323,64 @@ class BinsTab extends ConsumerWidget {
               itemCount: bins.length,
               itemBuilder: (context, index) {
                 final bin = bins[index];
-                return BinCard(bin: bin, companyId: companyId,);
+                return BinCard(bin: bin, companyId: widget.companyId);
               },
             );
           },
           loading: () => const Center(
             child: CircularProgressIndicator(),
           ),
-          error: (error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.red,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading bins',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.red[700],
+          error: (error, stack) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              height: MediaQuery.of(context).size.height - 200,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading bins',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.red[700],
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    ref.invalidate(binsProvider(companyId));
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    error.toString(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.read(binsProvider(widget.companyId).notifier).loadBins();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => AddBinScreen(companyId: companyId),
+              builder: (context) => AddBinScreen(companyId: widget.companyId),
             ),
           );
+          ref.read(binsProvider(widget.companyId).notifier).loadBins(silent: true);
         },
         backgroundColor: tPrimary,
         foregroundColor: Colors.white,

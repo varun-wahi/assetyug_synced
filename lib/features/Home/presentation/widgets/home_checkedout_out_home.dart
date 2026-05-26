@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Customers/data/repository/company_customer_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart'; // Import Hive for local storage
@@ -38,6 +39,7 @@ class _BuildAssetOverviewContainerState
     final box = await Hive.openBox('auth_data');
     setState(() {
       companyId = box.get('companyId');
+      debugPrint("company id fetched: $companyId");
     });
   }
 
@@ -53,14 +55,6 @@ class _BuildAssetOverviewContainerState
         // const SizedBox(height: 20),
         // Text("Total Average Asset Uptime: 91%", style: boldHeading(size: 16)),
         const SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            "Asset by Category",
-            style: boldHeading(size: 18),
-          ),
-        ),
-        const SizedBox(height: dGap),
         _buildAssetCategorySection(),
         const SizedBox(height: 20),
         _buildCustomerCategorySection(),
@@ -193,9 +187,12 @@ class _BuildAssetOverviewContainerState
   }
 
   Widget _buildAssetCategorySection() {
+    // Wait until companyId is fetched
+    if (companyId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return FutureBuilder(
-      future: AssetsRepositoryImpl().getAssetsByCategories(companyId ?? ""),
-      // future: AssetsRepositoryImpl().getCategoryList(companyId ?? ""),
+      future: AssetsRepositoryImpl().countAssetByCategories(companyId ?? ""),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           // Show a loading indicator while waiting for data
@@ -211,61 +208,77 @@ class _BuildAssetOverviewContainerState
           print('ASSET CATEGORIES RESPONSE: ${response.body}');
 
           if (response.statusCode == 200 && response.body.isNotEmpty) {
-            print('ASSET CATEGORIES RESPONSE: ${response.body}');
             try {
-              // Parse the API response
-              final Map<String, dynamic> assetCategories =
-                  json.decode(response.body);
-              print('Parsed Asset Categories: ${assetCategories.keys}');
+              // Parse the API response — now a List of category objects
+              final decoded = json.decode(response.body);
 
-              if (assetCategories.isEmpty) {
-                return _buildEmptyAssetCategoryState();
+              if (decoded is! List || decoded.isEmpty) {
+                return _buildSection(
+                  "Assets by Category",
+                  _buildEmptyAssetCategoryState(),
+                );
               }
 
-              // Extract categories and their counts
-              final categories = assetCategories.keys.toList();
-              final categoryCounts = categories
-                  .map((key) => assetCategories[key]?.length ?? 0)
-                  .toList();
+              final categories = decoded.cast<Map<String, dynamic>>();
 
               // Render the list of categories dynamically
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Asset by Category", style: boldHeading(size: 18)),
-                  const SizedBox(height: dGap),
-                  SizedBox(
-                    height: 70,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        final category = categories[index];
-                        final itemCount = categoryCounts[index];
+              return _buildSection(
+                "Assets by Category",
+                SizedBox(
+                  height: 70,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (context, index) {
+                      final item = categories[index];
+                      final categoryName =
+                          (item['categoryName'] as String? ?? 'Unknown')
+                              .toCapitalized();
+                      final assetCount = item['assetCount'] is num
+                          ? (item['assetCount'] as num).toInt()
+                          : int.tryParse(
+                                  item['assetCount']?.toString() ?? '0') ??
+                              0;
 
-                        return Container(
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AssetsPage(
+                                predefinedFilters: {
+                                  "status": "Active",
+                                  "Checking Status": "All",
+                                  "category":
+                                      categoryName, // 👈 Pass category as filter
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
                           decoration: BoxDecoration(
                             color: tWhite,
-                            border: Border.all(color: darkGrey),
+                            border: Border.all(color: darkGrey, width: 0.2),
                             borderRadius: BorderRadius.circular(dBorderRadius),
                           ),
                           width: 110,
-                          child: _buildTableCell(
-                              category.toCapitalized(), "$itemCount"),
-                        );
-                      },
-                      separatorBuilder: (context, index) {
-                        return const DGap(
-                          vertical: false,
-                          gap: 4,
-                        );
-                      },
-                      itemCount: categories.length,
-                    ),
+                          child: _buildTableCell(categoryName, "$assetCount"),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return const DGap(
+                        vertical: false,
+                        gap: 4,
+                      );
+                    },
+                    itemCount: categories.length,
                   ),
-                ],
+                ),
               );
             } catch (e) {
               // Handle JSON parsing errors
+              print('Error parsing asset categories: $e');
               return const Text(
                 "Error parsing data",
                 style: TextStyle(color: Colors.red),
@@ -273,9 +286,12 @@ class _BuildAssetOverviewContainerState
             }
           } else {
             // Handle empty or invalid response
-            return const Text(
-              "No asset categories available",
-              style: TextStyle(color: Colors.grey),
+            return _buildSection(
+              "Assets by Category",
+              const Text(
+                "No asset categories available",
+                style: TextStyle(color: Colors.grey),
+              ),
             );
           }
         } else {
@@ -318,6 +334,19 @@ class _BuildAssetOverviewContainerState
     );
   }
 
+  Widget _buildSection(String title, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+            alignment: Alignment.centerLeft,
+            child: Text(title, style: boldHeading(size: 18))),
+        const SizedBox(height: dGap),
+        Align(alignment: Alignment.center, child: child),
+      ],
+    );
+  }
+
   Widget _buildTableCell(String count, String label) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -325,13 +354,13 @@ class _BuildAssetOverviewContainerState
         children: [
           Text(
             count,
-            style: boldHeading(size: 16),
+            style: body(size: 14, weight: FontWeight.w500),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
           Text(
             label,
-            style: subheading(size: 14),
+            style: subheading(size: 17),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
@@ -341,36 +370,121 @@ class _BuildAssetOverviewContainerState
   }
 
   Widget _buildCustomerCategorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Asset by Customer (change show top 20)",
-            style: boldHeading(size: 18)),
-        const SizedBox(height: dGap),
-        SizedBox(
-          height: 70,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Container(
-                  decoration: BoxDecoration(
-                      color: tWhite,
-                      border: Border.all(color: tGreyLight),
-                      borderRadius: BorderRadius.circular(dBorderRadius)),
-                  width: 180,
-                  child: _buildTableCell(
-                      "CST A${index + 1}", (4 + index).toString()));
-            },
-            separatorBuilder: (context, index) {
-              return const DGap(
-                vertical: false,
-                gap: 4,
+    return FutureBuilder(
+      future: CompanyCustomerRepositoryImpl().getAssetCountByCustomer(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return const Text(
+            "Error loading customer data",
+            style: TextStyle(color: Colors.red),
+          );
+        } else if (snapshot.hasData && snapshot.data is http.Response) {
+          final response = snapshot.data as http.Response;
+          print('CUSTOMER CATEGORIES RESPONSE: ${response.body}');
+
+          if (response.statusCode == 200 && response.body.isNotEmpty) {
+            try {
+              final decoded = json.decode(response.body);
+              final List<MapEntry<String, int>> customerCounts = [];
+
+              if (decoded is Map) {
+                decoded.forEach((key, value) {
+                  int count = 0;
+                  if (value is num) {
+                    count = value.toInt();
+                  } else if (value is String) {
+                    count = int.tryParse(value) ?? 0;
+                  } else if (value is List) {
+                    count = value.length;
+                  }
+                  customerCounts.add(MapEntry(key.toString(), count));
+                });
+              } else if (decoded is List) {
+                for (var item in decoded) {
+                  if (item is Map) {
+                    final name = item['customerName'] ??
+                        item['name'] ??
+                        item['customer'] ??
+                        'Unknown';
+                    final countVal = item['assetCount'] ?? item['count'] ?? 0;
+                    int count = 0;
+                    if (countVal is num) {
+                      count = countVal.toInt();
+                    } else if (countVal is String) {
+                      count = int.tryParse(countVal) ?? 0;
+                    }
+                    customerCounts.add(MapEntry(name.toString(), count));
+                  }
+                }
+              }
+
+              if (customerCounts.isEmpty) {
+                return _buildSection(
+                  "Assets by Customer (Top 0)",
+                  const Text(
+                    "No customer asset data available",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                );
+              }
+
+              // Show top 20
+              final displayList = customerCounts.take(20).toList();
+
+              return _buildSection(
+                "Assets by Customer (Top ${displayList.length})",
+                SizedBox(
+                  height: 70,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (context, index) {
+                      final entry = displayList[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: tWhite,
+                          border: Border.all(color: tGreyLight),
+                          borderRadius: BorderRadius.circular(dBorderRadius),
+                        ),
+                        width: 180,
+                        child: _buildTableCell(
+                          entry.key,
+                          "${entry.value}",
+                        ),
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return const DGap(
+                        vertical: false,
+                        gap: 4,
+                      );
+                    },
+                    itemCount: displayList.length,
+                  ),
+                ),
               );
-            },
-            itemCount: 5,
-          ),
-        ),
-      ],
+            } catch (e) {
+              return const Text(
+                "Error parsing customer data",
+                style: TextStyle(color: Colors.red),
+              );
+            }
+          } else {
+            // Handle empty or invalid response, keep title
+            return _buildSection(
+              "Assets by Customer",
+              const Text(
+                "No customer asset data available",
+                style: TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+        } else {
+          return const Text("No data available",
+              style: TextStyle(color: Colors.grey));
+        }
+      },
     );
   }
 }

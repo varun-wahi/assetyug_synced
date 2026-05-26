@@ -3,6 +3,7 @@ import 'package:asset_yug_debugging/features/Locations%20and%20Bins/presentation
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/constants/sizes.dart';
 import '../../data/models/bin_model.dart';
 
 class BinCard extends ConsumerWidget {
@@ -19,27 +20,40 @@ class BinCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       color: Colors.grey.shade100,
-
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        title: Text(bin.binNumber, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        subtitle: Text('Location: ${bin.locationName}', style: const TextStyle(fontSize: 14)),
+        title: Text(bin.binNumber,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        subtitle: Text('Location: ${bin.locationName}',
+            style: const TextStyle(fontSize: 14)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              bin.status.toUpperCase(),
-              style: TextStyle(
-                color: bin.status.toLowerCase() == 'active' ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  vertical: dPadding / 2, horizontal: dPadding),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(dBorderRadius),
+                color: bin.status?.toLowerCase() == 'active'
+                    ? Colors.green.shade100
+                    : Colors.red.shade100,
+              ),
+              child: Text(
+                (bin.status ?? "inactive").toUpperCase(),
+                style: TextStyle(
+                  color: bin.status?.toLowerCase() == 'active'
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, color: tPrimary),
               onPressed: () => _showDeleteDialog(context, ref),
             ),
           ],
@@ -74,7 +88,7 @@ class BinCard extends ConsumerWidget {
   Future<void> _deleteBin(WidgetRef ref) async {
     final repository = ref.read(companyCustomerRepositoryProvider);
     final response = await repository.deleteBin(bin.id);
-    
+
     if (response.statusCode == 200) {
       // Refresh the bins list
       ref.read(binsProvider(companyId).notifier).loadBins();

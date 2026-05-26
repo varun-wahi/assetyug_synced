@@ -1,5 +1,6 @@
 // Updated LocationCard with delete functionality
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
+import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/features/Locations%20and%20Bins/presentation/riverpod/location_bin_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,22 +36,34 @@ class LocationCard extends ConsumerWidget {
         ),
         subtitle: Text(
           'Parent: ${location.address ?? "N/A"}',
-          style: const TextStyle(fontSize: 14, ),
+          style: const TextStyle(
+            fontSize: 14,
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              (location.status ?? "inactive").toUpperCase(),
-              style: TextStyle(
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  vertical: dPadding / 2, horizontal: dPadding),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(dBorderRadius),
                 color: location.status?.toLowerCase() == 'active'
-                    ? Colors.green
-                    : Colors.red,
-                fontWeight: FontWeight.bold,
+                    ? Colors.green.shade100
+                    : Colors.red.shade100,
+              ),
+              child: Text(
+                (location.status ?? "inactive").toUpperCase(),
+                style: TextStyle(
+                  color: location.status?.toLowerCase() == 'active'
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, color: tPrimary),
               onPressed: () => _showDeleteDialog(context, ref),
             ),
           ],
@@ -64,7 +77,8 @@ class LocationCard extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Location'),
-        content: Text('Are you sure you want to delete location ${location.name}?'),
+        content:
+            Text('Are you sure you want to delete location ${location.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -85,7 +99,7 @@ class LocationCard extends ConsumerWidget {
   Future<void> _deleteLocation(WidgetRef ref) async {
     final repository = ref.read(companyCustomerRepositoryProvider);
     final response = await repository.deleteLocation(location.id);
-    
+
     if (response.statusCode == 200) {
       // Refresh the locations list
       ref.read(locationsProvider(companyId).notifier).loadLocations();

@@ -25,9 +25,11 @@ class LocationsNotifier extends StateNotifier<AsyncValue<List<LocationModel>>> {
     loadLocations();
   }
 
-  Future<void> loadLocations() async {
+  Future<void> loadLocations({bool silent = false}) async {
     try {
-      state = const AsyncValue.loading();
+      if (!silent) {
+        state = const AsyncValue.loading();
+      }
       final response = await _repository.getAllLocations(companyId);
       
       if (response.statusCode == 200) {
@@ -79,9 +81,11 @@ class BinsNotifier extends StateNotifier<AsyncValue<List<BinModel>>> {
     loadBins();
   }
 
-  Future<void> loadBins() async {
+  Future<void> loadBins({bool silent = false}) async {
     try {
-      state = const AsyncValue.loading();
+      if (!silent) {
+        state = const AsyncValue.loading();
+      }
       final response = await _repository.getAllBins(companyId);
       
       if (response.statusCode == 200) {

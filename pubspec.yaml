@@ -22,9 +22,9 @@ dependencies:
   fixnum: ^1.1.0
   riverpod: ^2.5.0
   badges: ^3.1.2
-  firebase_core: ^3.5.0
+  firebase_core: ^4.9.0
   # firebase_auth: ^5.3.0
-  firebase_auth: ^5.3.0
+  firebase_auth: ^6.5.1
   mobile_scanner: ^5.1.1
   rename: ^3.0.2
   http: ^1.2.2

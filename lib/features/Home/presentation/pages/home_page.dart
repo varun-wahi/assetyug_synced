@@ -49,7 +49,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
   //LOGOUT FUNCTION
   Future<bool> _showLogoutDialog(BuildContext context) async {
     return await showDialog(
@@ -206,7 +205,6 @@ class _HomePageState extends State<HomePage> {
               _buildQuickActionsSection(),
               const DGap(gap: dPadding),
 
-
               // _buildWoCategorisedSection(),
               //Scan or Add Asset Container
               BuildOptionsSection(
@@ -327,7 +325,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.all(0),
       height: 75,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical : dPadding*2),
+        padding: const EdgeInsets.symmetric(vertical: dPadding * 2),
         itemBuilder: (context, index) {
           return SizedBox(
               height: 60,
@@ -352,9 +350,7 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(
                           builder: (context) => const LocationBinScreen(),
                         ));
-                  } 
-                  
-                  else {
+                  } else {
                     dSnackBar(context, "Feature coming to mobile later.",
                         TypeSnackbar.info);
                   }
@@ -375,5 +371,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-
-

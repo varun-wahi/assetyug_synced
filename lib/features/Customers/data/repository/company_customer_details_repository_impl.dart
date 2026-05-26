@@ -177,13 +177,13 @@ class CompanyCustomerDetailsService {
     return await http.Client().send(request);
   }
 
-  // Get Asset By Customer ID
+  // Get Assets by Customer ID
   Future<http.Response> getAssetByCustomerId(
       String customerId, int pageNumber) async {
     final url = '${assetEndpoint}getByCutomerId/$customerId/$pageNumber';
     final headers = await getHeaders();
 
-    print("🌐 API GET ASSET BY CUSTOMER ID URL: $url");
+    print("🌐 API GET Assets by Customer ID URL: $url");
     print("🗝️ HEADERS: $headers");
 
     final response = await http.get(

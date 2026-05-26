@@ -24,7 +24,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
+import 'package:asset_yug_debugging/features/Assets/data/models/custom_field.dart';
 import '../../../../core/utils/widgets/d_dropdown.dart';
+import '../riverpod/asset_custom_fields_provider.dart';
 import '../../../Customers/data/repository/company_customer_repository_impl.dart';
 import '../../data/data_sources/asset_status_data.dart';
 import '../riverpod/asset_filter_notifier.dart';
@@ -134,6 +136,9 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   String? _assetCategory;
   String? _customer;
 
+  // Controllers for dynamic custom fields
+  final Map<String, TextEditingController> _customFieldControllers = {};
+
   @override
   void initState() {
     super.initState();
@@ -146,6 +151,14 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     final finalFilters = {
       ...newFilters,
     };
+    // Load custom fields for the company
+    if (companyId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(assetCustomFieldsProvider.notifier)
+            .loadCustomFields(companyId.toString());
+      });
+    }
 
     _initializeFiltersFromMap(finalFilters);
     fetchCompanyId();
@@ -239,10 +252,11 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         throw Exception("❌ Company ID not found");
       }
 
+      // Build base filter form
       final Map<String, dynamic> filterForm = {
         'assetId': assetIdController.text,
         'name': assetNameController.text,
-        'customer': customerController.text ?? '',
+        'customer': customerController.text,
         'serialNumber': serialNumberController.text,
         'category': _assetCategory ?? '',
         'location': locationController.text,
@@ -250,6 +264,13 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         'email': '',
         'companyId': companyId.toString(),
       };
+
+      // Append dynamic custom fields
+      final customFields = ref.read(assetCustomFieldsProvider);
+      for (var field in customFields) {
+        final controller = _customFieldControllers[field.id];
+        filterForm[field.name] = controller?.text ?? '';
+      }
 
       print("📤 Sending filterForm: ${jsonEncode(filterForm)}");
 
@@ -522,6 +543,32 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           children: [
             Column(
               children: [
+                // Dynamic custom fields fetched from server
+                Consumer(builder: (context, ref, _) {
+                  final customFields = ref.watch(assetCustomFieldsProvider);
+                  return Column(
+                    children: customFields.map((field) {
+                      // Ensure a controller exists for each custom field
+                      if (!_customFieldControllers.containsKey(field.id)) {
+                        _customFieldControllers[field.id] =
+                            TextEditingController();
+                      }
+                      final controller = _customFieldControllers[field.id]!;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: dPadding),
+                        child: DTextField(
+                          icon: const Icon(Icons.tune),
+                          hintText: field.name,
+                          controller: controller,
+                          // Use numeric keyboard for number type
+                          textInputType: field.type == "number"
+                              ? TextInputType.number
+                              : TextInputType.text,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
                 DTextField(
                   icon: const Icon(Icons.tag),
                   hintText: "Asset ID",

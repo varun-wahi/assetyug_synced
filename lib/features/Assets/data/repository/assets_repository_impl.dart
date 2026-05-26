@@ -99,10 +99,10 @@ class AssetsRepositoryImpl {
   Future<http.Response> getActiveAssets(String companyId) async {
     final url = "${assetEndpoint}getActiveAssets/$companyId";
     var headers = await getHeaders();
-    print("🔍 Fetching Active Assets: $url");
-    print("📝 Headers: $headers");
+    // print("🔍 Fetching Active Assets: $url");
+    // print("📝 Headers: $headers");
     final response = await http.get(Uri.parse(url), headers: headers);
-    print("📥 Response ASSETS [${response.statusCode}]: ${response.body}");
+    // print("📥 Response ASSETS [${response.statusCode}]: ${response.body}");
 
     if (response.statusCode == 200) {
       try {
@@ -502,7 +502,6 @@ class AssetsRepositoryImpl {
     var headers = await getHeaders();
     print("📤 Adding Check-In/Out Detail: $url");
     print("📦 Payload: $data");
-    print("📝 Headers: $headers");
     final response =
         await http.post(Uri.parse(url), body: data, headers: headers);
 
@@ -556,7 +555,6 @@ class AssetsRepositoryImpl {
     final url = "${userEndpoint}getTechnicalUser/$companyId";
     var headers = await getHeaders();
     print("🔍 Fetching Technical Users: $url");
-    print("📝 Headers: $headers");
     return await http.get(Uri.parse(url), headers: headers);
   }
 
@@ -603,5 +601,23 @@ class AssetsRepositoryImpl {
     final url = "${assetEndpoint}checkInOutAsset/$companyId/$checkedIn";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  Future<http.Response> countAssetByCategories(String companyId) async {
+    final url = "${assetEndpoint}countAssetByCategories/$companyId";
+    final headers = await getHeaders();
+    print("🔍 [API Request] Fetching Asset Count by Categories: $url");
+    try {
+      final response = await http.get(Uri.parse(url), headers: headers);
+      print(
+          "✅ [API Success] countAssetByCategories response status: ${response.statusCode}");
+      print("📥 [API Response] Body: ${response.body}");
+      return response;
+    } catch (e, stackTrace) {
+      print("❌ [API Error] countAssetByCategories failed");
+      print("🧾 Error: $e");
+      print("🧵 StackTrace: $stackTrace");
+      rethrow;
+    }
   }
 }

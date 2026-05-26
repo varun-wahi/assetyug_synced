@@ -9,7 +9,9 @@ import '../../../../core/utils/widgets/d_gap.dart';
 import '../../../../core/utils/widgets/d_text_field.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
 import '../riverpod/customer_category_provider.dart';
+import '../riverpod/customer_custom_fields_provider.dart';
 import '../../data/data_sources/customer_status_data.dart';
+import '../../data/repository/company_customer_repository_impl.dart';
 
 class CustomerFilterForm extends ConsumerStatefulWidget {
   final CustomerFilterData initialData;
@@ -34,18 +36,41 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
   String? _selectedCategory;
   String? _selectedStatus;
 
+  // Dynamic custom field controllers keyed by field id
+  final Map<String, TextEditingController> _customFieldControllers = {};
+
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+
+    // Load custom fields after frame to avoid provider mutation during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCustomFields();
+    });
   }
 
   void _initializeControllers() {
     _nameController = TextEditingController(text: widget.initialData.name);
-    _addressController = TextEditingController(text: widget.initialData.address);
+    _addressController =
+        TextEditingController(text: widget.initialData.address);
     _phoneController = TextEditingController(text: widget.initialData.phone);
     _selectedCategory = widget.initialData.category;
     _selectedStatus = widget.initialData.status;
+
+    // Restore custom field values from initialData
+    widget.initialData.customFieldValues.forEach((key, value) {
+      _customFieldControllers[key] = TextEditingController(text: value);
+    });
+  }
+
+  Future<void> _loadCustomFields() async {
+    final notifier = ref.read(customerCustomFieldsProvider.notifier);
+    final repo = CompanyCustomerRepositoryImpl();
+    final companyId = await repo.getCompanyId();
+    if (companyId != null) {
+      await notifier.loadCustomFields(companyId);
+    }
   }
 
   @override
@@ -53,6 +78,9 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
     _nameController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    for (var c in _customFieldControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -67,7 +95,6 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
           topRight: Radius.circular(30.0),
         ),
       ),
-      height: 500,
       child: Column(
         children: [
           _buildHeader(),
@@ -98,6 +125,31 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // --- Dynamic custom fields from server ---
+          Consumer(builder: (context, ref, _) {
+            final customFields = ref.watch(customerCustomFieldsProvider);
+            return Column(
+              children: customFields.map((field) {
+                // Ensure a controller exists for each field
+                if (!_customFieldControllers.containsKey(field.id)) {
+                  _customFieldControllers[field.id] = TextEditingController();
+                }
+                final controller = _customFieldControllers[field.id]!;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: dPadding),
+                  child: DTextField(
+                    icon: const Icon(Icons.tune),
+                    hintText: field.name,
+                    controller: controller,
+                    textInputType: field.type == "number"
+                        ? TextInputType.number
+                        : TextInputType.text,
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+          // --- Static fields ---
           DTextField(
             icon: const Icon(Icons.tag),
             hintText: "Name",
@@ -114,25 +166,29 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
             controller: _phoneController,
           ),
           ref.watch(customerCategoriesProvider).when(
-            data: (categories) => DDropdown(
-              padding: const EdgeInsets.symmetric(horizontal: dPadding),
-              label: "Category",
-              items: categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
-              onChanged: (value) => setState(() => _selectedCategory = value),
-              value: _selectedCategory,
-            ),
-            loading: () => DDropdown(
-              padding: const EdgeInsets.symmetric(horizontal: dPadding),
-              label: "Category",
-              items: const [],
-              onChanged: (val) {},
-              value: null,
-            ),
-            error: (err, stack) => const DTextField(
-              hintText: "Error loading categories",
-              enabled: false,
-            ),
-          ),
+                data: (categories) => DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                  label: "Category",
+                  items: categories
+                      .map((cat) =>
+                          DropdownMenuItem(value: cat, child: Text(cat)))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedCategory = value),
+                  value: _selectedCategory,
+                ),
+                loading: () => DDropdown(
+                  padding: const EdgeInsets.symmetric(horizontal: dPadding),
+                  label: "Category",
+                  items: const [],
+                  onChanged: (val) {},
+                  value: null,
+                ),
+                error: (err, stack) => const DTextField(
+                  hintText: "Error loading categories",
+                  enabled: false,
+                ),
+              ),
           const DGap(),
           DDropdown(
             padding: const EdgeInsets.symmetric(horizontal: dPadding),
@@ -142,16 +198,8 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
             value: _selectedStatus,
           ),
           const DGap(),
-          _buildPlaceholderSection(),
         ],
       ),
-    );
-  }
-
-  Widget _buildPlaceholderSection() {
-    return Container(
-      decoration: dBoxDecoration(color: tBackground),
-      child: Text("Extra fields to be added soon", style: subtitle()),
     );
   }
 
@@ -168,12 +216,24 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
   }
 
   void _applyFilters() {
+    // Collect custom field values
+    final Map<String, String> customValues = {};
+    final customFields = ref.read(customerCustomFieldsProvider);
+    for (var field in customFields) {
+      final controller = _customFieldControllers[field.id];
+      customValues[field.id] = controller?.text ?? '';
+    }
+
     final filterData = CustomerFilterData(
       name: _nameController.text,
       address: _addressController.text,
       phone: _phoneController.text,
       category: _selectedCategory,
       status: _selectedStatus,
+      customFieldValues: customValues,
+      customFieldNames: {
+        for (var f in customFields) f.id: f.name,
+      },
     );
     widget.onApplyFilters(filterData);
   }
@@ -185,6 +245,9 @@ class _CustomerFilterFormState extends ConsumerState<CustomerFilterForm> {
       _phoneController.clear();
       _selectedCategory = null;
       _selectedStatus = null;
+      for (var c in _customFieldControllers.values) {
+        c.clear();
+      }
     });
     widget.onClearFilters();
   }
@@ -196,6 +259,10 @@ class CustomerFilterData {
   final String phone;
   final String? category;
   final String? status;
+  // Custom field values keyed by field id
+  final Map<String, String> customFieldValues;
+  // Custom field names keyed by field id (for building the filter form payload)
+  final Map<String, String> customFieldNames;
 
   const CustomerFilterData({
     this.name = '',
@@ -203,10 +270,12 @@ class CustomerFilterData {
     this.phone = '',
     this.category,
     this.status,
+    this.customFieldValues = const {},
+    this.customFieldNames = const {},
   });
 
   Map<String, String> toFilterForm(String companyId) {
-    return {
+    final form = {
       "name": name,
       "companyId": companyId,
       "category": category ?? "",
@@ -219,6 +288,16 @@ class CustomerFilterData {
       "state": "",
       "zipCode": ""
     };
+
+    // Append dynamic custom fields using field name as key
+    customFieldValues.forEach((fieldId, value) {
+      final fieldName = customFieldNames[fieldId];
+      if (fieldName != null && fieldName.isNotEmpty) {
+        form[fieldName] = value;
+      }
+    });
+
+    return form;
   }
 
   CustomerFilterData copyWith({
@@ -227,6 +306,8 @@ class CustomerFilterData {
     String? phone,
     String? category,
     String? status,
+    Map<String, String>? customFieldValues,
+    Map<String, String>? customFieldNames,
   }) {
     return CustomerFilterData(
       name: name ?? this.name,
@@ -234,6 +315,8 @@ class CustomerFilterData {
       phone: phone ?? this.phone,
       category: category ?? this.category,
       status: status ?? this.status,
+      customFieldValues: customFieldValues ?? this.customFieldValues,
+      customFieldNames: customFieldNames ?? this.customFieldNames,
     );
   }
 }

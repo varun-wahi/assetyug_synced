@@ -3,7 +3,7 @@ plugins {
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
-    // id 'com.google.gms.google-services'
+    id 'com.google.gms.google-services'
 }
 
 def localProperties = new Properties()
@@ -28,7 +28,7 @@ android {
     namespace = "com.example.asset_yug_debugging"
     // Change to 34 if you're having issues with AGP compatibility
     // compileSdk = 34
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -44,7 +44,7 @@ android {
         applicationId = "com.example.asset_yug_debugging"
         
         // Using 23 as minimum SDK since you specified that
-        minSdkVersion 23
+        minSdkVersion flutter.minSdkVersion
         // targetSdk = flutter.targetSdkVersion
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
@@ -58,6 +58,20 @@ android {
 
             signingConfig = signingConfigs.debug
         }
+
+// Ensure kernel_blob.bin can be overwritten during Flutter asset copy
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(":app:copyFlutterAssetsDebug")) {
+        tasks.named("copyFlutterAssetsDebug") {
+            doFirst {
+                def dest = file("${buildDir}/intermediates/assets/debug/mergeDebugAssets/flutter_assets/kernel_blob.bin")
+                if (dest.exists()) {
+                    dest.delete()
+                }
+            }
+        }
+    }
+}
     }
 }
 
