@@ -68,18 +68,21 @@ class InspectionInstanceCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'By: ${instance.actionPerformedBy}',
-              style: body(weight: FontWeight.w400, size: 14, color: Colors.grey),
+              style:
+                  body(weight: FontWeight.w400, size: 14, color: Colors.grey),
             ),
             const SizedBox(height: 4),
             Text(
-              'Date: ${instance.createdAt}',
-              style: body(weight: FontWeight.w400, size: 14, color: Colors.grey),
+              'Date: ${instance.createdAt.split('T').first}',
+              style:
+                  body(weight: FontWeight.w400, size: 14, color: Colors.grey),
             ),
             if (instance.notes.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 'Notes: ${instance.notes}',
-                style: body(weight: FontWeight.w400, size: 14, color: Colors.grey),
+                style:
+                    body(weight: FontWeight.w400, size: 14, color: Colors.grey),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

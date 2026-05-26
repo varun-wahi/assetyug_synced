@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:asset_yug_debugging/core/usecases/capitalize_string.dart';
+import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
@@ -9,12 +11,16 @@ import '../../data/models/inspection models/inspection_step_model.dart';
 
 class InspectionFormField extends StatefulWidget {
   final InspectionStepModel step;
+  final bool isReadOnly;
   final Function(dynamic value) onValueChanged;
+  final dynamic initialValue;
 
   const InspectionFormField({
     super.key,
     required this.step,
+    this.isReadOnly = false,
     required this.onValueChanged,
+    this.initialValue,
   });
 
   @override
@@ -34,17 +40,21 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
   }
 
   void _initializeValue() {
-    if (widget.step.value != null) {
+    final value = widget.initialValue ?? widget.step.value;
+
+    if (value != null) {
       switch (widget.step.type) {
         case 'TEXT':
         case 'NUMBER':
-          _textController.text = widget.step.value.toString();
+          _textController.text = value.toString();
           break;
+
         case 'CHECKBOX':
-          _checkboxValue = widget.step.value == true || widget.step.value == 'true';
+          _checkboxValue = value == true || value.toString() == 'true';
           break;
+
         case 'IMAGE':
-          _imageBase64 = widget.step.value.toString();
+          _imageBase64 = value.toString();
           break;
       }
     }
@@ -70,7 +80,8 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Choose Image Source', style: body(weight: FontWeight.w600)),
+        title:
+            Text('Choose Image Source', style: body(weight: FontWeight.w600)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -102,12 +113,12 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.step.name,
+          widget.step.name.toTitleCase(),
           style: body(weight: FontWeight.w500, size: 14),
         ),
         const SizedBox(height: 8),
         _buildFieldByType(),
-        const SizedBox(height: 16),
+        const SizedBox(height: dPadding),
       ],
     );
   }
@@ -117,6 +128,7 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
       case 'TEXT':
         return TextFormField(
           controller: _textController,
+          enabled: !widget.isReadOnly,
           decoration: InputDecoration(
             hintText: 'Enter ${widget.step.name}',
             border: OutlineInputBorder(
@@ -129,6 +141,7 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
       case 'NUMBER':
         return TextFormField(
           controller: _textController,
+          enabled: !widget.isReadOnly,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: 'Enter ${widget.step.name}',
@@ -141,6 +154,7 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
 
       case 'CHECKBOX':
         return CheckboxListTile(
+          enabled: !widget.isReadOnly,
           value: _checkboxValue,
           onChanged: (value) {
             setState(() {
@@ -190,6 +204,7 @@ class _InspectionFormFieldState extends State<InspectionFormField> {
       default:
         return TextFormField(
           controller: _textController,
+          enabled: !widget.isReadOnly,
           decoration: InputDecoration(
             hintText: 'Enter value',
             border: OutlineInputBorder(

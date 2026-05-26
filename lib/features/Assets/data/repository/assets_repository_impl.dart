@@ -186,8 +186,14 @@ class AssetsRepositoryImpl {
   // Add extra fields
   Future<http.Response> addExtraFieldsWithValue(dynamic data) async {
     final url = "${assetEndpoint}addfields";
+    print("URL: $url");
+
     var headers = await getHeaders();
-    return await http.post(Uri.parse(url), body: data, headers: headers);
+    print("Body: $data");
+    final result = await http.post(Uri.parse(url),
+        body: jsonEncode(data), headers: headers);
+    print("UPDTE EXTRA FIELD RESULT: ${result.body}");
+    return result;
   }
 
   // Add extra fields
@@ -214,7 +220,9 @@ class AssetsRepositoryImpl {
     final url =
         "${assetEndpoint}getAllAssetInspectionInstanceByAssetId/$assetId";
     var headers = await getHeaders();
-    return await http.get(Uri.parse(url), headers: headers);
+    final result = await http.get(Uri.parse(url), headers: headers);
+    print("Asset Inspection Instances By Asset Id $assetId: ${result.body}");
+    return result;
   }
   //RESPONSE: [
 //     {
@@ -304,7 +312,9 @@ class AssetsRepositoryImpl {
     final url =
         "${assetEndpoint}getAllAssetInspectionByCategory/$companyId?category=$category";
     var headers = await getHeaders();
-    return await http.get(Uri.parse(url), headers: headers);
+    final result = await http.get(Uri.parse(url), headers: headers);
+    print("Asset Inspections By Category Response: ${result.body}");
+    return result;
   }
 // [
 //     {
@@ -609,9 +619,6 @@ class AssetsRepositoryImpl {
     print("🔍 [API Request] Fetching Asset Count by Categories: $url");
     try {
       final response = await http.get(Uri.parse(url), headers: headers);
-      print(
-          "✅ [API Success] countAssetByCategories response status: ${response.statusCode}");
-      print("📥 [API Response] Body: ${response.body}");
       return response;
     } catch (e, stackTrace) {
       print("❌ [API Error] countAssetByCategories failed");

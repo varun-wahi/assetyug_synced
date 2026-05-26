@@ -10,6 +10,50 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
 
   final AssetsRepositoryImpl _repo = AssetsRepositoryImpl();
 
+  /// Call this when viewing a specific asset's custom tab
+  Future<void> loadExtraFieldsForAsset(String assetId) async {
+    try {
+      final res = await _repo.getExtraFields(assetId);
+      if (!mounted) return;
+
+      if (res.statusCode != 200) {
+        state = [];
+        return;
+      }
+
+      final List<dynamic> jsonList = json.decode(res.body);
+      state = jsonList
+          .map((e) => CustomFieldWithValue.fromExtraFieldJson(
+              e as Map<String, dynamic>))
+          .toList();
+
+      print('✅ Loaded ${state.length} extra fields');
+    } catch (e, stackTrace) {
+      print('❌ Error loading extra fields: $e\n$stackTrace');
+      state = [];
+    }
+  }
+
+  Future<void> loadExtraFieldsForEdit(String assetId) async {
+    try {
+      final res = await _repo.getExtraFields(assetId);
+      if (!mounted) return;
+      if (res.statusCode != 200) {
+        state = [];
+        return;
+      }
+      final List<dynamic> jsonList = json.decode(res.body);
+      state = jsonList
+          .map((e) => CustomFieldWithValue.fromExtraFieldJson(
+              e as Map<String, dynamic>))
+          .toList();
+      print('✅ Loaded ${state.length} extra fields for edit');
+    } catch (e, st) {
+      print('❌ loadExtraFieldsForEdit: $e\n$st');
+      state = [];
+    }
+  }
+
   Future<void> loadCustomFields(String companyId) async {
     try {
       print('🔄 Loading custom fields for companyId: $companyId');

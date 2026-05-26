@@ -19,6 +19,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/models/custom_field_model.dart';
 import '../../../../core/utils/widgets/custom_fields_section.dart';
 import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
@@ -78,13 +79,21 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   }
 
   void createBox() async {
-    // Pre-populate fields if in edit mode
     if (isEditMode) {
       _populateFieldsForEdit();
     }
     box = await Hive.openBox('auth_data');
     await _fetchUserInfo();
-    ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
+
+    // ← Only change here: edit mode loads values, add mode loads definitions
+    if (isEditMode) {
+      ref
+          .read(assetCustomFieldsProvider.notifier)
+          .loadExtraFieldsForEdit(widget.editAsset!.id!);
+    } else {
+      ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
+    }
+
     await _fetchDropdownData();
     await _fetchLocationBinOptions();
   }
@@ -318,9 +327,28 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                     ),
                     Consumer(builder: (context, ref, _) {
                       final customFields = ref.watch(assetCustomFieldsProvider);
+
+                      // Prefill controllers when fields arrive in edit mode
+                      if (isEditMode) {
+                        for (final f in customFields) {
+                          if (f is CustomFieldWithValue) {
+                            _customFieldControllers.putIfAbsent(
+                              f.id,
+                              () => TextEditingController(text: f.value),
+                            );
+                            // Also update if controller already exists but is empty
+                            if (_customFieldControllers[f.id]?.text.isEmpty ??
+                                false) {
+                              _customFieldControllers[f.id]?.text = f.value;
+                            }
+                          }
+                        }
+                      }
+
                       return CustomFieldsSection(
                         customFields: customFields,
                         controllers: _customFieldControllers,
+                        respectMandatory: true,
                         showClearButton: false,
                       );
                     }),
@@ -403,8 +431,18 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     );
   }
 
+  Map<String, dynamic> _buildCustomFieldPayload() {
+    final customFields = ref.read(assetCustomFieldsProvider);
+    return {
+      for (var field in customFields)
+        field.name: _customFieldControllers[field.id]?.text ?? ''
+    };
+  }
+
   void _submitAsset() async {
     setState(() => loadingAssetInsertion = true);
+
+    // Validate static required fields
     if (!validateFields([
       _serialField.text,
       _nameField.text,
@@ -414,6 +452,23 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       setState(() => loadingAssetInsertion = false);
       return dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
     }
+
+    // ✅ Validate mandatory custom fields
+    final customFields = ref.read(assetCustomFieldsProvider);
+    for (var field in customFields) {
+      if (field.mandatory) {
+        final value = _customFieldControllers[field.id]?.text ?? '';
+        if (value.trim().isEmpty) {
+          setState(() => loadingAssetInsertion = false);
+          return dSnackBar(
+            context,
+            "${field.name} is required",
+            TypeSnackbar.error,
+          );
+        }
+      }
+    }
+
     try {
       if (isEditMode) {
         await _updateAssetData();
@@ -462,16 +517,32 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       "image": base64Image,
       "companyId": int.parse(companyId),
       "updatedAt": DateTime.now().toIso8601String(),
+      ..._buildCustomFieldPayload(),
     };
 
     final response = await repo.updateAsset(updateData);
 
     if (response.statusCode == 200) {
+      // ← Add this block before the snackbar
+      final customFields = ref.read(assetCustomFieldsProvider);
+      for (final field in customFields) {
+        if (field is CustomFieldWithValue) {
+          final newValue =
+              _customFieldControllers[field.id]?.text ?? field.value;
+          final payload = field.toUpdateJson(newValue);
+          try {
+            await repo.addExtraFieldsWithValue(payload);
+          } catch (e) {
+            print('⚠️ Failed to update extra field ${field.name}: $e');
+            // Non-fatal — continue saving other fields
+          }
+        }
+      }
+
       if (mounted) {
-        // Trigger global refresh for dashboard/home
         ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
         dSnackBar(context, "Asset Updated Successfully", TypeSnackbar.success);
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted)
@@ -498,7 +569,10 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       image: base64Image,
       companyId: companyId,
     );
-    final response = await repo.addNewAsset(json.encode(data.toJson()));
+    final response = await repo.addNewAsset(json.encode({
+      ...data.toJson(),
+      ..._buildCustomFieldPayload(),
+    }));
     if (response.statusCode == 200) {
       final id = jsonDecode(response.body)["id"];
       final checkInData = {

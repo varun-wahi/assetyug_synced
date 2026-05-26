@@ -9,6 +9,43 @@ class CustomerCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
 
   final CompanyCustomerRepositoryImpl _repo = CompanyCustomerRepositoryImpl();
 
+  // For view tab — loads per-customer saved values
+  Future<void> loadExtraFieldsForCustomer(String customerId) async {
+    try {
+      print('🔄 Loading extra fields for customerId: $customerId');
+      final res = await _repo.getExtraFields(customerId);
+      if (!mounted) return;
+
+      if (res.statusCode != 200) {
+        state = [];
+        return;
+      }
+
+      // Empty body means no fields — not an error
+      if (res.body.trim().isEmpty) {
+        state = [];
+        return;
+      }
+
+      final decoded = json.decode(res.body);
+
+      // API might return null or empty list
+      if (decoded == null || decoded is! List) {
+        state = [];
+        return;
+      }
+
+      state = decoded
+          .map((e) => CustomFieldWithValue.fromExtraFieldJson(
+              e as Map<String, dynamic>))
+          .toList();
+      print('✅ Loaded ${state.length} customer extra fields');
+    } catch (e, st) {
+      print('❌ loadExtraFieldsForCustomer: $e\n$st');
+      state = [];
+    }
+  }
+
   Future<void> loadCustomFields(String companyId) async {
     try {
       final mandatoryRes = await _repo.getAllMandatoryFields(companyId);
@@ -45,4 +82,14 @@ class CustomerCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
 final customerCustomFieldsProvider = StateNotifierProvider.autoDispose<
     CustomerCustomFieldsNotifier, List<CustomField>>(
   (ref) => CustomerCustomFieldsNotifier(),
+);
+
+// Isolated per-customer provider for the custom tab
+final customerExtraFieldsProvider = StateNotifierProvider.autoDispose
+    .family<CustomerCustomFieldsNotifier, List<CustomField>, String>(
+  (ref, customerId) {
+    final notifier = CustomerCustomFieldsNotifier();
+    Future.microtask(() => notifier.loadExtraFieldsForCustomer(customerId));
+    return notifier;
+  },
 );

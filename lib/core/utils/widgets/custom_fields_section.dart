@@ -7,11 +7,13 @@ import 'custom_field_widget.dart';
 class CustomFieldsSection extends StatelessWidget {
   final List<CustomField> customFields;
   final Map<String, TextEditingController> controllers;
+  final bool respectMandatory;
   final bool showClearButton;
 
   const CustomFieldsSection({
     super.key,
     required this.customFields,
+    this.respectMandatory = false,
     required this.controllers,
     this.showClearButton = false,
   });
@@ -30,6 +32,7 @@ class CustomFieldsSection extends StatelessWidget {
           fieldType: field.type,
           controller: controllers[field.id]!,
           showClearButton: showClearButton,
+          isMandatory: respectMandatory && field.mandatory, // 👈
         );
       }).toList(),
     );

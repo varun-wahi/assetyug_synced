@@ -1,4 +1,4 @@
-// lib/core/models/custom_field.dart
+// lib/core/models/custom_field_model.dart
 
 class CustomField {
   final String id;
@@ -9,20 +9,62 @@ class CustomField {
   final int companyId;
 
   CustomField({
-    required this.id,
     required this.name,
     required this.type,
-    required this.mandatory,
-    required this.email,
-    required this.companyId,
+    this.id = '',
+    this.mandatory = false,
+    this.email = '',
+    this.companyId = 0,
   });
 
   factory CustomField.fromJson(Map<String, dynamic> json) => CustomField(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        type: json['type'] as String,
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        type: json['type']?.toString() ?? '',
         mandatory: json['mandatory'] ?? json['show'] ?? false,
-        email: json['email'] as String,
-        companyId: json['companyId'] as int,
+        email: json['email']?.toString() ?? '',
+        companyId: json['companyId'] is int
+            ? json['companyId']
+            : int.tryParse(json['companyId']?.toString() ?? '') ?? 0,
+      );
+}
+
+// Extends CustomField so it's a drop-in wherever CustomField is expected
+class CustomFieldWithValue extends CustomField {
+  final String value;
+  final String assetId;
+
+  CustomFieldWithValue({
+    required super.name,
+    required super.type,
+    required this.value,
+    required this.assetId,
+    super.id,
+    super.mandatory,
+    super.email,
+    super.companyId,
+  });
+
+  Map<String, dynamic> toUpdateJson(String newValue) => {
+        'id': id,
+        'email': email,
+        'name': name,
+        'value': newValue,
+        'assetId': assetId,
+        'type': type,
+        'companyId': companyId,
+      };
+
+  factory CustomFieldWithValue.fromExtraFieldJson(Map<String, dynamic> json) =>
+      CustomFieldWithValue(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        assetId: json['assetId']?.toString() ?? '',
+        type: json['type']?.toString() ?? '',
+        value: json['value']?.toString() ?? '—',
+        email: json['email']?.toString() ?? '',
+        companyId: json['companyId'] is int
+            ? json['companyId']
+            : int.tryParse(json['companyId']?.toString() ?? '') ?? 0,
       );
 }

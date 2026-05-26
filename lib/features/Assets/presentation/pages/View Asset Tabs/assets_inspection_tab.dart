@@ -199,10 +199,9 @@ class _AssetInspectionPageState extends ConsumerState<AssetInspectionPage>
     }
 
     final filteredInstances = inspectionInstances
-        .where((instance) =>
-            isPending
-                ? instance.status == 'PENDING'
-                : instance.status == 'COMPLETED')
+        .where((instance) => isPending
+            ? instance.status == 'PENDING'
+            : instance.status == 'COMPLETED')
         .toList();
 
     if (filteredInstances.isEmpty) {
@@ -213,12 +212,33 @@ class _AssetInspectionPageState extends ConsumerState<AssetInspectionPage>
       padding: const EdgeInsets.all(dPadding),
       child: ListView.separated(
         itemCount: filteredInstances.length,
-        itemBuilder: (context, index) => InspectionInstanceCard(
-          instance: filteredInstances[index],
-          onTap: () {
-            // TODO: Navigate to inspection detail page
-          },
-        ),
+        itemBuilder: (context, index) {
+          final instance = filteredInstances[index];
+
+          return InspectionInstanceCard(
+            instance: instance,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AddInspectionPage(
+                    assetId: widget.assetId,
+                    companyId: widget.companyId,
+                    availableTemplates: availableTemplates,
+
+                    // EDIT MODE
+                    existingInspection: instance,
+                  ),
+                ),
+              );
+
+              // REFRESH AFTER UPDATE
+              if (result == true) {
+                _loadInspectionInstances();
+              }
+            },
+          );
+        },
         separatorBuilder: (_, __) => const DGap(),
       ),
     );

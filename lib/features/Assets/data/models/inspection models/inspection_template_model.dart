@@ -20,16 +20,29 @@ class AssetInspectionTemplateModel {
   });
 
   factory AssetInspectionTemplateModel.fromJson(Map<String, dynamic> json) {
+    final categoryList = json['categoryName'] as List<dynamic>?;
+
     return AssetInspectionTemplateModel(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
-      categoryName: json['categoryName'] ?? '',
-      categoryId: json['categoryId'] ?? '',
+
+      // FIX HERE
+      categoryName: categoryList != null && categoryList.isNotEmpty
+          ? categoryList.first['categoryName'] ?? ''
+          : '',
+
+      // FIX HERE
+      categoryId: categoryList != null && categoryList.isNotEmpty
+          ? categoryList.first['id'].toString()
+          : '',
+
       companyId: json['companyId'] ?? 0,
+
       steps: (json['steps'] as List<dynamic>?)
               ?.map((step) => InspectionStepModel.fromJson(step))
               .toList() ??
           [],
+
       status: json['status'] ?? 'active',
     );
   }

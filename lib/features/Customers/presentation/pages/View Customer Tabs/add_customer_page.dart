@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import '../../../../../config/theme/snackbar__types_enum.dart';
 import '../../../../../core/utils/constants/colors.dart';
 import '../../../../../core/utils/constants/sizes.dart';
+import '../../../../../core/utils/widgets/custom_fields_section.dart';
 import '../../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../../../core/utils/widgets/d_gap.dart';
 import '../../../../../core/utils/widgets/d_snackbar.dart';
@@ -19,6 +20,8 @@ import '../../riverpod/customer_category_provider.dart';
 import '../../../data/repository/company_customer_repository_impl.dart';
 
 import 'package:http/http.dart' as http;
+
+import '../../riverpod/customer_custom_fields_provider.dart';
 
 class AddCustomerPage extends ConsumerStatefulWidget {
   final bool fromCustomersPage;
@@ -41,6 +44,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   final _stateField = TextEditingController();
   final _zipCodeField = TextEditingController();
   final _locationField = TextEditingController();
+  final Map<String, TextEditingController> _customFieldControllers = {};
 
   List<DropdownMenuItem<String>> _stateItems = [];
   String? _selectedState;
@@ -59,6 +63,23 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   void _changeCategoryValue(String? option) => _category = option;
   void _changeStatusValue(String? option) => _status = option;
   bool _hasLoadedDropdowns = false;
+  @override
+  void dispose() {
+    _nameField.dispose();
+    _phoneField.dispose();
+    _emailField.dispose();
+    _addressField.dispose();
+    _cityField.dispose();
+    _stateField.dispose();
+    _zipCodeField.dispose();
+    _locationField.dispose();
+
+    // ✅ Dispose custom field controllers
+    for (var c in _customFieldControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -69,6 +90,13 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
         companyId = box.get('companyId');
       });
       await fetchDropdownData();
+
+      // ✅ Load custom fields
+      if (companyId != null && mounted) {
+        ref
+            .read(customerCustomFieldsProvider.notifier)
+            .loadCustomFields(companyId!);
+      }
     });
   }
 
@@ -222,6 +250,18 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                       const DGap(),
                       buildCustomTextField("Customer Location",
                           TextInputType.text, _locationField, true),
+
+                      // ✅ Custom fields
+                      Consumer(builder: (context, ref, _) {
+                        final customFields =
+                            ref.watch(customerCustomFieldsProvider);
+                        return CustomFieldsSection(
+                          customFields: customFields,
+                          controllers: _customFieldControllers,
+                          showClearButton: false,
+                          respectMandatory: true,
+                        );
+                      }),
                     ],
                   ),
                   const DGap(),
@@ -291,7 +331,19 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       return;
     }
 
-    Map<String, dynamic> customerData = {
+    final customFields = ref.read(customerCustomFieldsProvider);
+    for (var field in customFields) {
+      if (field.mandatory) {
+        final value = _customFieldControllers[field.id]?.text ?? '';
+        if (value.trim().isEmpty) {
+          setState(() => loadingCustomerInsertion = false);
+          dSnackBar(context, "${field.name} is required", TypeSnackbar.error);
+          return;
+        }
+      }
+    }
+
+    final Map<String, dynamic> customerData = {
       'name': _nameField.text,
       'companyId': companyId,
       'category': _category,
@@ -304,8 +356,11 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       'state': _selectedState,
       'zipCode': _zipCodeField.text,
       'Customer Location': _locationField.text,
-    };
 
+      // ✅ Append custom fields by name
+      for (var field in customFields)
+        field.name: _customFieldControllers[field.id]?.text ?? '',
+    };
     try {
       http.Response response =
           await _customerRepo.addCompanyCustomer(customerData);
@@ -338,6 +393,11 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       _stateField.clear();
       _zipCodeField.clear();
       _locationField.clear();
+
+      // ✅ Clear custom fields
+      for (var c in _customFieldControllers.values) {
+        c.clear();
+      }
     });
   }
 }

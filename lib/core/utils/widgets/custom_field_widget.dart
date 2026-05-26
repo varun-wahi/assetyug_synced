@@ -9,6 +9,7 @@ class CustomFieldWidget extends StatelessWidget {
   final String fieldType;
   final TextEditingController controller;
   final bool showClearButton;
+  final bool isMandatory; // 👈 add thi
 
   const CustomFieldWidget({
     super.key,
@@ -16,6 +17,7 @@ class CustomFieldWidget extends StatelessWidget {
     required this.fieldType,
     required this.controller,
     this.showClearButton = false,
+    this.isMandatory = false,
   });
 
   @override
@@ -69,6 +71,7 @@ class CustomFieldWidget extends StatelessWidget {
           child: DTextField(
             icon: const Icon(Icons.tune),
             hintText: fieldName,
+            isMandatory: isMandatory,
             controller: controller,
             textInputType: fieldType == "number"
                 ? TextInputType.number

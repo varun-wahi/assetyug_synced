@@ -9,6 +9,7 @@ import 'dart:convert'; // Add this import
 
 import '../../data/models/assets_model.dart';
 import 'View Asset Tabs/assets_check_in_out_tab.dart';
+import 'View Asset Tabs/assets_custom_tab.dart';
 import 'View Asset Tabs/assets_edit_details_tab.dart';
 import 'View Asset Tabs/assets_inspection_tab.dart';
 
@@ -77,7 +78,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
   Widget build(BuildContext context) {
     var data = AssetsModel.fromJson(widget.assetData!);
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(
         children: [
           TabBar(
@@ -126,7 +127,9 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
               //     child:
               //         SizedBox(width: 100, child: Center(child: Text("WOs")))),
               // Tab(child: SizedBox(width: 100, child: Center(child: Text("Parts")))),
-              // Tab(child: SizedBox(width: 100, child: Center(child: Text("Custom")))),
+              Tab(
+                  child: SizedBox(
+                      width: 100, child: Center(child: Text("Custom")))),
             ],
           ),
           const SizedBox(height: dGap),
@@ -136,11 +139,16 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
                 AssetEditDetailsPage(assetData: data),
                 AssetCheckInOutPage(objectId: data.id!),
                 AssetInspectionPage(
-                  assetId: data.assetId!,
+                  // assetId: data.assetId!,
+                  assetId: data.id!,
                   category: data.category,
                   companyId: data.companyId,
                 ),
                 AssetFilesPage(objectId: data.id!),
+                AssetCustomPage(
+                  assetId: widget.assetData!['id'],
+                  // ✅
+                ),
 
                 // AssetWOsPage(objectId: data.id!),
                 // AssetPartsPage(serialNo: data.assetId),
