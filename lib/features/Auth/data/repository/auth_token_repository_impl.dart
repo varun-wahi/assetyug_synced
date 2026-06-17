@@ -26,8 +26,10 @@ class AuthTokenRepositoryImpl {
 
   Future<Map<String, String>> _getHeaders() async {
     await _ensureInitialized();
-    
-    if (_mobileId == null || _mobileId!.isEmpty || _mobileId == 'UNKNOWN_MOBILE_ID') {
+
+    if (_mobileId == null ||
+        _mobileId!.isEmpty ||
+        _mobileId == 'UNKNOWN_MOBILE_ID') {
       final box = await Hive.openBox('auth_data');
       String? token = await getAuthToken();
       return {
@@ -46,8 +48,10 @@ class AuthTokenRepositoryImpl {
 
   Future<Map<String, String>> _getBasicHeaders() async {
     await _ensureInitialized();
-    
-    if (_mobileId == null || _mobileId!.isEmpty || _mobileId == 'UNKNOWN_MOBILE_ID') {
+
+    if (_mobileId == null ||
+        _mobileId!.isEmpty ||
+        _mobileId == 'UNKNOWN_MOBILE_ID') {
       final box = await Hive.openBox('auth_data');
       String? token = await getAuthToken();
       return {
@@ -70,7 +74,8 @@ class AuthTokenRepositoryImpl {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}customer/isSameDevice'),
       headers: headers,
-      body: json.encode({'userId': email, 'mobileId': deviceId, 'userAgent': deviceId}),
+      body: json.encode(
+          {'userId': email, 'mobileId': deviceId, 'userAgent': deviceId}),
     );
     // print('${ApiConfig.baseUrl}customer/isSameDevice') ;
     // print("ERRORR  "+ response.statusCode.toString() + " " + response.body);
@@ -156,7 +161,8 @@ class AuthTokenRepositoryImpl {
       'userAgent': userAgent,
     });
 
-    print('addLoggedInMobile - URL: ${ApiConfig.baseUrl}customer/addLoggedInMobile');
+    print(
+        'addLoggedInMobile - URL: ${ApiConfig.baseUrl}customer/addLoggedInMobile');
     print('addLoggedInMobile - Headers: $headers');
     print('addLoggedInMobile - Body: $body');
 

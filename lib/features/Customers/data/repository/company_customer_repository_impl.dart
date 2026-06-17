@@ -212,7 +212,7 @@ class CompanyCustomerRepositoryImpl {
   }
 
   Future<http.Response> getAssetCountByCustomer() async {
-    final url = Uri.parse('${companyCustomerEndpoint}assetCountByCustomer/');
+    final url = Uri.parse('${companyCustomerEndpoint}assetCountByCustomer');
     final headers = await getHeaders();
     print("🔍 [API Request] Fetching Asset Count by Customer: $url");
     try {

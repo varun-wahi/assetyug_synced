@@ -404,10 +404,7 @@ class _BuildAssetOverviewContainerState
               } else if (decoded is List) {
                 for (var item in decoded) {
                   if (item is Map) {
-                    final name = item['customerName'] ??
-                        item['name'] ??
-                        item['customer'] ??
-                        'Unknown';
+                    final name = item['companyCustomerName'] ?? 'Unknown';
                     final countVal = item['assetCount'] ?? item['count'] ?? 0;
                     int count = 0;
                     if (countVal is num) {
@@ -441,16 +438,36 @@ class _BuildAssetOverviewContainerState
                     scrollDirection: Axis.horizontal,
                     itemBuilder: (context, index) {
                       final entry = displayList[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: tWhite,
-                          border: Border.all(color: tGreyLight),
-                          borderRadius: BorderRadius.circular(dBorderRadius),
-                        ),
-                        width: 180,
-                        child: _buildTableCell(
-                          entry.key,
-                          "${entry.value}",
+                      final companycustomername = entry.key;
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AssetsPage(
+                                predefinedFilters: {
+                                  "status": "Active",
+                                  "Checking Status": "All",
+                                  "customer":
+                                      companycustomername == "Unassigned"
+                                          ? ""
+                                          : companycustomername,
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: tWhite,
+                            border: Border.all(color: tGreyLight),
+                            borderRadius: BorderRadius.circular(dBorderRadius),
+                          ),
+                          width: 180,
+                          child: _buildTableCell(
+                            entry.key,
+                            "${entry.value}",
+                          ),
                         ),
                       );
                     },

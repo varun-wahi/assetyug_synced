@@ -63,7 +63,6 @@ class AuthRepositoryImpl {
     }
   }
 
-
   Future<void> addCompanyInformation(Map<String, dynamic> data) async {
     final headers = await _getHeaders();
     final response = await http.post(

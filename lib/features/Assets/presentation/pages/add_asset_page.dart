@@ -584,7 +584,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         'location': location,
         'date': DateTime.now().toIso8601String(),
       };
-      await repo.addCheckInOut(json.encode(checkInData));
+      final result = await repo.addCheckInOut(json.encode(checkInData));
       if (mounted) {
         // Trigger global refresh for dashboard/home
         ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
@@ -592,8 +592,13 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       }
       clearFields();
     } else {
-      if (mounted)
-        dSnackBar(context, "Failed to insert asset", TypeSnackbar.error);
+      if (mounted) {
+        dSnackBar(
+          context,
+          "Failed to insert asset ${jsonDecode(response.body)['message']}",
+          TypeSnackbar.error,
+        );
+      }
     }
     setState(() => loadingAssetInsertion = false);
   }

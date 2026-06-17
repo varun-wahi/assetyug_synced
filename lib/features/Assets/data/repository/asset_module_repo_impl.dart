@@ -9,9 +9,9 @@ class AssetModuleRepositoryImpl implements AssetModuleRepository {
   AssetModuleRepositoryImpl({required this.httpClient});
 
   Map<String, String> get headers => {
-    'Authorization': 'Bearer ${yourAuthTokenStorageFunction()}',
-    'Content-Type': 'application/json',
-  };
+        'Authorization': 'Bearer ${yourAuthTokenStorageFunction()}',
+        'Content-Type': 'application/json',
+      };
 
   @override
   Future<dynamic> addExtraFields(Map<String, dynamic> data) async {
@@ -100,28 +100,26 @@ class AssetModuleRepositoryImpl implements AssetModuleRepository {
   @override
   Future<void> deleteShowAndMandatoryFields(String name, String email) async {
     final response = await httpClient.delete(
-      Uri.parse('${ApiConfig.baseUrl}assets/deleteShowAndMandatoryField/$name/$email'),
+      Uri.parse(
+          '${ApiConfig.baseUrl}assets/deleteShowAndMandatoryField/$name/$email'),
       headers: headers,
     );
     _handleResponse(response);
-    
-    }
-
   }
+}
 
-  // Helper function to handle API response
-  dynamic _handleResponse(http.Response response) {
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to load data: ${response.statusCode}');
-    }
+// Helper function to handle API response
+dynamic _handleResponse(http.Response response) {
+  if (response.statusCode == 200) {
+    return json.decode(response.body);
+  } else {
+    throw Exception('Failed to load data: ${response.statusCode}');
   }
+}
 
-  // Replace this with your own implementation of getting the auth token
-  String yourAuthTokenStorageFunction() {
-    // Implement this method to retrieve the auth token from secure storage or any other storage
-    
-    return 'your-auth-token';
-  }
+// Replace this with your own implementation of getting the auth token
+String yourAuthTokenStorageFunction() {
+  // Implement this method to retrieve the auth token from secure storage or any other storage
 
+  return 'your-auth-token';
+}
