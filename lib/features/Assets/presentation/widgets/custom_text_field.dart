@@ -1,14 +1,15 @@
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:flutter/material.dart';
 
-
-    TextFormField buildCustomTextField(
-      //ADD MAX SIZE OPTION
-      String label,
-      TextInputType type,
-      TextEditingController controller,
-      bool isMandatory) {
-    return TextFormField(
+Padding buildCustomTextField(
+    //ADD MAX SIZE OPTION
+    String label,
+    TextInputType type,
+    TextEditingController controller,
+    bool isMandatory) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    child: TextFormField(
       style: const TextStyle(color: tBlack),
       cursorColor: tBlack,
       decoration: InputDecoration(
@@ -26,5 +27,6 @@ import 'package:flutter/material.dart';
       ),
       keyboardType: type,
       controller: controller,
-    );
-  }
+    ),
+  );
+}

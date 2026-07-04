@@ -10,14 +10,14 @@ class DDropdown extends StatefulWidget {
   final dynamic value; // Add this line
 
   const DDropdown({
-    Key? key,
+    super.key,
     required this.label,
     required this.items,
     this.isMandatory = false,
     required this.onChanged,
-    this.padding = EdgeInsets.zero,
+    this.padding = const EdgeInsets.symmetric(horizontal: 8.0),
     this.value, // Add this line
-  }) : super(key: key);
+  });
 
   @override
   State<DDropdown> createState() => DDropdownState();
@@ -26,12 +26,11 @@ class DDropdown extends StatefulWidget {
 class DDropdownState extends State<DDropdown> {
   var selectedOption;
 
-   void clearDropdown(){
+  void clearDropdown() {
     setState(() {
-      
-    selectedOption = null;
+      selectedOption = null;
     });
-   }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +57,5 @@ class DDropdownState extends State<DDropdown> {
         },
       ),
     );
-    
   }
 }
-

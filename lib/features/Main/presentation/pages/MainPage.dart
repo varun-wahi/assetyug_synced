@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:asset_yug_debugging/features/Inspections/presentation/pages/inspection_page.dart';
 import 'package:asset_yug_debugging/features/Inventory/presentation/pages/inventory_page.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/tab_notifier.dart';
 import 'package:asset_yug_debugging/features/More%20Options/presentation/pages/more_options_page.dart';
@@ -29,13 +30,14 @@ class MainPage extends ConsumerWidget {
       const AssetsPage(),
       // const InventoryPage(),
       const CustomersPage(),
+      const InspectionsPage(),
       const MoreOptionsPage(),
     ];
 
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
-        if(currentTabIndex !=0){
+        if (currentTabIndex != 0) {
           ref.read(tabProvider.notifier).setTab(0);
           return;
         }
@@ -55,7 +57,6 @@ class MainPage extends ConsumerWidget {
             selectedItemColor: tPrimary,
             unselectedItemColor: darkGrey,
             type: BottomNavigationBarType.fixed,
-
             onTap: (index) {
               // Update the tab index
               ref.read(tabProvider.notifier).setTab(index);
@@ -69,6 +70,8 @@ class MainPage extends ConsumerWidget {
               //     icon: Icon(Icons.inventory), label: "Inventory"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.people_alt), label: "Customers"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.analytics), label: "Inspections"),
               BottomNavigationBarItem(icon: Icon(Icons.menu), label: "More"),
             ]),
       ),
@@ -89,58 +92,58 @@ class MainPage extends ConsumerWidget {
             Text('Do you want to exit the app?', style: body(color: darkGrey)),
 
         actions: <Widget>[
-            // Yes button with rounded corners and custom color
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: tPrimary, // Adjust color as needed
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(dBorderRadius),
-                          // Adjust corner radius
-                        ),
+          // Yes button with rounded corners and custom color
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: tPrimary, // Adjust color as needed
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(dBorderRadius),
+                        // Adjust corner radius
                       ),
-                      child: Text(
-                        'Yes',
-                        style: body(color: tWhite),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop(true);
-                        _exitApp();
-                      },
                     ),
-                  ),
-                  const SizedBox(
-                    width: dGap,
-                  ),
-                  Expanded(
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: tWhite, // Adjust color as needed
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(width: 1.0, color: tGreyLight),
-                          borderRadius: BorderRadius.circular(
-                              dBorderRadius), // Adjust corner radius
-                        ),
-                      ),
-                      child: Text(
-                        'No',
-                        style: body(),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context)
-                            .pop(); // Close dialog without logging out
-                      },
+                    child: Text(
+                      'Yes',
+                      style: body(color: tWhite),
                     ),
+                    onPressed: () {
+                      Navigator.of(context).pop(true);
+                      _exitApp();
+                    },
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(
+                  width: dGap,
+                ),
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: tWhite, // Adjust color as needed
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(width: 1.0, color: tGreyLight),
+                        borderRadius: BorderRadius.circular(
+                            dBorderRadius), // Adjust corner radius
+                      ),
+                    ),
+                    child: Text(
+                      'No',
+                      style: body(),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context)
+                          .pop(); // Close dialog without logging out
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
         // actions: [
         //   DElevatedButton(
         //     buttonColor: tWhite,

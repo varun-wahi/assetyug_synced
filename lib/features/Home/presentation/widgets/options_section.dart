@@ -61,7 +61,6 @@ class BuildOptionsSection extends ConsumerWidget {
                   onTap: () async {
                     Navigator.pop(context); // Close the BottomSheet
                     await AssetidSearchDialog.show(context);
-                    
                   },
                 ),
                 ListTile(
@@ -70,7 +69,6 @@ class BuildOptionsSection extends ConsumerWidget {
                   onTap: () async {
                     Navigator.pop(context); // Close the BottomSheet
                     await SerialSearchDialog.show(context);
-                    
                   },
                 ),
               ],

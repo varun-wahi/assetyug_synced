@@ -151,6 +151,11 @@ class _BuildAssetOverviewContainerState
 
   Widget _buildStatusCard(String title, String count, double width,
       {bool isCheckOutButton = false}) {
+    final Color cardColor =
+        isCheckOutButton ? tCheckedOutCardBg : tActiveAssetsCardBg;
+    final Color textColor =
+        isCheckOutButton ? tCheckedOutCardText : tActiveAssetsCardText;
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -168,18 +173,28 @@ class _BuildAssetOverviewContainerState
         width: width,
         padding: const EdgeInsets.all(dPadding),
         decoration: BoxDecoration(
-          color: tWhite,
-          borderRadius: BorderRadius.circular(dBorderRadius),
-          boxShadow: dBoxShadow(),
-          border: Border.all(width: 0.2, color: lighterGrey),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(dBorderRadius * 1.5),
+          // border: Border.all(
+          //   color: textColor.withValues(alpha: 0.4),
+          //   width: 1,
+          // ),
+          // boxShadow: [
+          //   BoxShadow(
+          //     color: textColor.withValues(alpha: 0.4),
+          //     blurRadius: 3,
+          //     offset: Offset(0, 1),
+          //   ),
+          // ],
         ),
         height: 110,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(count, style: boldHeading(size: 22)),
+            Text(count, style: boldHeading(size: 22, color: textColor)),
             const SizedBox(height: dGap),
-            Text(title, style: subheading(weight: FontWeight.w400)),
+            Text(title,
+                style: subheading(weight: FontWeight.w400, color: textColor)),
           ],
         ),
       ),
@@ -257,8 +272,19 @@ class _BuildAssetOverviewContainerState
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: tWhite,
-                            border: Border.all(color: darkGrey, width: 0.2),
+                            color: tCardBackground,
+                            boxShadow: [
+                              BoxShadow(
+                                color: tBorderPalette[
+                                    index % tBorderPalette.length],
+                                blurRadius: 2,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                            // border: Border.all(
+                            //     color: tBorderPalette[
+                            //         index % tBorderPalette.length],
+                            //     width: 0.6),
                             borderRadius: BorderRadius.circular(dBorderRadius),
                           ),
                           width: 110,
@@ -269,7 +295,7 @@ class _BuildAssetOverviewContainerState
                     separatorBuilder: (context, index) {
                       return const DGap(
                         vertical: false,
-                        gap: 4,
+                        gap: 8,
                       );
                     },
                     itemCount: categories.length,
@@ -432,14 +458,16 @@ class _BuildAssetOverviewContainerState
 
               return _buildSection(
                 "Assets by Customer (Top ${displayList.length})",
-                SizedBox(
-                  height: 70,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      final entry = displayList[index];
-                      final companycustomername = entry.key;
-                      return GestureDetector(
+                // Vertical list instead of horizontal scroll: each customer
+                // is a full-width row, stacked top to bottom.
+                Column(
+                  children: List.generate(displayList.length, (index) {
+                    final entry = displayList[index];
+                    final companycustomername = entry.key;
+                    final isLast = index == displayList.length - 1;
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : dPadding),
+                      child: GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
@@ -458,27 +486,31 @@ class _BuildAssetOverviewContainerState
                           );
                         },
                         child: Container(
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            color: tWhite,
-                            border: Border.all(color: tGreyLight),
+                            color: tCardBackground,
+                            // border: Border.all(
+                            //     color: tBorderPalette[
+                            //         index % tBorderPalette.length],
+                            //     width: 0.6),
+                            boxShadow: [
+                              BoxShadow(
+                                color: tBorderPalette[
+                                    index % tBorderPalette.length],
+                                blurRadius: 2,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
                             borderRadius: BorderRadius.circular(dBorderRadius),
                           ),
-                          width: 180,
-                          child: _buildTableCell(
+                          child: _buildCustomerRow(
                             entry.key,
                             "${entry.value}",
                           ),
                         ),
-                      );
-                    },
-                    separatorBuilder: (context, index) {
-                      return const DGap(
-                        vertical: false,
-                        gap: 4,
-                      );
-                    },
-                    itemCount: displayList.length,
-                  ),
+                      ),
+                    );
+                  }),
                 ),
               );
             } catch (e) {
@@ -502,6 +534,34 @@ class _BuildAssetOverviewContainerState
               style: TextStyle(color: Colors.grey));
         }
       },
+    );
+  }
+
+  // Row layout for a customer entry in the vertical list: name on the
+  // left, count on the right (mirrors _buildTableCell's data, different
+  // layout since this is now a full-width row instead of a narrow card).
+  Widget _buildCustomerRow(String name, String count) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: body(size: 14, weight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+          Text(
+            count,
+            style: subheading(size: 17),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
     );
   }
 }
