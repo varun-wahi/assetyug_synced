@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:asset_yug_debugging/config/api_config.dart';
+import 'package:asset_yug_debugging/config/secrets.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/asset_by_serial_dto_model.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:asset_yug_debugging/config/api_config.dart';
+import 'package:asset_yug_debugging/config/secrets.dart';
 import 'package:asset_yug_debugging/features/Assets/domain/repository/auth_module_repo.dart';
 import 'package:http/http.dart' as http;
 

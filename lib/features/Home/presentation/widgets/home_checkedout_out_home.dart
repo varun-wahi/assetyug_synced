@@ -6,6 +6,7 @@ import 'package:asset_yug_debugging/features/Customers/data/repository/company_c
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart'; // Import Hive for local storage
+import 'package:shimmer/shimmer.dart'; // Import shimmer for loading states
 
 import '../../../../core/utils/constants/sizes.dart';
 import '../../../../config/theme/box_shadow_styles.dart';
@@ -201,22 +202,91 @@ class _BuildAssetOverviewContainerState
     );
   }
 
+  // ---------------------------------------------------------------------
+  // Shimmer placeholders
+  // ---------------------------------------------------------------------
+
+  // Horizontal shimmer placeholder mimicking the "Assets by Category" cards.
+  Widget _buildAssetCategoryShimmer() {
+    return SizedBox(
+      height: 70,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemBuilder: (context, index) {
+          return Shimmer.fromColors(
+            baseColor: Colors.white,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              width: 110,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(dBorderRadius),
+              ),
+            ),
+          );
+        },
+        separatorBuilder: (context, index) {
+          return const DGap(
+            vertical: false,
+            gap: 8,
+          );
+        },
+        itemCount: 5,
+      ),
+    );
+  }
+
+  // Vertical shimmer placeholder mimicking the "Assets by Customer" rows.
+  Widget _buildCustomerCategoryShimmer() {
+    return Column(
+      children: List.generate(5, (index) {
+        final isLast = index == 4;
+        return Padding(
+          padding: EdgeInsets.only(bottom: isLast ? 0 : dPadding),
+          child: Shimmer.fromColors(
+            baseColor: Colors.white,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(dBorderRadius),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   Widget _buildAssetCategorySection() {
-    // Wait until companyId is fetched
+    // Wait until companyId is fetched — keep the heading visible while
+    // showing a shimmer placeholder instead of a bare spinner.
     if (companyId == null) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildSection(
+        "Assets by Category",
+        _buildAssetCategoryShimmer(),
+      );
     }
     return FutureBuilder(
       future: AssetsRepositoryImpl().countAssetByCategories(companyId ?? ""),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show a loading indicator while waiting for data
-          return const Center(child: CircularProgressIndicator());
+          // Show a shimmer placeholder while waiting for data, heading stays visible.
+          return _buildSection(
+            "Assets by Category",
+            _buildAssetCategoryShimmer(),
+          );
         } else if (snapshot.hasError) {
           // Handle errors gracefully
-          return const Text(
-            "Error loading asset categories",
-            style: TextStyle(color: Colors.red),
+          return _buildSection(
+            "Assets by Category",
+            const Text(
+              "Error loading asset categories",
+              style: TextStyle(color: Colors.red),
+            ),
           );
         } else if (snapshot.hasData && snapshot.data is http.Response) {
           final response = snapshot.data as http.Response;
@@ -305,9 +375,12 @@ class _BuildAssetOverviewContainerState
             } catch (e) {
               // Handle JSON parsing errors
               print('Error parsing asset categories: $e');
-              return const Text(
-                "Error parsing data",
-                style: TextStyle(color: Colors.red),
+              return _buildSection(
+                "Assets by Category",
+                const Text(
+                  "Error parsing data",
+                  style: TextStyle(color: Colors.red),
+                ),
               );
             }
           } else {
@@ -322,8 +395,11 @@ class _BuildAssetOverviewContainerState
           }
         } else {
           // Handle any other unexpected cases
-          return const Text("No data available",
-              style: TextStyle(color: Colors.grey));
+          return _buildSection(
+            "Assets by Category",
+            const Text("No data available",
+                style: TextStyle(color: Colors.grey)),
+          );
         }
       },
     );
@@ -400,11 +476,17 @@ class _BuildAssetOverviewContainerState
       future: CompanyCustomerRepositoryImpl().getAssetCountByCustomer(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return _buildSection(
+            "Assets by Customer",
+            _buildCustomerCategoryShimmer(),
+          );
         } else if (snapshot.hasError) {
-          return const Text(
-            "Error loading customer data",
-            style: TextStyle(color: Colors.red),
+          return _buildSection(
+            "Assets by Customer",
+            const Text(
+              "Error loading customer data",
+              style: TextStyle(color: Colors.red),
+            ),
           );
         } else if (snapshot.hasData && snapshot.data is http.Response) {
           final response = snapshot.data as http.Response;
@@ -457,7 +539,7 @@ class _BuildAssetOverviewContainerState
               final displayList = customerCounts.take(20).toList();
 
               return _buildSection(
-                "Assets by Customer (Top ${displayList.length})",
+                "Assets by Customer",
                 // Vertical list instead of horizontal scroll: each customer
                 // is a full-width row, stacked top to bottom.
                 Column(
@@ -514,9 +596,12 @@ class _BuildAssetOverviewContainerState
                 ),
               );
             } catch (e) {
-              return const Text(
-                "Error parsing customer data",
-                style: TextStyle(color: Colors.red),
+              return _buildSection(
+                "Assets by Customer",
+                const Text(
+                  "Error parsing customer data",
+                  style: TextStyle(color: Colors.red),
+                ),
               );
             }
           } else {
@@ -530,8 +615,11 @@ class _BuildAssetOverviewContainerState
             );
           }
         } else {
-          return const Text("No data available",
-              style: TextStyle(color: Colors.grey));
+          return _buildSection(
+            "Assets by Customer",
+            const Text("No data available",
+                style: TextStyle(color: Colors.grey)),
+          );
         }
       },
     );

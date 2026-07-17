@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:asset_yug_debugging/config/api_config.dart';
+import 'package:asset_yug_debugging/config/secrets.dart';
 import 'package:http/http.dart' as http;
 
 class CompanyCustomerDetailsPreviewService {

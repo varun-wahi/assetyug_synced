@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../../config/api_config.dart';
+import '../../../../config/secrets.dart';
 
 class CompanyCustomerRepositoryImpl {
   final String companyCustomerEndpoint = '${ApiConfig.baseUrl}companycustomer/';
