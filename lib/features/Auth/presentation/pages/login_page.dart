@@ -173,15 +173,19 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       // Step 3: Get authentication token
+      debugPrint('[LoginPage] Step 3: Fetching user token...');
       await _getUserToken();
 
       // Step 4: Fetch company details
+      debugPrint('[LoginPage] Step 4: Fetching user company details...');
       await _fetchUserCompanyDetails();
 
       // Step 5: Log mobile session
+      debugPrint('[LoginPage] Step 5: Logging mobile session...');
       await _logMobileSession();
 
       // Step 6: Handle remember me
+      debugPrint('[LoginPage] Step 6: Handling remember me...');
       _handleRememberMe();
 
       // Step 7: Navigate to main page
@@ -191,6 +195,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
+      debugPrint('[LoginPage] Login error: ${e.toString()}');
       _showErrorSnackBar('Login failed: ${e.toString()}');
     } finally {
       if (mounted) {
@@ -202,6 +207,7 @@ class _LoginPageState extends State<LoginPage> {
   // Check device compatibility
   Future<bool> _checkDeviceCompatibility() async {
     try {
+      debugPrint('[LoginPage] _checkDeviceCompatibility called');
       // For now, returning true. Implement your device checking logic here
       // final isSameDevice = await _authTokenRepository.isSameDevice(
       //   _emailController.text.trim(),
@@ -209,16 +215,23 @@ class _LoginPageState extends State<LoginPage> {
       // );
       return true;
     } catch (e) {
+      debugPrint('[LoginPage] _checkDeviceCompatibility error: $e');
       return false;
     }
   }
 
   // Get user authentication token
   Future<void> _getUserToken() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    debugPrint('[LoginPage] _getUserToken called for email: $email');
+
     final userData = await _authRepository.getLoginToken(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
+      email,
+      password,
     );
+
+    debugPrint('[LoginPage] _getUserToken response: $userData');
 
     if (userData == null) {
       throw Exception('Failed to get authentication token');
@@ -226,13 +239,17 @@ class _LoginPageState extends State<LoginPage> {
 
     _box.put('auth_token', userData["token"]);
     _box.put('role', userData["role"]);
+    debugPrint('[LoginPage] Saved auth_token: ${userData["token"]} and role: ${userData["role"]}');
   }
 
   // Fetch user company details
   Future<void> _fetchUserCompanyDetails() async {
-    final companyDetails = await _authTokenRepository.getCompanyId(
-      _emailController.text.trim(),
-    );
+    final email = _emailController.text.trim();
+    debugPrint('[LoginPage] _fetchUserCompanyDetails called for email: $email');
+
+    final companyDetails = await _authTokenRepository.getCompanyId(email);
+
+    debugPrint('[LoginPage] _fetchUserCompanyDetails response: $companyDetails');
 
     if (companyDetails == null) {
       throw Exception('Failed to fetch company details');
@@ -240,19 +257,24 @@ class _LoginPageState extends State<LoginPage> {
 
     _box.put('companyId', companyDetails['id'].toString());
     _box.put('companyName', companyDetails['companyName']);
+    debugPrint('[LoginPage] Saved companyId: ${companyDetails['id']} and companyName: ${companyDetails['companyName']}');
   }
 
   // Log mobile session
   Future<void> _logMobileSession() async {
     try {
+      final email = _emailController.text.trim();
       final userAgent = HttpClient().userAgent ?? "Unknown User Agent";
+      debugPrint('[LoginPage] _logMobileSession called for userId: $email');
+
       await _authTokenRepository.addLoggedInMobile(
-        userId: _emailController.text.trim(),
+        userId: email,
         userAgent: userAgent,
       );
+      debugPrint('[LoginPage] _logMobileSession successfully logged session');
     } catch (e) {
       // Log error but don't fail the login process
-      debugPrint("Failed to add logged in mobile session: $e");
+      debugPrint("[LoginPage] Failed to add logged in mobile session: $e");
     }
   }
 

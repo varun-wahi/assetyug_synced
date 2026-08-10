@@ -62,6 +62,7 @@ class CustomFieldWithValue extends CustomField {
         assetId: json['assetId']?.toString() ?? '',
         type: json['type']?.toString() ?? '',
         value: json['value']?.toString() ?? '—',
+        mandatory: json['mandatory'] ?? json['show'] ?? false,
         email: json['email']?.toString() ?? '',
         companyId: json['companyId'] is int
             ? json['companyId']

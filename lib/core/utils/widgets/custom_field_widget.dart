@@ -49,6 +49,7 @@ class CustomFieldWidget extends StatelessWidget {
               child: DTextField(
                 icon: const Icon(Icons.calendar_today),
                 hintText: fieldName,
+                isMandatory: isMandatory,
                 controller: controller,
                 textInputType: TextInputType.none,
               ),

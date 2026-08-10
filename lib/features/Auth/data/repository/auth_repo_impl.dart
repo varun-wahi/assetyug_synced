@@ -20,8 +20,13 @@ class AuthRepositoryImpl {
   Future<dynamic> getLoginToken(String email, String password) async {
     final headers = await _getHeaders();
     final deviceId = await _getMobileId();
+    final url = '${ApiConfig.baseUrl}customer/getLoginToken';
+
+    print("[AuthRepositoryImpl] POST URL: $url");
+    print("[AuthRepositoryImpl] Headers: $headers");
+
     final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}customer/getLoginToken'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode({
         'deviceId': deviceId,
@@ -29,6 +34,9 @@ class AuthRepositoryImpl {
         'password': password,
       }),
     );
+
+    print("[AuthRepositoryImpl] Status Code: ${response.statusCode}");
+    print("[AuthRepositoryImpl] Response Body: ${response.body}");
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
@@ -44,19 +52,26 @@ class AuthRepositoryImpl {
 
       return responseData;
     } else {
-      print("${response.statusCode} ${response.body}");
-
+      print("Error Status Code: ${response.statusCode}, Body: ${response.body}");
       throw Exception('Failed to login');
     }
   }
 
   Future<void> register(Map<String, dynamic> formData) async {
     final headers = await _getHeaders();
+    final url = '${ApiConfig.baseUrl}customer/addCustomer';
+
+    print("[AuthRepositoryImpl] POST URL: $url");
+    print("[AuthRepositoryImpl] Headers: $headers");
+
     final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}customer/addCustomer'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode(formData),
     );
+
+    print("[AuthRepositoryImpl] Status Code: ${response.statusCode}");
+    print("[AuthRepositoryImpl] Response Body: ${response.body}");
 
     if (response.statusCode != 200) {
       throw Exception('Failed to register');
@@ -65,11 +80,19 @@ class AuthRepositoryImpl {
 
   Future<void> addCompanyInformation(Map<String, dynamic> data) async {
     final headers = await _getHeaders();
+    final url = '${ApiConfig.baseUrl}customer/addCompanyInformation';
+
+    print("[AuthRepositoryImpl] POST URL: $url");
+    print("[AuthRepositoryImpl] Headers: $headers");
+
     final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}customer/addCompanyInformation'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode(data),
     );
+
+    print("[AuthRepositoryImpl] Status Code: ${response.statusCode}");
+    print("[AuthRepositoryImpl] Response Body: ${response.body}");
 
     if (response.statusCode != 200) {
       throw Exception('Failed to add company information');

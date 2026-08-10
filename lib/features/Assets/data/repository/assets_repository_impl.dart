@@ -435,6 +435,7 @@ class AssetsRepositoryImpl {
 
         "${assetEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData&asc=$isAsc";
     var headers = await getHeaders();
+
     print("");
 
     print("data: $data");

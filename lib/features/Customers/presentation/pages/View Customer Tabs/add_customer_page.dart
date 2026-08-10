@@ -226,16 +226,16 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                       ),
                       const DGap(),
                       buildCustomTextField(
-                          "Phone", TextInputType.phone, _phoneField, true),
+                          "Phone", TextInputType.phone, _phoneField, false),
                       const DGap(),
                       buildCustomTextField("Email", TextInputType.emailAddress,
-                          _emailField, true),
+                          _emailField, false),
                       const DGap(),
                       buildCustomTextField(
-                          "Address", TextInputType.text, _addressField, true),
+                          "Address", TextInputType.text, _addressField, false),
                       const DGap(),
                       buildCustomTextField(
-                          "City", TextInputType.text, _cityField, true),
+                          "City", TextInputType.text, _cityField, false),
                       const DGap(),
                       DDropdown(
                         label: "State",
@@ -245,21 +245,39 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                         value: _selectedState,
                       ),
                       const DGap(),
-                      buildCustomTextField(
-                          "ZipCode", TextInputType.number, _zipCodeField, true),
-                      const DGap(),
-                      buildCustomTextField("Customer Location",
-                          TextInputType.text, _locationField, true),
+                      buildCustomTextField("Zip Code", TextInputType.number,
+                          _zipCodeField, false),
 
                       // ✅ Custom fields
                       Consumer(builder: (context, ref, _) {
                         final customFields =
                             ref.watch(customerCustomFieldsProvider);
-                        return CustomFieldsSection(
-                          customFields: customFields,
-                          controllers: _customFieldControllers,
-                          showClearButton: false,
-                          respectMandatory: true,
+                        if (customFields.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const DGap(),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Text(
+                                "Custom Fields",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor1,
+                                ),
+                              ),
+                            ),
+                            const DGap(),
+                            CustomFieldsSection(
+                              customFields: customFields,
+                              controllers: _customFieldControllers,
+                              showClearButton: false,
+                              respectMandatory: true,
+                            ),
+                          ],
                         );
                       }),
                     ],
@@ -297,11 +315,7 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     String phone = _phoneField.text.trim();
     String email = _emailField.text.trim();
 
-    if (_nameField.text.isEmpty ||
-        _category == null ||
-        _status == null ||
-        phone.isEmpty ||
-        email.isEmpty) {
+    if (_nameField.text.isEmpty) {
       setState(() {
         loadingCustomerInsertion = false;
       });
