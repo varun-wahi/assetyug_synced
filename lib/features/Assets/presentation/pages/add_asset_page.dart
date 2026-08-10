@@ -27,6 +27,8 @@ import '../../../../core/utils/widgets/my_elevated_button.dart';
 import '../riverpod/asset_custom_fields_provider.dart';
 import '../widgets/custom_text_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../riverpod/technical_users_provider.dart';
+import 'view_asset_page.dart';
 
 class LocationBinOption {
   final String locationId;
@@ -49,6 +51,9 @@ class AddAssetPage extends ConsumerStatefulWidget {
 class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   final _serialField = TextEditingController();
   final _nameField = TextEditingController();
+  final _nameFocusNode = FocusNode();
+  final _detailsScrollController = ScrollController();
+  final _customFieldsScrollController = ScrollController();
   final _assetLocationField = TextEditingController();
   final Map<String, TextEditingController> _customFieldControllers = {};
 
@@ -76,23 +81,27 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   @override
   void initState() {
     super.initState();
-    createBox();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializePage();
+    });
   }
 
-  void createBox() async {
+  Future<void> _initializePage() async {
     if (isEditMode) {
       _populateFieldsForEdit();
     }
+
     box = await Hive.openBox('auth_data');
     await _fetchUserInfo();
 
-    // ← Only change here: edit mode loads values, add mode loads definitions
     if (isEditMode) {
-      ref
+      ref.invalidate(assetCustomFieldsProvider);
+      await ref
           .read(assetCustomFieldsProvider.notifier)
           .loadExtraFieldsForEdit(widget.editAsset!.id!);
     } else {
-      ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
+      ref.invalidate(assetCustomFieldsProvider);
+      await ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
     }
 
     await _fetchDropdownData();
@@ -189,218 +198,253 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   }
 
   @override
+  void dispose() {
+    _nameField.dispose();
+    _nameFocusNode.dispose();
+    _detailsScrollController.dispose();
+    _customFieldsScrollController.dispose();
+    _serialField.dispose();
+    _assetLocationField.dispose();
+    for (var controller in _customFieldControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
             centerTitle: true,
-            title:
-                Text(isEditMode ? "Edit Asset" : "Add Asset") // Dynamic title
+            title: Text(isEditMode ? "Edit Asset" : "Add Asset"),
+            bottom: const TabBar(
+              tabs: [
+                Tab(text: 'Details'),
+                Tab(text: 'Custom Fields'),
+              ],
             ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(dPadding * 2),
+          ),
+          body: SafeArea(
             child: Column(
               children: [
-                buildAssetImageCard(),
-                Column(
-                  children: [
-                    buildCustomTextField(
-                        "Asset Name", TextInputType.text, _nameField, true),
-                    const DGap(),
-                    buildCustomTextField("Serial Number", TextInputType.text,
-                        _serialField, false),
-                    const DGap(),
-                    AsyncDropdownField<Map<String, dynamic>>(
-                      label: "Category",
-                      asyncItemsFetcher: () async {
-                        final repo = AssetsRepositoryImpl();
-                        try {
-                          final categoriesResponse =
-                              await repo.getActiveCategories(companyId);
-                          if (categoriesResponse.statusCode == 200) {
-                            final categories =
-                                jsonDecode(categoriesResponse.body) as List;
-                            return categories
-                                .map((e) => e as Map<String, dynamic>)
-                                .toList();
-                          }
-                        } catch (e) {
-                          print("Error fetching categories: $e");
-                        }
-                        return [];
-                      },
-                      displayString: (category) => category['name'].toString(),
-                      onChanged: (value) {
-                        setState(
-                            () => _assetCategory = value?['name'].toString());
-                        FocusScope.of(context).unfocus();
-                      },
-                      selectedItem: _assetCategory != null
-                          ? {'name': _assetCategory}
-                          : null,
-                    ),
-                    const DGap(),
-                    AsyncDropdownField<Map<String, dynamic>>(
-                      label: "Customer",
-                      asyncItemsFetcher: () async {
-                        final customerRepo = CompanyCustomerRepositoryImpl();
-                        try {
-                          final customerResponse =
-                              await customerRepo.getCompanyCustomer(companyId);
-                          if (customerResponse.statusCode == 200) {
-                            final customers =
-                                jsonDecode(customerResponse.body) as List;
-                            return customers
-                                .map((e) => e as Map<String, dynamic>)
-                                .toList();
-                          }
-                        } catch (e) {
-                          print("Error fetching customers: $e");
-                        }
-                        return [];
-                      },
-                      displayString: (customer) => customer['name'].toString(),
-                      onChanged: (value) {
-                        setState(() {
-                          _customer = value?['name'].toString();
-                          _customerId = value?['id'].toString();
-                        });
-                        FocusScope.of(context).unfocus();
-                      },
-                      selectedItem:
-                          _customer != null ? {'name': _customer} : null,
-                    ),
-                    const DGap(),
-                    AsyncDropdownField<LocationBinOption>(
-                      label: "Location",
-                      asyncItemsFetcher: () async {
-                        try {
-                          final response = await CompanyCustomerRepositoryImpl()
-                              .getCustomerLocationsAndBins(companyId);
-                          print(response.body);
-                          final List<dynamic> data = jsonDecode(response.body);
-                          final List<LocationBinOption> parsed = [];
-
-                          for (var location in data) {
-                            final locName = location['name'];
-                            final locId = location['id'];
-                            final bins = location['bins'] ?? [];
-
-                            // Always add location itself
-                            parsed.add(LocationBinOption(
-                              locationId: locId,
-                              binId: null,
-                              label: locName,
-                            ));
-
-                            // Then add all bins under it
-                            for (var bin in bins) {
-                              parsed.add(LocationBinOption(
-                                locationId: locId,
-                                binId: bin['id'],
-                                label: '$locName -> ${bin['binNumber']}',
-                              ));
-                            }
-                          }
-
-                          return parsed;
-                        } catch (e) {
-                          print('Failed to load locations and bins: $e');
-                          return [];
-                        }
-                      },
-                      displayString: (locationBin) => locationBin.label,
-                      onChanged: (value) {
-                        setState(() => _selectedLocationBin = value);
-                        FocusScope.of(context).unfocus();
-                      },
-                      selectedItem: _selectedLocationBin,
-                    ),
-                    const DGap(),
-                    DDropdown(
-                      label: "Status",
-                      items: addAssetStatusMenuItems,
-                      value: _assetStatus,
-                      onChanged: (value) {
-                        setState(() => _assetStatus = value);
-                        FocusScope.of(context).unfocus();
-                      },
-                      isMandatory: false,
-                    ),
-                    Consumer(builder: (context, ref, _) {
-                      final customFields = ref.watch(assetCustomFieldsProvider);
-
-                      // Prefill controllers when fields arrive in edit mode
-                      if (isEditMode) {
-                        for (final f in customFields) {
-                          if (f is CustomFieldWithValue) {
-                            _customFieldControllers.putIfAbsent(
-                              f.id,
-                              () => TextEditingController(text: f.value),
-                            );
-                            // Also update if controller already exists but is empty
-                            if (_customFieldControllers[f.id]?.text.isEmpty ??
-                                false) {
-                              _customFieldControllers[f.id]?.text = f.value;
-                            }
-                          }
-                        }
-                      }
-
-                      if (customFields.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const DGap(),
-                          // const Divider(),
-                          const DGap(),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Text(
-                              "Custom Fields",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor1,
-                              ),
-                            ),
-                          ),
-                          const DGap(),
-                          CustomFieldsSection(
-                            customFields: customFields,
-                            controllers: _customFieldControllers,
-                            respectMandatory: true,
-                            showClearButton: false,
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildDetailsTab(),
+                      _buildAssetCustomFieldsTab(),
+                    ],
+                  ),
                 ),
-                const DGap(),
-                DElevatedButton(
-                  buttonColor: tPrimary,
-                  textColor: tWhite,
-                  onPressed: _submitAsset,
-                  child: loadingAssetInsertion
-                      ? const SizedBox(
-                          height: 20.0,
-                          width: 20.0,
-                          child: CircularProgressIndicator(color: tWhite))
-                      : Text(isEditMode
-                          ? "Update Asset"
-                          : "Add Asset"), // Dynamic button text
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: dPadding * 2, vertical: dPadding),
+                  child: DElevatedButton(
+                    buttonColor: tPrimary,
+                    textColor: tWhite,
+                    onPressed: _submitAsset,
+                    child: loadingAssetInsertion
+                        ? const SizedBox(
+                            height: 20.0,
+                            width: 20.0,
+                            child: CircularProgressIndicator(color: tWhite),
+                          )
+                        : Text(isEditMode ? "Update Asset" : "Add Asset"),
+                  ),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailsTab() {
+    return SingleChildScrollView(
+      controller: _detailsScrollController,
+      padding: const EdgeInsets.all(dPadding * 2),
+      child: Column(
+        children: [
+          buildAssetImageCard(),
+          buildCustomTextField(
+            "Asset Name",
+            TextInputType.text,
+            _nameField,
+            true,
+            autofocus: true,
+            focusNode: _nameFocusNode,
+          ),
+          const DGap(),
+          buildCustomTextField("Serial Number", TextInputType.text, _serialField, false),
+          const DGap(),
+          AsyncDropdownField<Map<String, dynamic>>(
+            label: "Category",
+            asyncItemsFetcher: () async {
+              final repo = AssetsRepositoryImpl();
+              try {
+                final categoriesResponse =
+                    await repo.getActiveCategories(companyId);
+                if (categoriesResponse.statusCode == 200) {
+                  final categories = jsonDecode(categoriesResponse.body) as List;
+                  return categories
+                      .map((e) => e as Map<String, dynamic>)
+                      .toList();
+                }
+              } catch (e) {
+                print("Error fetching categories: $e");
+              }
+              return [];
+            },
+            displayString: (category) => category['name'].toString(),
+            onChanged: (value) {
+              setState(() => _assetCategory = value?['name'].toString());
+              FocusScope.of(context).unfocus();
+            },
+            selectedItem: _assetCategory != null ? {'name': _assetCategory} : null,
+          ),
+          const DGap(),
+          AsyncDropdownField<Map<String, dynamic>>(
+            label: "Customer",
+            asyncItemsFetcher: () async {
+              final customerRepo = CompanyCustomerRepositoryImpl();
+              try {
+                final customerResponse =
+                    await customerRepo.getCompanyCustomer(companyId);
+                if (customerResponse.statusCode == 200) {
+                  final customers = jsonDecode(customerResponse.body) as List;
+                  return customers
+                      .map((e) => e as Map<String, dynamic>)
+                      .toList();
+                }
+              } catch (e) {
+                print("Error fetching customers: $e");
+              }
+              return [];
+            },
+            displayString: (customer) => customer['name'].toString(),
+            onChanged: (value) {
+              setState(() {
+                _customer = value?['name'].toString();
+                _customerId = value?['id'].toString();
+              });
+              FocusScope.of(context).unfocus();
+            },
+            selectedItem: _customer != null ? {'name': _customer} : null,
+          ),
+          const DGap(),
+          AsyncDropdownField<LocationBinOption>(
+            label: "Location",
+            asyncItemsFetcher: () async {
+              try {
+                final response = await CompanyCustomerRepositoryImpl()
+                    .getCustomerLocationsAndBins(companyId);
+                print(response.body);
+                final List<dynamic> data = jsonDecode(response.body);
+                final List<LocationBinOption> parsed = [];
+
+                for (var location in data) {
+                  final locName = location['name'];
+                  final locId = location['id'];
+                  final bins = location['bins'] ?? [];
+
+                  parsed.add(LocationBinOption(
+                      locationId: locId, binId: null, label: locName));
+                  for (var bin in bins) {
+                    parsed.add(LocationBinOption(
+                      locationId: locId,
+                      binId: bin['id'],
+                      label: '$locName -> ${bin['binNumber']}',
+                    ));
+                  }
+                }
+
+                return parsed;
+              } catch (e) {
+                print('Failed to load locations and bins: $e');
+                return [];
+              }
+            },
+            displayString: (locationBin) => locationBin.label,
+            onChanged: (value) {
+              setState(() => _selectedLocationBin = value);
+              FocusScope.of(context).unfocus();
+            },
+            selectedItem: _selectedLocationBin,
+          ),
+          const DGap(),
+          DDropdown(
+            label: "Status",
+            items: addAssetStatusMenuItems,
+            value: _assetStatus,
+            onChanged: (value) {
+              setState(() => _assetStatus = value);
+              FocusScope.of(context).unfocus();
+            },
+            isMandatory: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssetCustomFieldsTab() {
+    return SingleChildScrollView(
+      controller: _customFieldsScrollController,
+      padding: const EdgeInsets.all(dPadding * 2),
+      child: Consumer(builder: (context, ref, _) {
+        final customFields = ref.watch(assetCustomFieldsProvider);
+
+        if (isEditMode) {
+          for (final f in customFields) {
+            if (f is CustomFieldWithValue) {
+              _customFieldControllers.putIfAbsent(
+                f.id,
+                () => TextEditingController(text: f.value),
+              );
+              if (_customFieldControllers[f.id]?.text.isEmpty ?? false) {
+                _customFieldControllers[f.id]?.text = f.value;
+              }
+            }
+          }
+        }
+
+        if (customFields.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: dPadding * 4),
+            child: Center(
+              child: Text("No custom fields configured for this company."),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                "Custom Fields",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor1,
+                ),
+              ),
+            ),
+            const DGap(),
+            CustomFieldsSection(
+              customFields: customFields,
+              controllers: _customFieldControllers,
+              respectMandatory: true,
+              showClearButton: false,
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -539,7 +583,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       "category": _assetCategory ?? "",
       "customer": _customer ?? "",
       "customerId": widget.editAsset!.customerId,
-      "location": "${_selectedLocationBin?.label}" ?? "",
+      "location": _selectedLocationBin?.label ?? "",
       // Include image in update payload; if no new image selected keep
       // existing image value from the asset so server retains it.
       "image": base64Image ?? widget.editAsset!.image,
@@ -592,7 +636,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       String location,
       String status) async {
     final repo = AssetsRepositoryImpl();
+
     if (_image != null) base64Image = _toDataUri(_image!);
+
     final data = AssetsModel(
       name: name,
       serialNumber: serialNumber,
@@ -605,29 +651,61 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       image: base64Image,
       companyId: companyId,
     );
-    print("ASSET DAYA: ${data.toJson()}");
+
+    print("ASSET DATA: ${data.toJson()}");
+
     final response = await repo.addNewAsset(json.encode({
       ...data.toJson(),
       ..._buildCustomFieldPayload(),
     }));
+
     if (response.statusCode == 200) {
       final id = jsonDecode(response.body)["id"];
+
+      // Determine default employee after we have the asset id: prefer first technical user
+      String? defaultEmployee = customer;
+      try {
+        final techUsers = await ref.read(technicalUsersProvider(companyId).future);
+        if (techUsers.isNotEmpty) defaultEmployee = techUsers.first;
+      } catch (e) {
+        print('Could not fetch technical users, using customer as employee: $e');
+      }
+
       final checkInData = {
         'assetId': id,
         'status': checkInString,
         'companyId': companyId,
-        'employee': customer,
+        'employee': defaultEmployee,
         'notes': null,
         'location': location,
         'date': DateTime.now().toIso8601String(),
       };
-      final result = await repo.addCheckInOut(json.encode(checkInData));
+
+      try {
+        await repo.addCheckInOut(json.encode(checkInData));
+      } catch (e) {
+        print('Failed to add initial check-in: $e');
+      }
+
       if (mounted) {
         // Trigger global refresh for dashboard/home
         ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
         dSnackBar(context, "Asset Inserted Successfully", TypeSnackbar.success);
+
+        // Open the newly created asset's details and return true to the assets list
+        final shouldRefresh = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => ViewAssetPage(
+              assetObjectId: id.toString(),
+              refreshOnPop: true,
+            ),
+          ),
+        );
+
+        if (mounted && shouldRefresh == true) {
+          Navigator.of(context).pop(true);
+        }
       }
-      clearFields();
     } else {
       if (mounted) {
         dSnackBar(
@@ -637,6 +715,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         );
       }
     }
+
     setState(() => loadingAssetInsertion = false);
   }
 

@@ -10,6 +10,17 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
 
   final AssetsRepositoryImpl _repo = AssetsRepositoryImpl();
 
+  List<dynamic> _parseJsonList(String body) {
+    final trimmedBody = body.trim();
+    if (trimmedBody.isEmpty) return [];
+
+    final decoded = json.decode(trimmedBody);
+    if (decoded is List) return decoded;
+
+    print('⚠️ Unexpected extra fields response shape: ${decoded.runtimeType}');
+    return [];
+  }
+
   /// Call this when viewing a specific asset's custom tab
   Future<void> loadExtraFieldsForAsset(String assetId) async {
     try {
@@ -21,7 +32,7 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
         return;
       }
 
-      final List<dynamic> jsonList = json.decode(res.body);
+      final jsonList = _parseJsonList(res.body);
       state = jsonList
           .map((e) => CustomFieldWithValue.fromExtraFieldJson(
               e as Map<String, dynamic>))
@@ -42,7 +53,7 @@ class AssetCustomFieldsNotifier extends StateNotifier<List<CustomField>> {
         state = [];
         return;
       }
-      final List<dynamic> jsonList = json.decode(res.body);
+      final jsonList = _parseJsonList(res.body);
       state = jsonList
           .map((e) => CustomFieldWithValue.fromExtraFieldJson(
               e as Map<String, dynamic>))

@@ -41,7 +41,7 @@ class DDropdownState extends State<DDropdown> {
         decoration: InputDecoration(
 
           labelText: widget.isMandatory ? "${widget.label}*" : widget.label,
-          labelStyle: const TextStyle(color: tBlack, fontSize: 13),
+          labelStyle: const TextStyle(color: tBlack),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
               borderSide: const BorderSide(color: tBlack)),

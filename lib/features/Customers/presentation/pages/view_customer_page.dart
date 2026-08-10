@@ -16,12 +16,25 @@ import 'View Customer Tabs/customer_wO_tab.dart';
 
 class ViewCustomerPage extends ConsumerWidget {
   final String customerObjectId;
-  const ViewCustomerPage({super.key, required this.customerObjectId});
+  final bool refreshOnPop;
+  const ViewCustomerPage({
+    super.key,
+    required this.customerObjectId,
+    this.refreshOnPop = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customerRepo = CompanyCustomerRepositoryImpl();
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        if (refreshOnPop) {
+          Navigator.of(context).pop(true);
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
         appBar: AppBar(
           title: const Text("Customer Details"),
           centerTitle: true,
@@ -52,7 +65,7 @@ class ViewCustomerPage extends ConsumerWidget {
               }
             },
           ),
-        ));
+        )));
   }
 }
 

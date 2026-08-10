@@ -196,12 +196,17 @@ Future<void> _loadMoreCustomers() async {
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
       backgroundColor: tPrimary,
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const AddCustomerPage(fromCustomersPage: true),
-        ),
-      ),
+      onPressed: () async {
+        final shouldRefresh = await Navigator.push<bool?>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AddCustomerPage(fromCustomersPage: true),
+          ),
+        );
+        if (mounted && shouldRefresh == true) {
+          _loadCustomers();
+        }
+      },
       child: const Icon(Icons.person_add),
     );
   }

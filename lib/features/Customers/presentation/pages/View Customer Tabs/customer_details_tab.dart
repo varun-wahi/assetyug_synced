@@ -19,7 +19,8 @@ class CustomerDetailsPage extends StatefulWidget {
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   @override
   Widget build(BuildContext context) {
-    print(widget.data.name);
+    print("CUSTOMER DATA: ${widget.data.toJson()}");
+
     return Column(
       children: [
         ClipRRect(
@@ -51,19 +52,19 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 const DDivider(),
                 _buildDetailRow(
                     "Email: ",
-                    widget.data.address!.isNotEmpty == true
+                    widget.data.email?.isNotEmpty == true
                         ? widget.data.email!
-                        : "No location data"),
+                        : "--"),
                 const DDivider(),
                 _buildDetailRow(
                     "Phone: ",
-                    widget.data.address!.isNotEmpty == true
+                    widget.data.phone?.toString().isNotEmpty == true
                         ? widget.data.phone.toString()
                         : "--"),
                 const DDivider(),
                 _buildDetailRow(
                     "Address: ",
-                    widget.data.address!.isNotEmpty == true
+                    widget.data.address?.isNotEmpty == true
                         ? widget.data.address!
                         : "--"),
                 const DDivider(),
@@ -92,13 +93,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     "Category: ",
                     widget.data.category!.isNotEmpty == true
                         ? widget.data.category!
-                        : "No status data"),
+                        : "--"),
                 const DDivider(),
                 _buildDetailRow(
                     "Status: ",
                     widget.data.status!.isNotEmpty == true
                         ? widget.data.status!.toUpperCase()
-                        : "No status data"),
+                        : "--"),
                 const DGap(),
               ],
             ),

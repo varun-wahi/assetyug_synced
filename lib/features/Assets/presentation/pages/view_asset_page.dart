@@ -14,7 +14,13 @@ import 'View Asset Tabs/assets_inspection_tab.dart';
 
 class ViewAssetPage extends StatefulWidget {
   final String assetObjectId;
-  const ViewAssetPage({super.key, required this.assetObjectId});
+  final bool refreshOnPop;
+
+  const ViewAssetPage({
+    super.key,
+    required this.assetObjectId,
+    this.refreshOnPop = false,
+  });
 
   @override
   State<ViewAssetPage> createState() => _ViewAssetPageState();
@@ -26,16 +32,24 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
   @override
   Widget build(BuildContext context) {
     print("asset id: ${widget.assetObjectId}");
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Asset Details"),
-        centerTitle: true,
-        actions: const [
-          IconButton(onPressed: null, icon: Icon(Icons.more_vert))
-        ],
-      ),
-      body: Center(
-        child: FutureBuilder(
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.refreshOnPop) {
+          Navigator.of(context).pop(true);
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Asset Details"),
+          centerTitle: true,
+          actions: const [
+            IconButton(onPressed: null, icon: Icon(Icons.more_vert))
+          ],
+        ),
+        body: Center(
+          child: FutureBuilder(
           future: _assetsRepository.getAssetDetails(widget.assetObjectId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -56,7 +70,7 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
           },
         ),
       ),
-    );
+    ));
   }
 }
 

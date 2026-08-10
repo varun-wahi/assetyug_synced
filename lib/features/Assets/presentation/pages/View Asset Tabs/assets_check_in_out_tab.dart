@@ -34,6 +34,7 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
       final response = await assetRepo.getCheckInOutList(widget.objectId);
       if (response.statusCode == 200 || response.statusCode == 202) {
         final List<dynamic> jsonData = json.decode(response.body);
+        print("JSON DATA: $jsonData");
         setState(() {
           checkInOutData = jsonData
               .map((data) => AssetCheckInOutModel.fromJson(data))

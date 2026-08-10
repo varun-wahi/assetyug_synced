@@ -22,6 +22,7 @@ import '../../../data/repository/company_customer_repository_impl.dart';
 import 'package:http/http.dart' as http;
 
 import '../../riverpod/customer_custom_fields_provider.dart';
+import '../view_customer_page.dart';
 
 class AddCustomerPage extends ConsumerStatefulWidget {
   final bool fromCustomersPage;
@@ -48,7 +49,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
   List<DropdownMenuItem<String>> _stateItems = [];
   String? _selectedState;
-  String? _customerLocation;
 
   String? _category;
   String? _status = "Active";
@@ -84,20 +84,25 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      var box = await Hive.openBox('auth_data');
-      setState(() {
-        companyId = box.get('companyId');
-      });
-      await fetchDropdownData();
-
-      // ✅ Load custom fields
-      if (companyId != null && mounted) {
-        ref
-            .read(customerCustomFieldsProvider.notifier)
-            .loadCustomFields(companyId!);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeCustomerPage();
     });
+  }
+
+  Future<void> _initializeCustomerPage() async {
+    var box = await Hive.openBox('auth_data');
+    final id = box.get('companyId');
+    setState(() {
+      companyId = id;
+    });
+    await fetchDropdownData();
+
+    if (companyId != null && mounted) {
+      ref.invalidate(customerCustomFieldsProvider);
+      await ref
+          .read(customerCustomFieldsProvider.notifier)
+          .loadCustomFields(companyId!);
+    }
   }
 
   Future<void> initCompanyData() async {
@@ -157,142 +162,57 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   Widget build(BuildContext context) {
     final WidgetRef ref = this.ref; // Get the `ref` inside the build method
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text("Add Customer"),
-          leading: IconButton(
-            onPressed: () {
-              if (widget.fromCustomersPage) {
-                // Wrap in a function to delay execution
-                ref.read(tabProvider.notifier).setTab(3);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MainPage()),
-                );
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            icon: const Icon(Icons.arrow_back_ios_new),
+    return DefaultTabController(
+      length: 2,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            title: const Text("Add Customer"),
+            leading: IconButton(
+              onPressed: () {
+                if (widget.fromCustomersPage) {
+                  ref.read(tabProvider.notifier).setTab(3);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MainPage()),
+                  );
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              icon: const Icon(Icons.arrow_back_ios_new),
+            ),
+            bottom: const TabBar(
+              tabs: [
+                Tab(text: 'Details'),
+                Tab(text: 'Custom Fields'),
+              ],
+            ),
           ),
-        ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Container(
-              margin: const EdgeInsets.all(dPadding * 2),
-              padding: const EdgeInsets.all(dPadding * 2),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: TabBarView(
                     children: [
-                      buildCustomTextField(
-                          "Name", TextInputType.text, _nameField, true),
-                      const DGap(),
-                      ref.watch(customerCategoriesProvider).when(
-                            data: (categories) => DDropdown(
-                              label: "Category",
-                              items: categories
-                                  .map((cat) => DropdownMenuItem(
-                                      value: cat, child: Text(cat)))
-                                  .toList(),
-                              onChanged: (value) => _changeCategoryValue(value),
-                              value: _category,
-                            ),
-                            loading: () => DDropdown(
-                              label: "Category",
-                              items: const [],
-                              onChanged: (val) {},
-                              value: null,
-                            ),
-                            error: (err, stack) => const Text("Error"),
-                          ),
-                      const DGap(),
-                      DDropdown(
-                        label: "Status",
-                        items: const [
-                          DropdownMenuItem(
-                              value: 'Active', child: Text('Active')),
-                          DropdownMenuItem(
-                              value: 'InActive', child: Text('Inactive')),
-                        ],
-                        onChanged: (value) => _changeStatusValue(value),
-                        value: _status,
-                      ),
-                      const DGap(),
-                      buildCustomTextField(
-                          "Phone", TextInputType.phone, _phoneField, false),
-                      const DGap(),
-                      buildCustomTextField("Email", TextInputType.emailAddress,
-                          _emailField, false),
-                      const DGap(),
-                      buildCustomTextField(
-                          "Address", TextInputType.text, _addressField, false),
-                      const DGap(),
-                      buildCustomTextField(
-                          "City", TextInputType.text, _cityField, false),
-                      const DGap(),
-                      DDropdown(
-                        label: "State",
-                        items: _stateItems,
-                        onChanged: (value) =>
-                            setState(() => _selectedState = value),
-                        value: _selectedState,
-                      ),
-                      const DGap(),
-                      buildCustomTextField("Zip Code", TextInputType.number,
-                          _zipCodeField, false),
-
-                      // ✅ Custom fields
-                      Consumer(builder: (context, ref, _) {
-                        final customFields =
-                            ref.watch(customerCustomFieldsProvider);
-                        if (customFields.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const DGap(),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text(
-                                "Custom Fields",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: textColor1,
-                                ),
-                              ),
-                            ),
-                            const DGap(),
-                            CustomFieldsSection(
-                              customFields: customFields,
-                              controllers: _customFieldControllers,
-                              showClearButton: false,
-                              respectMandatory: true,
-                            ),
-                          ],
-                        );
-                      }),
+                      _buildDetailsTab(ref),
+                      _buildCustomFieldsTab(),
                     ],
                   ),
-                  const DGap(),
-                  DElevatedButton(
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: dPadding * 2, vertical: dPadding),
+                  child: DElevatedButton(
                     buttonColor: tPrimary,
                     textColor: tWhite,
                     onPressed: () {
                       setState(() {
                         loadingCustomerInsertion = true;
                       });
-                      // Submit form data
-                      _submitCustomerData(
-                          ref); // Pass ref to _submitCustomerData
+                      _submitCustomerData(ref);
                     },
                     child: loadingCustomerInsertion
                         ? const SizedBox(
@@ -302,12 +222,110 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                           )
                         : const Text("Add Customer"),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailsTab(WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(dPadding * 2),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          buildCustomTextField("Name", TextInputType.text, _nameField, true),
+          const DGap(),
+          ref.watch(customerCategoriesProvider).when(
+                data: (categories) => DDropdown(
+                  label: "Category",
+                  items: categories
+                      .map((cat) => DropdownMenuItem(
+                          value: cat, child: Text(cat)))
+                      .toList(),
+                  onChanged: (value) => _changeCategoryValue(value),
+                  value: _category,
+                ),
+                loading: () => DDropdown(
+                  label: "Category",
+                  items: const [],
+                  onChanged: (val) {},
+                  value: null,
+                ),
+                error: (err, stack) => const Text("Error"),
+              ),
+          const DGap(),
+          DDropdown(
+            label: "Status",
+            items: const [
+              DropdownMenuItem(value: 'Active', child: Text('Active')),
+              DropdownMenuItem(value: 'InActive', child: Text('Inactive')),
+            ],
+            onChanged: (value) => _changeStatusValue(value),
+            value: _status,
+          ),
+          const DGap(),
+          buildCustomTextField("Phone", TextInputType.phone, _phoneField, false),
+          const DGap(),
+          buildCustomTextField("Email", TextInputType.emailAddress,
+              _emailField, false),
+          const DGap(),
+          buildCustomTextField("Address", TextInputType.text, _addressField, false),
+          const DGap(),
+          buildCustomTextField("City", TextInputType.text, _cityField, false),
+          const DGap(),
+          DDropdown(
+            label: "State",
+            items: _stateItems,
+            onChanged: (value) => setState(() => _selectedState = value),
+            value: _selectedState,
+          ),
+          const DGap(),
+          buildCustomTextField("Zip Code", TextInputType.number,
+              _zipCodeField, false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomFieldsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(dPadding * 2),
+      child: Consumer(builder: (context, ref, _) {
+        final customFields = ref.watch(customerCustomFieldsProvider);
+        if (customFields.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: dPadding * 4),
+            child: Center(
+              child: Text("No custom fields configured for this company."),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Custom Fields",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const DGap(),
+            CustomFieldsSection(
+              customFields: customFields,
+              controllers: _customFieldControllers,
+              showClearButton: false,
+              respectMandatory: true,
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -319,29 +337,34 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       setState(() {
         loadingCustomerInsertion = false;
       });
-      dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
+      dSnackBar(context, "Customer name is required", TypeSnackbar.error);
       return;
     }
 
-// ✅ Phone number validation (10 digits, starts with 6–9)
     final phoneRegex = RegExp(r'^\d{10}$');
-    if (!phoneRegex.hasMatch(phone)) {
+    if (phone.isNotEmpty && !phoneRegex.hasMatch(phone)) {
       setState(() {
         loadingCustomerInsertion = false;
       });
       dSnackBar(
-          context, "Enter a valid 10-digit phone number", TypeSnackbar.error);
+        context,
+        "Enter a valid 10-digit phone number or leave it blank",
+        TypeSnackbar.error,
+      );
       return;
     }
 
-// ✅ Email validation
     final emailRegex =
         RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-    if (!emailRegex.hasMatch(email)) {
+    if (email.isNotEmpty && !emailRegex.hasMatch(email)) {
       setState(() {
         loadingCustomerInsertion = false;
       });
-      dSnackBar(context, "Enter a valid email address", TypeSnackbar.error);
+      dSnackBar(
+        context,
+        "Enter a valid email address or leave it blank",
+        TypeSnackbar.error,
+      );
       return;
     }
 
@@ -381,8 +404,30 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       if (response.statusCode == 200) {
         dSnackBar(context, "Customer Added Successfully", TypeSnackbar.success);
         clearFields();
-        // Notify the app to refresh customer list
+        // Notify the app to refresh customer list in the caller
         ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
+
+        String? customerId;
+        try {
+          final body = jsonDecode(response.body);
+          customerId = body['id']?.toString() ?? body['data']?['id']?.toString();
+        } catch (e) {
+          print('Failed to parse new customer id: $e');
+        }
+
+        if (customerId != null && customerId.isNotEmpty) {
+          final shouldRefresh = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => ViewCustomerPage(
+                customerObjectId: customerId!,
+                refreshOnPop: true,
+              ),
+            ),
+          );
+          if (mounted && shouldRefresh == true) {
+            Navigator.of(context).pop(true);
+          }
+        }
       } else {
         dSnackBar(context, "Failed to add customer", TypeSnackbar.error);
       }

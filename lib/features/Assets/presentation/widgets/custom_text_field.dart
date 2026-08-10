@@ -6,12 +6,15 @@ Padding buildCustomTextField(
     String label,
     TextInputType type,
     TextEditingController controller,
-    bool isMandatory) {
+    bool isMandatory,
+    {bool autofocus = false, FocusNode? focusNode}) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 8.0),
     child: TextFormField(
       style: const TextStyle(color: tBlack),
       cursorColor: tBlack,
+      autofocus: autofocus,
+      focusNode: focusNode,
       decoration: InputDecoration(
         labelText: isMandatory ? "$label *" : label,
         labelStyle: const TextStyle(color: tBlack),

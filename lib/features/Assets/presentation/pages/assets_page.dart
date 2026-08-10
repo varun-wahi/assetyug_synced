@@ -451,13 +451,16 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
               bottom: 24,
               right: 24,
               child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final shouldRefresh = await Navigator.push<bool?>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AddAssetPage(),
                     ),
                   );
+                  if (mounted && shouldRefresh == true) {
+                    _fetchAssets();
+                  }
                 },
                 backgroundColor: tPrimary,
                 tooltip: 'Add Asset',
