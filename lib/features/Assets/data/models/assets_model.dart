@@ -31,9 +31,9 @@ class AssetsModel {
       required this.serialNumber,
       this.customer,
       required this.customerId,
-      this.location = 'Not Specified',
-      this.status = 'Not Specified ',
-      this.category = 'Not Specified',
+      this.location = '',
+      this.status = '',
+      this.category = '',
       this.image,
       this.companyId = ''});
 
@@ -45,9 +45,9 @@ class AssetsModel {
       serialNumber: json["serialNumber"] ?? 'Unknown Serial',
       customer: json["customer"] ?? 'Unknown Customer',
       customerId: json["customerId"] ?? 'Unknown Customer ID',
-      location: json["location"] ?? 'Not Specified',
-      status: json["status"] ?? 'Not Specified',
-      category: json["category"] ?? 'Not Specified',
+      location: json["location"] ?? '',
+      status: json["status"] ?? '',
+      category: json["category"] ?? '',
       image: json["image"],
       companyId: json["companyId"].toString());
 

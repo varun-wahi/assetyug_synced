@@ -9,7 +9,6 @@ import 'package:hive/hive.dart'; // Import Hive for local storage
 import 'package:shimmer/shimmer.dart'; // Import shimmer for loading states
 
 import '../../../../core/utils/constants/sizes.dart';
-import '../../../../config/theme/box_shadow_styles.dart';
 import '../../../../core/utils/constants/colors.dart';
 import '../../../../config/theme/text_styles.dart';
 import 'package:http/http.dart' as http;
@@ -136,7 +135,7 @@ class _BuildAssetOverviewContainerState
               final response = snapshot.data as http.Response;
               final assetData = json.decode(response.body);
               return _buildStatusCard("Checked Out Assets",
-                  "${assetData['checkIn'] ?? 0}", screenWidth * 0.45,
+                  "${assetData['checkOut'] ?? 0}", screenWidth * 0.45,
                   isCheckOutButton: true);
               // "${assetData['checkOut'] ?? 0}", screenWidth * 0.45);
             } else {

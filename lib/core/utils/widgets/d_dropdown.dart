@@ -39,8 +39,9 @@ class DDropdownState extends State<DDropdown> {
       child: DropdownButtonFormField(
         value: widget.value, // Use widget.value instead of selectedOption
         decoration: InputDecoration(
+
           labelText: widget.isMandatory ? "${widget.label}*" : widget.label,
-          labelStyle: const TextStyle(color: tBlack),
+          labelStyle: const TextStyle(color: tBlack, fontSize: 13),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
               borderSide: const BorderSide(color: tBlack)),

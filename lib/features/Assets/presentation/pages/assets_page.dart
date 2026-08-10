@@ -9,7 +9,6 @@ import 'package:asset_yug_debugging/features/Assets/presentation/pages/add_asset
 import 'package:asset_yug_debugging/features/Home/presentation/pages/scan_qr_page.dart';
 import 'package:asset_yug_debugging/core/utils/constants/pageFilters.dart';
 import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
-import 'package:asset_yug_debugging/config/theme/container_styles.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/features/Assets/data/models/assets_model.dart';
@@ -118,6 +117,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   // Track check-in status for each asset since it's fetched asynchronously
   final Map<String, String> _assetCheckingStatusMap = {};
+  bool isCheckingStatusLoading = false;
 
   final assetIdController = TextEditingController();
   final assetNameController = TextEditingController();
@@ -327,6 +327,9 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           hasMore = assets.length < totalRecords;
           currentPage += 1;
         });
+
+        // Load check-in/out statuses for newly fetched assets (batch)
+        _loadStatusesForAssets(newAssets);
       } else {
         throw Exception(
             "Failed to load assets. Status code: ${response.statusCode}");
@@ -344,6 +347,70 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
   void _showErrorSnackBar(String message) {
     dSnackBar(context, message, TypeSnackbar.error);
+  }
+
+  Future<void> _loadStatusesForAssets(List<dynamic> assetsPage) async {
+    if (assetsPage.isEmpty) return;
+
+    final ids = assetsPage
+        .map((e) => e['id']?.toString())
+        .where((id) => id != null && id.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+
+    if (ids.isEmpty) return;
+
+    setState(() => isCheckingStatusLoading = true);
+
+    final repo = AssetsRepositoryImpl();
+    final futures = ids.map((id) async {
+      try {
+        final resp = await repo.getCheckInOutList(id);
+        if (resp.statusCode == 200 || resp.statusCode == 202) {
+          final List<dynamic> list = json.decode(resp.body);
+          if (list.isNotEmpty) {
+            // Pick the most recent entry by parsing dates, fallback to last
+            DateTime? latestDate;
+            dynamic latestEntry;
+            for (var entry in list) {
+              final dateStr = entry['date']?.toString();
+              DateTime? dt;
+              try {
+                dt = dateStr != null ? DateTime.parse(dateStr) : null;
+              } catch (_) {
+                dt = null;
+              }
+              if (dt != null) {
+                if (latestDate == null || dt.isAfter(latestDate)) {
+                  latestDate = dt;
+                  latestEntry = entry;
+                }
+              }
+            }
+            final chosen = latestEntry ?? list.last;
+            final status = chosen['status'] ?? checkInString;
+            return MapEntry(id, status.toString());
+          }
+        }
+      } catch (e) {
+        print('Error loading status for $id: $e');
+      }
+      return MapEntry(id, checkInString);
+    }).toList();
+
+    try {
+      final results = await Future.wait(futures);
+      if (mounted) {
+        setState(() {
+          _assetCheckingStatusMap.addEntries(results);
+        });
+      }
+    } catch (e) {
+      print('Error during batch status load: $e');
+    } finally {
+      if (mounted) setState(() => isCheckingStatusLoading = false);
+    }
   }
 
   void _onSearchChanged(String value) {
@@ -424,9 +491,20 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           ),
           Expanded(child: _buildRefreshButton()),
           Expanded(
-            child: IconButton(
-              onPressed: () => _buildAdvancedFilters(),
-              icon: const Icon(Icons.filter_alt, color: darkGrey),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () => _buildAdvancedFilters(),
+                  icon: const Icon(Icons.filter_alt, color: darkGrey),
+                ),
+                if (isCheckingStatusLoading)
+                  SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
             ),
           ),
         ],
@@ -549,7 +627,10 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       final assetId = asset['id']?.toString();
       if (assetId == null) return true; // Can't filter if no ID
       final status = _assetCheckingStatusMap[assetId];
-      if (status == null) return true; // Show while loading status
+      // When a specific checking filter is active, hide assets with unknown
+      // status until their status is loaded. This avoids showing incorrect
+      // results while per-item async loads complete.
+      if (status == null) return false;
       return status == checkingFilter;
     }).toList();
 

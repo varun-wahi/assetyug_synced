@@ -55,7 +55,26 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
       if (response.statusCode == 200 || response.statusCode == 202) {
         final List<dynamic> checkInOutList = json.decode(response.body);
         if (checkInOutList.isEmpty) return checkInString;
-        final status = checkInOutList.last['status'] ?? "Checked In";
+        // Choose the most recent entry by parsing dates (safer than .last)
+        DateTime? latestDate;
+        dynamic latestEntry;
+        for (var entry in checkInOutList) {
+          final dateStr = entry['date']?.toString();
+          DateTime? dt;
+          try {
+            dt = dateStr != null ? DateTime.parse(dateStr) : null;
+          } catch (_) {
+            dt = null;
+          }
+          if (dt != null) {
+            if (latestDate == null || dt.isAfter(latestDate)) {
+              latestDate = dt;
+              latestEntry = entry;
+            }
+          }
+        }
+        final chosen = latestEntry ?? checkInOutList.last;
+        final status = chosen['status'] ?? checkInString;
         print("STATUS: $status");
         widget.onStatusChanged?.call(status);
         return status;
@@ -110,11 +129,19 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+          scrollable: true,
           title: const Text('Check In/Out Details'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.95,
+              minWidth: 300,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+
+                children: <Widget>[
                 Consumer(builder: (context, ref, child) {
                   final technicalUsersAsync = ref.watch(
                       technicalUsersProvider(widget.data.companyId.toString()));
@@ -122,7 +149,15 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   return technicalUsersAsync.when(
                     data: (users) => StatefulBuilder(
                       builder: (context, setDialogState) {
+                        // Initialize default selection to the first user
+                        if ((_selectedEmployee == null || _selectedEmployee == '') &&
+                            users.isNotEmpty) {
+                          Future.microtask(() {
+                            setDialogState(() => _selectedEmployee = users.first);
+                          });
+                        }
                         return DDropdown(
+                          padding: EdgeInsets.zero,
                           label: "Employee",
                           items: users
                               .map((name) => DropdownMenuItem(
@@ -163,7 +198,7 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                 ),
               ],
             ),
-          ),
+          ),),
           actions: <Widget>[
             TextButton(
                 onPressed: () {

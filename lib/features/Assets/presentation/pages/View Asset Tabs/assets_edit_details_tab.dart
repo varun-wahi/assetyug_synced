@@ -9,7 +9,6 @@ import 'package:asset_yug_debugging/features/Assets/presentation/pages/view_asse
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/checking_btn_widget_assets.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
-import 'package:asset_yug_debugging/core/utils/constants/strings.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_divider.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/details_row_widget_assets.dart';
@@ -182,11 +181,17 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
         color: const Color.fromARGB(255, 245, 245, 245),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
+          child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(child: Text(text, style: containerText())),
-          AssetStatusButton(data: asset, ref: ref),
+          AssetStatusButton(
+            data: asset,
+            ref: ref,
+            onStatusChanged: (status) async {
+              await _fetchLastCheckEntry();
+            },
+          ),
         ],
       ),
     );

@@ -210,7 +210,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                         "Asset Name", TextInputType.text, _nameField, true),
                     const DGap(),
                     buildCustomTextField("Serial Number", TextInputType.text,
-                        _serialField, true),
+                        _serialField, false),
                     const DGap(),
                     AsyncDropdownField<Map<String, dynamic>>(
                       label: "Category",
@@ -476,10 +476,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
 
     // Validate static required fields
     if (!validateFields([
-      _serialField.text,
       _nameField.text,
-      _customer ?? "",
-      _assetStatus ?? ""
     ])) {
       setState(() => loadingAssetInsertion = false);
       return dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
@@ -525,18 +522,12 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   Future<void> _updateAssetData() async {
     final repo = AssetsRepositoryImpl();
 
+    // If a new image was selected, include it in the update payload using the
+    // same data-uri format used when creating assets. This avoids calling the
+    // separate `imageUpload` endpoint which expects a different format and
+    // causes inconsistent/corrupted images after edit.
     if (_image != null) {
-      final imageResponse = await repo.uploadImage(jsonEncode({
-        'id': widget.editAsset!.id,
-        'image': _toDataUri(_image!),
-      }));
-      if (imageResponse.statusCode < 200 || imageResponse.statusCode >= 300) {
-        if (mounted) {
-          dSnackBar(context, "Failed to upload image", TypeSnackbar.error);
-        }
-        setState(() => loadingAssetInsertion = false);
-        return;
-      }
+      base64Image = _toDataUri(_image!);
     }
 
     final updateData = {
@@ -545,10 +536,13 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       "id": widget.editAsset!.id,
       "name": _nameField.text,
       "serialNumber": _serialField.text,
-      "category": _assetCategory ?? "Not Specified",
+      "category": _assetCategory ?? "",
       "customer": _customer ?? "",
       "customerId": widget.editAsset!.customerId,
       "location": "${_selectedLocationBin?.label}" ?? "",
+      // Include image in update payload; if no new image selected keep
+      // existing image value from the asset so server retains it.
+      "image": base64Image ?? widget.editAsset!.image,
       "status": _assetStatus?.toLowerCase() ?? "",
       "companyId": int.parse(companyId),
       "updatedAt": DateTime.now().toIso8601String(),
