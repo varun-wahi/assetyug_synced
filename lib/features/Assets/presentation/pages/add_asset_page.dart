@@ -57,6 +57,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   String? _assetStatus = activeStatusString;
   String? _assetCategory;
   String? _customer;
+  String? _customerId;
   LocationBinOption? _selectedLocationBin;
 
   List<String> categoryList = [];
@@ -262,7 +263,10 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                       },
                       displayString: (customer) => customer['name'].toString(),
                       onChanged: (value) {
-                        setState(() => _customer = value?['name'].toString());
+                        setState(() {
+                          _customer = value?['name'].toString();
+                          _customerId = value?['id'].toString();
+                        });
                         FocusScope.of(context).unfocus();
                       },
                       selectedItem:
@@ -323,7 +327,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                         setState(() => _assetStatus = value);
                         FocusScope.of(context).unfocus();
                       },
-                      isMandatory: true,
+                      isMandatory: false,
                     ),
                     Consumer(builder: (context, ref, _) {
                       final customFields = ref.watch(assetCustomFieldsProvider);
@@ -345,11 +349,35 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                         }
                       }
 
-                      return CustomFieldsSection(
-                        customFields: customFields,
-                        controllers: _customFieldControllers,
-                        respectMandatory: true,
-                        showClearButton: false,
+                      if (customFields.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const DGap(),
+                          // const Divider(),
+                          const DGap(),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Text(
+                              "Custom Fields",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textColor1,
+                              ),
+                            ),
+                          ),
+                          const DGap(),
+                          CustomFieldsSection(
+                            customFields: customFields,
+                            controllers: _customFieldControllers,
+                            respectMandatory: true,
+                            showClearButton: false,
+                          ),
+                        ],
                       );
                     }),
                   ],
@@ -439,6 +467,10 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     };
   }
 
+  /// Matches web `FileReader.readAsDataURL` format for API compatibility.
+  String _toDataUri(File file) =>
+      'data:image/jpeg;base64,${base64Encode(file.readAsBytesSync())}';
+
   void _submitAsset() async {
     setState(() => loadingAssetInsertion = true);
 
@@ -476,8 +508,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         await _insertAssetData(
           _nameField.text,
           _serialField.text,
-          _assetCategory ?? "Not Specified",
+          _assetCategory ?? "",
           _customer ?? "",
+          _customerId ?? "",
           _selectedLocationBin?.label ?? "",
           _assetStatus?.toLowerCase() ?? "",
         );
@@ -492,15 +525,20 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   Future<void> _updateAssetData() async {
     final repo = AssetsRepositoryImpl();
 
-    // If new image selected, encode it
     if (_image != null) {
-      base64Image = base64Encode(await _image!.readAsBytes());
-    } else if (widget.editAsset!.image != null) {
-      // Keep existing image
-      base64Image = widget.editAsset!.image;
+      final imageResponse = await repo.uploadImage(jsonEncode({
+        'id': widget.editAsset!.id,
+        'image': _toDataUri(_image!),
+      }));
+      if (imageResponse.statusCode < 200 || imageResponse.statusCode >= 300) {
+        if (mounted) {
+          dSnackBar(context, "Failed to upload image", TypeSnackbar.error);
+        }
+        setState(() => loadingAssetInsertion = false);
+        return;
+      }
     }
 
-    // Create update payload matching your API format
     final updateData = {
       "email": userEmail,
       "assetId": widget.editAsset!.assetId,
@@ -509,12 +547,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       "serialNumber": _serialField.text,
       "category": _assetCategory ?? "Not Specified",
       "customer": _customer ?? "",
-      "customerId": widget.editAsset!.customerId, // Keep existing customerId
+      "customerId": widget.editAsset!.customerId,
       "location": "${_selectedLocationBin?.label}" ?? "",
-      // "locationName": _selectedLocationBin?.label??,
-      // "locationName": _selectedLocationBin?.label??,
       "status": _assetStatus?.toLowerCase() ?? "",
-      "image": base64Image,
       "companyId": int.parse(companyId),
       "updatedAt": DateTime.now().toIso8601String(),
       ..._buildCustomFieldPayload(),
@@ -554,21 +589,29 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   bool validateFields(List<String> values) =>
       values.every((value) => value.isNotEmpty);
 
-  Future<void> _insertAssetData(String name, String serialNumber,
-      String category, String customer, String location, String status) async {
+  Future<void> _insertAssetData(
+      String name,
+      String serialNumber,
+      String category,
+      String customer,
+      String customerId,
+      String location,
+      String status) async {
     final repo = AssetsRepositoryImpl();
-    if (_image != null) base64Image = base64Encode(await _image!.readAsBytes());
+    if (_image != null) base64Image = _toDataUri(_image!);
     final data = AssetsModel(
       name: name,
       serialNumber: serialNumber,
-      category: category ?? "Not Specified",
+      category: category,
+      email: userEmail,
       customer: customer,
-      customerId: "1",
+      customerId: customerId,
       location: location,
       status: status,
       image: base64Image,
       companyId: companyId,
     );
+    print("ASSET DAYA: ${data.toJson()}");
     final response = await repo.addNewAsset(json.encode({
       ...data.toJson(),
       ..._buildCustomFieldPayload(),
@@ -618,7 +661,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final XFile? image =
-        await picker.pickImage(source: source, imageQuality: 85);
+        await picker.pickImage(source: source, imageQuality: 70);
     if (image != null) {
       final compressed = await _compressImage(File(image.path));
       setState(() => _image = compressed);
