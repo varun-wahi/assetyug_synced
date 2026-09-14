@@ -246,15 +246,12 @@ class _AssetFilterFormState extends ConsumerState<AssetFilterForm> {
           selectedItem: _selectedLocationBin,
         ),
         DDropdown(
-          padding: const EdgeInsets.symmetric(horizontal: dPadding),
           label: "Status",
           items: assetStatusMenuItems,
           value: _assetStatus,
           onChanged: (value) => setState(() => _assetStatus = value),
         ),
-        const DGap(),
         DDropdown(
-          padding: const EdgeInsets.symmetric(horizontal: dPadding),
           label: "Checking Status",
           items: const [
             DropdownMenuItem(value: "All", child: Text("All")),
@@ -353,26 +350,36 @@ class AssetFilterData {
     this.customFieldNames = const {},
   });
 
-  Map<String, dynamic> toFilterForm() {
-    final form = <String, dynamic>{
+  Map<String, dynamic> toFilterForm({
+    String sortField = 'updatedAt',
+    String sortDirection = 'DESC',
+    int pageNumber = 0,
+    int pageSize = 50,
+  }) {
+    final locationText = location.trim();
+    final customFields = <String, String>{};
+    customFieldValues.forEach((fieldId, value) {
+      final fieldName = customFieldNames[fieldId];
+      if (fieldName != null && fieldName.isNotEmpty) {
+        customFields[fieldName] = value;
+      }
+    });
+
+    return <String, dynamic>{
       'assetId': assetId,
       'name': name,
       'customer': customer,
       'serialNumber': serialNumber,
       'category': category,
-      'location': location,
+      'location': locationText.isEmpty ? null : locationText,
       'status': status,
-      'email': '',
+      'email': null,
       'companyId': companyId,
+      'sortDirection': sortDirection,
+      'sortField': sortField,
+      'pageNumber': pageNumber,
+      'pageSize': pageSize,
+      'customFields': customFields,
     };
-
-    customFieldValues.forEach((fieldId, value) {
-      final fieldName = customFieldNames[fieldId];
-      if (fieldName != null && fieldName.isNotEmpty) {
-        form[fieldName] = value;
-      }
-    });
-
-    return form;
   }
 }

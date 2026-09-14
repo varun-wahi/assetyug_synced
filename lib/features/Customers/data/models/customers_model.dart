@@ -10,6 +10,7 @@ class CustomersModel {
   String? address;
   String? apartment;
   String? city;
+  String? country;
   String? state;
   String? zipCode;
 
@@ -25,6 +26,7 @@ class CustomersModel {
     this.address,
     this.apartment,
     this.city,
+    this.country,
     this.state,
     this.zipCode,
   });
@@ -41,6 +43,7 @@ class CustomersModel {
         address: json["address"] ?? "",
         apartment: json["apartment"] ?? "",
         city: json["city"] ?? "",
+        country: json["country"] ?? "",
         state: json["state"] ?? "",
         zipCode: json["zipCode"]?.toString() ?? "",
       );
@@ -57,6 +60,7 @@ class CustomersModel {
         "address": address ?? "",
         "apartment": apartment ?? "",
         "city": city ?? "",
+        "country": country ?? "",
         "state": state ?? "",
         "zipCode": zipCode ?? "",
       };

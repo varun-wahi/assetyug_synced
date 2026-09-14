@@ -21,12 +21,14 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/models/custom_field_model.dart';
 import '../../../../core/utils/widgets/custom_fields_section.dart';
+import '../../../../core/utils/location/device_location_utils.dart';
 import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../../../core/utils/widgets/async_dropdown_search_widget.dart';
 import '../../../../core/utils/widgets/my_elevated_button.dart';
 import '../riverpod/asset_custom_fields_provider.dart';
 import '../widgets/custom_text_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../riverpod/technical_users_provider.dart';
 import 'view_asset_page.dart';
 
@@ -98,10 +100,12 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       ref.invalidate(assetCustomFieldsProvider);
       await ref
           .read(assetCustomFieldsProvider.notifier)
-          .loadExtraFieldsForEdit(widget.editAsset!.id!);
+          .loadExtraFieldsForEdit(widget.editAsset!.id!, companyId);
     } else {
       ref.invalidate(assetCustomFieldsProvider);
-      await ref.read(assetCustomFieldsProvider.notifier).loadCustomFields(companyId);
+      await ref
+          .read(assetCustomFieldsProvider.notifier)
+          .loadCustomFields(companyId);
     }
 
     await _fetchDropdownData();
@@ -111,16 +115,30 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   void _populateFieldsForEdit() {
     final asset = widget.editAsset!;
 
-    _nameField.text = asset.name;
-    _serialField.text = asset.serialNumber;
-    _assetStatus = asset.status.toCapitalized();
-    _assetCategory = asset.category.isNotEmpty ? asset.category : null;
-    _customer = (asset.customer?.isNotEmpty ?? false) ? asset.customer : null;
+    bool isMissing(String? value) {
+      if (value == null) return true;
+      final text = value.trim();
+      if (text.isEmpty) return true;
+      final lower = text.toLowerCase();
+      return lower == 'null' ||
+          lower == 'unassigned' ||
+          lower == 'n/a' ||
+          lower == 'not specified' ||
+          lower == 'unknown customer id';
+    }
 
-    //! Handle location - you might need to adjust this based on your location format
-    if (asset.location.isNotEmpty && asset.location != "Not Specified") {
-      // Try to find matching location in options
-      // This is a simplified approach - you might need more complex matching
+    _nameField.text = asset.name;
+    _serialField.text =
+        isMissing(asset.serialNumber) ? '' : asset.serialNumber;
+    _assetStatus = isMissing(asset.status)
+        ? null
+        : asset.status.toCapitalized();
+    _assetCategory =
+        isMissing(asset.category) ? null : asset.category;
+    _customer = isMissing(asset.customer) ? null : asset.customer;
+    _customerId = isMissing(asset.customerId) ? null : asset.customerId;
+
+    if (!isMissing(asset.location)) {
       _selectedLocationBin = locationBinOptions.firstWhere(
         (option) => option.label == asset.location,
         orElse: () =>
@@ -131,8 +149,6 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     // Handle existing image
     if (asset.image != null && asset.image!.isNotEmpty) {
       base64Image = asset.image;
-      // Note: You can't convert base64 back to File easily for display
-      // You might want to show the existing image differently
     }
 
     setState(() {});
@@ -278,9 +294,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
             autofocus: true,
             focusNode: _nameFocusNode,
           ),
-          const DGap(),
-          buildCustomTextField("Serial Number", TextInputType.text, _serialField, false),
-          const DGap(),
+          buildCustomTextField(
+              "Serial Number", TextInputType.text, _serialField, false),
           AsyncDropdownField<Map<String, dynamic>>(
             label: "Category",
             asyncItemsFetcher: () async {
@@ -304,9 +319,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
               setState(() => _assetCategory = value?['name'].toString());
               FocusScope.of(context).unfocus();
             },
-            selectedItem: _assetCategory != null ? {'name': _assetCategory} : null,
+            selectedItem:
+                _assetCategory != null ? {'name': _assetCategory} : null,
           ),
-          const DGap(),
           AsyncDropdownField<Map<String, dynamic>>(
             label: "Customer",
             asyncItemsFetcher: () async {
@@ -335,7 +350,6 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
             },
             selectedItem: _customer != null ? {'name': _customer} : null,
           ),
-          const DGap(),
           AsyncDropdownField<LocationBinOption>(
             label: "Location",
             asyncItemsFetcher: () async {
@@ -375,7 +389,6 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
             },
             selectedItem: _selectedLocationBin,
           ),
-          const DGap(),
           DDropdown(
             label: "Status",
             items: addAssetStatusMenuItems,
@@ -396,7 +409,17 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       controller: _customFieldsScrollController,
       padding: const EdgeInsets.all(dPadding * 2),
       child: Consumer(builder: (context, ref, _) {
-        final customFields = ref.watch(assetCustomFieldsProvider);
+        final customFields = ref
+            .watch(assetCustomFieldsProvider)
+            .where((f) => f.show)
+            .toList();
+
+        final visibleIds = customFields.map((f) => f.id).toSet();
+        _customFieldControllers.removeWhere((id, controller) {
+          if (visibleIds.contains(id)) return false;
+          controller.dispose();
+          return true;
+        });
 
         if (isEditMode) {
           for (final f in customFields) {
@@ -503,12 +526,63 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     );
   }
 
-  Map<String, dynamic> _buildCustomFieldPayload() {
-    final customFields = ref.read(assetCustomFieldsProvider);
+  List<CustomField> _visibleCustomFields() => ref
+      .read(assetCustomFieldsProvider)
+      .where((f) => f.show)
+      .toList();
+
+  /// Flat map of visible custom field name → value.
+  Map<String, String> _buildCustomFieldPayload() {
+    final customFields = _visibleCustomFields();
     return {
       for (var field in customFields)
         field.name: _customFieldControllers[field.id]?.text ?? ''
     };
+  }
+
+  /// Matches web/API format:
+  /// top-level custom keys + nested `extraFields` with the same map.
+  /// Empty optional fields (`customer`, `location`, `image`) are sent as null.
+  Map<String, dynamic> _buildAssetSubmitPayload(Map<String, dynamic> base) {
+    final customFields = _buildCustomFieldPayload();
+    final payload = <String, dynamic>{
+      ...base,
+      ...customFields,
+      'extraFields': customFields,
+    };
+
+    for (final key in const ['customer', 'customerId', 'location', 'locationName', 'image']) {
+      final value = payload[key];
+      if (value == null || (value is String && value.trim().isEmpty)) {
+        payload[key] = null;
+      }
+    }
+
+    return payload;
+  }
+
+  /// Parses addNewAssets / update error bodies, especially UNIQUE_FIELD_VIOLATION.
+  String _assetApiErrorMessage(http.Response response, String fallback) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is! Map) return fallback;
+
+      if (body['error'] == 'UNIQUE_FIELD_VIOLATION') {
+        final fieldNames = body['fieldNames'];
+        final names = fieldNames is List
+            ? fieldNames.map((e) => e.toString()).join(', ')
+            : '';
+        if (names.isNotEmpty) {
+          return 'Unique field constraint violated for: $names';
+        }
+        return body['message']?.toString() ??
+            'Unique field constraint violated';
+      }
+
+      return body['message']?.toString() ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
   }
 
   /// Matches web `FileReader.readAsDataURL` format for API compatibility.
@@ -526,8 +600,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       return dSnackBar(context, "Fill all required fields", TypeSnackbar.error);
     }
 
-    // ✅ Validate mandatory custom fields
-    final customFields = ref.read(assetCustomFieldsProvider);
+    // ✅ Validate mandatory custom fields (show fields only)
+    final customFields = _visibleCustomFields();
     for (var field in customFields) {
       if (field.mandatory) {
         final value = _customFieldControllers[field.id]?.text ?? '';
@@ -574,30 +648,37 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       base64Image = _toDataUri(_image!);
     }
 
-    final updateData = {
+    // Prefer newly selected customer id; fall back to existing when unchanged.
+    final resolvedCustomerId = (_customerId != null && _customerId!.isNotEmpty)
+        ? _customerId
+        : widget.editAsset!.customerId;
+    final resolvedCustomer =
+        (_customer != null && _customer!.trim().isNotEmpty) ? _customer : null;
+
+    final updateData = _buildAssetSubmitPayload({
       "email": userEmail,
       "assetId": widget.editAsset!.assetId,
       "id": widget.editAsset!.id,
       "name": _nameField.text,
       "serialNumber": _serialField.text,
       "category": _assetCategory ?? "",
-      "customer": _customer ?? "",
-      "customerId": widget.editAsset!.customerId,
-      "location": _selectedLocationBin?.label ?? "",
+      "customer": resolvedCustomer,
+      "customerId": resolvedCustomer == null ? null : resolvedCustomerId,
+      "location": _selectedLocationBin?.label,
+      "locationName": _selectedLocationBin?.label,
       // Include image in update payload; if no new image selected keep
       // existing image value from the asset so server retains it.
       "image": base64Image ?? widget.editAsset!.image,
       "status": _assetStatus?.toLowerCase() ?? "",
       "companyId": int.parse(companyId),
       "updatedAt": DateTime.now().toIso8601String(),
-      ..._buildCustomFieldPayload(),
-    };
+    });
 
     final response = await repo.updateAsset(updateData);
 
     if (response.statusCode == 200) {
       // ← Add this block before the snackbar
-      final customFields = ref.read(assetCustomFieldsProvider);
+      final customFields = _visibleCustomFields();
       for (final field in customFields) {
         if (field is CustomFieldWithValue) {
           final newValue =
@@ -618,8 +699,13 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         Navigator.pop(context, true);
       }
     } else {
-      if (mounted)
-        dSnackBar(context, "Failed to update asset", TypeSnackbar.error);
+      if (mounted) {
+        dSnackBar(
+          context,
+          _assetApiErrorMessage(response, "Failed to update asset"),
+          TypeSnackbar.error,
+        );
+      }
     }
     setState(() => loadingAssetInsertion = false);
   }
@@ -654,10 +740,23 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
 
     print("ASSET DATA: ${data.toJson()}");
 
-    final response = await repo.addNewAsset(json.encode({
-      ...data.toJson(),
-      ..._buildCustomFieldPayload(),
-    }));
+    final payloadMap = _buildAssetSubmitPayload(data.toJson());
+    final payloadBody = json.encode(payloadMap);
+
+    // Log payload without dumping full base64 image.
+    final logPayload = Map<String, dynamic>.from(payloadMap);
+    final imageValue = logPayload['image'];
+    if (imageValue is String && imageValue.isNotEmpty) {
+      logPayload['image'] =
+          '<base64 omitted, length=${imageValue.length}>';
+    }
+    print('📤 addNewAssets payload: ${json.encode(logPayload)}');
+    print('📤 addNewAssets custom fields: ${_buildCustomFieldPayload()}');
+
+    final response = await repo.addNewAsset(payloadBody);
+    print(
+      '📥 addNewAssets response: status=${response.statusCode} body=${response.body}',
+    );
 
     if (response.statusCode == 200) {
       final id = jsonDecode(response.body)["id"];
@@ -671,20 +770,32 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         print('Could not fetch technical users, using customer as employee: $e');
       }
 
-      final checkInData = {
-        'assetId': id,
-        'status': checkInString,
-        'companyId': companyId,
-        'employee': defaultEmployee,
-        'notes': null,
-        'location': location,
-        'date': DateTime.now().toIso8601String(),
-      };
-
+      DeviceLocationPayload? locationPayload;
       try {
-        await repo.addCheckInOut(json.encode(checkInData));
+        locationPayload = await DeviceLocationUtils.captureRequired();
       } catch (e) {
-        print('Failed to add initial check-in: $e');
+        print('Could not capture location for initial check-in: $e');
+      }
+
+      if (locationPayload != null) {
+        final checkInData = {
+          'assetId': id,
+          'status': checkInString,
+          'companyId': companyId,
+          'employee': defaultEmployee,
+          'notes': null,
+          'location': location,
+          'date': DateTime.now().toIso8601String(),
+          ...locationPayload.toJson(),
+        };
+        final payload = json.encode(checkInData);
+        print('addCheckInOut payload: $payload');
+
+        try {
+          await repo.addCheckInOut(payload);
+        } catch (e) {
+          print('Failed to add initial check-in: $e');
+        }
       }
 
       if (mounted) {
@@ -710,7 +821,10 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
       if (mounted) {
         dSnackBar(
           context,
-          "Failed to insert asset ${jsonDecode(response.body)['message']}",
+          _assetApiErrorMessage(
+            response,
+            "Failed to insert asset",
+          ),
           TypeSnackbar.error,
         );
       }

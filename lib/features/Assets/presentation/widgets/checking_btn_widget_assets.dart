@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/my_elevated_button.dart';
 import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
@@ -14,15 +16,23 @@ import '../../domain/usecases/switch_asset_status_string.dart';
 import '../../data/models/assets_model.dart';
 import '../../../../core/utils/constants/strings.dart';
 import '../../../../core/utils/constants/colors.dart';
+import '../../../../core/utils/location/device_location_utils.dart';
 import '../riverpod/technical_users_provider.dart';
 
 class AssetStatusButton extends ConsumerStatefulWidget {
   final AssetsModel data;
   final WidgetRef ref;
   final Function(String)? onStatusChanged;
+  /// When provided (e.g. from advancedFilter/optimized), skips the status API.
+  final String? initialCheckingStatus;
 
-  const AssetStatusButton(
-      {super.key, required this.data, required this.ref, this.onStatusChanged});
+  const AssetStatusButton({
+    super.key,
+    required this.data,
+    required this.ref,
+    this.onStatusChanged,
+    this.initialCheckingStatus,
+  });
 
   @override
   _AssetStatusButtonState createState() => _AssetStatusButtonState();
@@ -33,12 +43,20 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   String? _selectedEmployee;
+  bool _isFetchingLocation = false;
 
   @override
   void initState() {
     super.initState();
-    // Fetch check-in/out status from the repository
-    _statusFuture = _fetchCheckInOutStatus();
+    final initial = widget.initialCheckingStatus?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _statusFuture = Future.value(initial);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onStatusChanged?.call(initial);
+      });
+    } else {
+      _statusFuture = _fetchCheckInOutStatus();
+    }
   }
 
   @override
@@ -108,14 +126,26 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
             buttonColor: (assetCheckingStatus == checkInString)
                 ? tCheckOutColor
                 : tCheckInColor,
-            onPressed: () async {
-              await showCheckInOutDialog(context, assetCheckingStatus);
+            onPressed: () {
+              if (_isFetchingLocation) return;
+              _startCheckInOut(assetCheckingStatus);
             },
-            child: (assetCheckingStatus == checkInString)
-                ? Text("Check Out",
-                    style: subtitle(weight: FontWeight.w500, color: tWhite))
-                : Text("Check In",
-                    style: subtitle(weight: FontWeight.w500, color: tWhite)),
+            child: _isFetchingLocation
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: tWhite,
+                    ),
+                  )
+                : (assetCheckingStatus == checkInString)
+                    ? Text("Check Out",
+                        style:
+                            subtitle(weight: FontWeight.w500, color: tWhite))
+                    : Text("Check In",
+                        style:
+                            subtitle(weight: FontWeight.w500, color: tWhite)),
           );
         }
         return const SizedBox();
@@ -123,8 +153,86 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
     );
   }
 
+  Future<void> _startCheckInOut(String? assetCheckingStatus) async {
+    setState(() => _isFetchingLocation = true);
+
+    try {
+      await DeviceLocationUtils.ensureLocationPermission();
+      if (!mounted) return;
+
+      _showLocationLoadingDialog();
+      final location = await DeviceLocationUtils.captureRequired();
+
+      if (!mounted) return;
+      _hideLocationLoadingDialog();
+      setState(() => _isFetchingLocation = false);
+
+      if (!location.hasCoordinates) {
+        dSnackBar(
+          context,
+          'Location is required to check in/out.',
+          TypeSnackbar.warning,
+        );
+        return;
+      }
+
+      await showCheckInOutDialog(context, assetCheckingStatus, location);
+    } on LocationCaptureException catch (e) {
+      if (!mounted) return;
+      _hideLocationLoadingDialog();
+      setState(() => _isFetchingLocation = false);
+      dSnackBar(context, e.message, TypeSnackbar.warning);
+    } catch (e) {
+      if (!mounted) return;
+      _hideLocationLoadingDialog();
+      setState(() => _isFetchingLocation = false);
+      dSnackBar(
+        context,
+        'Failed to get location. Please try again.',
+        TypeSnackbar.error,
+      );
+      print('Check in/out location error: $e');
+    }
+  }
+
+  bool _isLocationDialogVisible = false;
+
+  void _showLocationLoadingDialog() {
+    _isLocationDialogVisible = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(vertical: 12.0),
+          content: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                child: const CircularProgressIndicator(),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Text('Fetching information...'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _hideLocationLoadingDialog() {
+    if (!_isLocationDialogVisible || !mounted) return;
+    _isLocationDialogVisible = false;
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
   Future<void> showCheckInOutDialog(
-      BuildContext context, var assetCheckingStatus) async {
+      BuildContext context,
+      var assetCheckingStatus,
+      DeviceLocationPayload location) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -186,14 +294,14 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   hasLabel: true,
                   hintText: "Notes",
                   maxLines: 3,
-                  padding: 0,
+                  padding: EdgeInsets.zero,
                   controller: _notesController,
                 ),
                 const DGap(),
                 DTextField(
                   hasLabel: true,
                   hintText: "Location",
-                  padding: 0,
+                  padding: EdgeInsets.zero,
                   controller: _locationController,
                 ),
               ],
@@ -219,13 +327,14 @@ class _AssetStatusButtonState extends ConsumerState<AssetStatusButton> {
                   'notes': _notesController.text,
                   'location': _locationController.text,
                   'date': DateTime.now().toIso8601String(),
+                  ...location.toJson(),
                 };
+                final payload = json.encode(data);
+                print('addCheckInOut payload: $payload');
                 // Call addCheckInOut method
                 final repository = AssetsRepositoryImpl();
                 try {
-                  final response =
-                      await repository.addCheckInOut(json.encode(data));
-                  print("data: $data");
+                  final response = await repository.addCheckInOut(payload);
                   if (response.statusCode == 200) {
                     // Trigger global refresh for dashboard/home
                     ref.read(refreshProvider.notifier).state =

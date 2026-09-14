@@ -32,7 +32,8 @@ class CustomFieldsSection extends StatelessWidget {
           fieldType: field.type,
           controller: controllers[field.id]!,
           showClearButton: showClearButton,
-          isMandatory: respectMandatory && field.mandatory, // 👈
+          isMandatory: respectMandatory && field.mandatory,
+          isUnique: field.isUnique,
         );
       }).toList(),
     );

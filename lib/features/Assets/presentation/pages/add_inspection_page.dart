@@ -4,18 +4,18 @@ import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/d_dropdown.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
-import 'package:asset_yug_debugging/features/Assets/data/repository/assets_repository_impl.dart';
+import 'package:asset_yug_debugging/features/Assets/presentation/riverpod/technical_users_provider.dart';
 import 'package:asset_yug_debugging/features/Assets/presentation/widgets/inspection_form_field_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/models/inspection models/asset_inspection_instance__model.dart';
 import '../../data/models/inspection models/inspection_step_model.dart';
 import '../../data/models/inspection models/inspection_template_model.dart';
-
-final assetsRepositoryProvider =
-    Provider<AssetsRepositoryImpl>((ref) => AssetsRepositoryImpl());
 
 class AddInspectionPage extends ConsumerStatefulWidget {
   final String assetId;
@@ -39,9 +39,14 @@ class AddInspectionPage extends ConsumerStatefulWidget {
 
 class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
   final TextEditingController _notesController = TextEditingController();
-  bool get isReadOnly => widget.existingInspection?.status == 'COMPLETED';
+  bool _isAdmin = false;
 
-  final TextEditingController _performedByController = TextEditingController();
+  /// Completed inspections are read-only for non-admins; ADMIN can still edit/save.
+  bool get isReadOnly =>
+      widget.existingInspection?.status == 'COMPLETED' && !_isAdmin;
+
+  String? _selectedPerformer;
+  DateTime? _dueDate;
 
   List<AssetInspectionTemplateModel> selectedTemplates = [];
 
@@ -54,8 +59,15 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
   @override
   void initState() {
     super.initState();
-
+    _loadUserRole();
     _prefillData();
+  }
+
+  Future<void> _loadUserRole() async {
+    final box = await Hive.openBox('auth_data');
+    final role = box.get('role')?.toString().toUpperCase();
+    if (!mounted) return;
+    setState(() => _isAdmin = role == 'ADMIN');
   }
 
   void _prefillData() {
@@ -63,9 +75,13 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
 
     if (existing == null) return;
 
-    _performedByController.text = existing.actionPerformedBy;
+    _selectedPerformer = existing.actionPerformedBy;
 
     _notesController.text = existing.notes;
+
+    if (existing.dueDate.isNotEmpty) {
+      _dueDate = DateTime.tryParse(existing.dueDate)?.toLocal();
+    }
 
     // PREFILL TEMPLATES
     selectedTemplates = widget.availableTemplates.where((template) {
@@ -99,55 +115,86 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
           ),
           content: SizedBox(
             width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: widget.availableTemplates.length,
-              itemBuilder: (context, index) {
-                final template = widget.availableTemplates[index];
-
-                final isSelected = selectedTemplates.contains(
-                  template,
-                );
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey[300]!,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: CheckboxListTile(
-                    value: isSelected,
-                    onChanged: (value) {
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
                       setDialogState(() {
-                        if (value == true) {
-                          selectedTemplates.add(
-                            template,
+                        final allSelected = selectedTemplates.length ==
+                            widget.availableTemplates.length;
+                        selectedTemplates
+                          ..clear()
+                          ..addAll(
+                            allSelected ? [] : widget.availableTemplates,
                           );
-                        } else {
-                          selectedTemplates.remove(
-                            template,
-                          );
-                        }
                       });
                     },
-                    title: Text(
-                      template.name,
-                      style: body(),
-                    ),
-                    subtitle: Text(
-                      '${template.steps.length} steps',
-                      style: body(
-                        size: 12,
-                        color: Colors.grey,
-                      ),
+                    child: Text(
+                      selectedTemplates.length ==
+                              widget.availableTemplates.length
+                          ? 'Deselect all'
+                          : 'Select all',
+                      style: body(color: tPrimary, weight: FontWeight.w600),
                     ),
                   ),
-                );
-              },
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: widget.availableTemplates.length,
+                    itemBuilder: (context, index) {
+                      final template = widget.availableTemplates[index];
+
+                      final isSelected = selectedTemplates.any(
+                        (item) => item.id == template.id,
+                      );
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              if (value == true) {
+                                if (!selectedTemplates
+                                    .any((item) => item.id == template.id)) {
+                                  selectedTemplates.add(template);
+                                }
+                              } else {
+                                selectedTemplates.removeWhere(
+                                  (item) => item.id == template.id,
+                                );
+                              }
+                            });
+                          },
+                          title: Text(
+                            template.name,
+                            style: body(),
+                          ),
+                          subtitle: Text(
+                            '${template.steps.length} steps',
+                            style: body(
+                              size: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           actions: [
@@ -191,6 +238,83 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
     return allSteps;
   }
 
+  List<Widget> _buildGroupedTemplateSteps() {
+    return [
+      for (int templateIndex = 0;
+          templateIndex < selectedTemplates.length;
+          templateIndex++) ...[
+        _buildTemplateSection(selectedTemplates[templateIndex]),
+        if (templateIndex != selectedTemplates.length - 1)
+          const SizedBox(height: 16),
+      ],
+    ];
+  }
+
+  Widget _buildTemplateSection(AssetInspectionTemplateModel template) {
+    final steps = template.steps;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: tPrimary,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Text(
+              'Inspection Name : ${template.name}',
+              style: body(weight: FontWeight.w600, size: 14, color: tWhite),
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            decoration: BoxDecoration(
+              color: tWhite,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: steps.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      'No steps in this template',
+                      style: body(size: 13, color: Colors.grey),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (int i = 0; i < steps.length; i++) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                          child: InspectionFormField(
+                            step: steps[i],
+                            isReadOnly: isReadOnly,
+                            initialValue: fieldValues[
+                                '${steps[i].name}_${steps[i].type}'],
+                            onValueChanged: (value) {
+                              fieldValues[
+                                  '${steps[i].name}_${steps[i].type}'] = value;
+                            },
+                          ),
+                        ),
+                        if (i != steps.length - 1)
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: tGreyLight,
+                          ),
+                      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitInspection(
     String status,
   ) async {
@@ -203,10 +327,10 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
       return;
     }
 
-    if (_performedByController.text.trim().isEmpty) {
+    if ((_selectedPerformer ?? '').trim().isEmpty) {
       dSnackBar(
         context,
-        'Please enter who performed the inspection',
+        'Please select who performed the inspection',
         TypeSnackbar.warning,
       );
       return;
@@ -263,10 +387,15 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
         'companyId': widget.companyId,
         'assetCategoryInspectionName':
             selectedTemplates.map((t) => t.name).join(', '),
-        'actionPerformedBy': _performedByController.text.trim(),
+        'actionPerformedBy': _selectedPerformer!.trim(),
         'notes': _notesController.text.trim(),
         'createdAt': isEditMode ? widget.existingInspection!.createdAt : now,
         'updatedAt': now,
+        'dueDate': _dueDate == null
+            ? null
+            : DateTime(_dueDate!.year, _dueDate!.month, _dueDate!.day)
+                .toUtc()
+                .toIso8601String(),
         'status': status,
         'stepValues': stepValues,
         'inspectionTemplates': inspectionTemplates,
@@ -330,97 +459,39 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ElevatedButton.icon(
-                  onPressed: isEditMode ? null : _showTemplateSelectionDialog,
-                  icon: const Icon(Icons.checklist),
-                  label: Text(
-                    selectedTemplates.isEmpty
-                        ? 'Select Inspections'
-                        : '${selectedTemplates.length} inspection(s) selected',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tPrimary,
-                    foregroundColor: tWhite,
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                ),
+                _buildInspectionsDropdown(),
                 if (selectedTemplates.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Selected Inspections:',
-                    style: body(
-                      weight: FontWeight.w600,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...selectedTemplates.map(
-                    (template) => Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: 4,
+                  if (allSteps.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Inspection Fields',
+                      style: body(
+                        weight: FontWeight.w600,
+                        size: 16,
                       ),
-                      child: Text(
-                        '• ${template.name}',
-                        style: body(
-                          size: 14,
-                          color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    ..._buildGroupedTemplateSteps(),
+                  ],
+                  const SizedBox(height: 24),
+                  _buildDueDateField(),
+                  const SizedBox(height: 16),
+                  _buildPerformedByDropdown(),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: TextFormField(
+                      enabled: !isReadOnly,
+                      controller: _notesController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Notes',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
                   ),
-                ],
-                const SizedBox(height: 24),
-                TextFormField(
-                  enabled: !isReadOnly,
-                  controller: _performedByController,
-                  decoration: InputDecoration(
-                    labelText: 'Performed By *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        8,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  enabled: !isReadOnly,
-                  controller: _notesController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Notes',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        8,
-                      ),
-                    ),
-                  ),
-                ),
-                if (allSteps.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text(
-                    'Inspection Fields',
-                    style: body(
-                      weight: FontWeight.w600,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...allSteps.map((step) {
-                    final key = '${step.name}_${step.type}';
-
-                    return InspectionFormField(
-                      step: step,
-                      isReadOnly: isReadOnly,
-
-                      // IMPORTANT
-                      initialValue: fieldValues[key],
-
-                      onValueChanged: (value) {
-                        fieldValues[key] = value;
-                      },
-                    );
-                  }),
                 ],
                 const SizedBox(height: 100),
               ],
@@ -435,7 +506,9 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
             ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: isReadOnly
+          ? null
+          : SafeArea(
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: dPadding,
@@ -511,10 +584,136 @@ class _AddInspectionPageState extends ConsumerState<AddInspectionPage> {
     );
   }
 
+  Widget _buildInspectionsDropdown() {
+    final label = selectedTemplates.isEmpty
+        ? 'Select Inspections'
+        : selectedTemplates.length == 1
+            ? selectedTemplates.first.name
+            : '${selectedTemplates.length} inspections selected';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: InkWell(
+        onTap: isEditMode || isReadOnly ? null : _showTemplateSelectionDialog,
+        borderRadius: BorderRadius.circular(10),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Select Inspections*',
+            enabled: !isEditMode && !isReadOnly,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: tBlack),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: tBlack),
+            ),
+            suffixIcon: const Icon(Icons.arrow_drop_down),
+          ),
+          child: Text(
+            label,
+            style: body(
+              color: selectedTemplates.isEmpty ? Colors.grey : tBlack,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDueDate() async {
+    if (isReadOnly) return;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() => _dueDate = picked);
+    }
+  }
+
+  Widget _buildDueDateField() {
+    final label = _dueDate == null
+        ? 'Select due date'
+        : DateFormat('MM/dd/yyyy').format(_dueDate!);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: InkWell(
+        onTap: isReadOnly ? null : _pickDueDate,
+        borderRadius: BorderRadius.circular(10),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Due Date',
+            enabled: !isReadOnly,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: tBlack),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: tBlack),
+            ),
+            suffixIcon: const Icon(Icons.calendar_today),
+          ),
+          child: Text(
+            label,
+            style: body(
+              color: _dueDate == null ? Colors.grey : tBlack,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformedByDropdown() {
+    final usersAsync = ref.watch(technicalUsersProvider(widget.companyId));
+
+    return usersAsync.when(
+      data: (users) {
+        if (users.isNotEmpty &&
+            (_selectedPerformer == null ||
+                !users.contains(_selectedPerformer))) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _selectedPerformer = users.first);
+          });
+        }
+
+        return IgnorePointer(
+          ignoring: isReadOnly,
+          child: DDropdown(
+            label: 'Performed By',
+            isMandatory: true,
+            value:
+                users.contains(_selectedPerformer) ? _selectedPerformer : null,
+            items: users
+                .map(
+                    (name) => DropdownMenuItem(value: name, child: Text(name)))
+                .toList(),
+            onChanged: (value) => setState(() => _selectedPerformer = value),
+          ),
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8.0),
+        child: Text('Error loading technical users'),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _notesController.dispose();
-    _performedByController.dispose();
     super.dispose();
   }
 }

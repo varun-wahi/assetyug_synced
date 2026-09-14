@@ -94,10 +94,23 @@ class _AssetInspectionPageState extends ConsumerState<AssetInspectionPage>
   Future<void> _loadAvailableTemplates() async {
     try {
       final repository = ref.read(assetsRepositoryProvider);
+      final headers = await repository.getHeaders();
+      final url =
+          '${repository.assetEndpoint}getAllActiveAssetInspectionByCategory/${widget.companyId}?category=${Uri.encodeComponent(widget.category)}';
+
+      print('⬆️ getAssetInspectionsByCategory request');
+      print('🔗 URL: $url');
+      print('📝 Headers: $headers');
+      print(
+          '📦 Params: companyId=${widget.companyId}, category=${widget.category}');
+
       final response = await repository.getAssetInspectionsByCategory(
         widget.companyId,
         widget.category,
       );
+
+      print('✅ getAssetInspectionsByCategory status: ${response.statusCode}');
+      print('📥 getAssetInspectionsByCategory body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
@@ -118,7 +131,10 @@ class _AssetInspectionPageState extends ConsumerState<AssetInspectionPage>
       } else {
         throw Exception('Failed to load templates: ${response.statusCode}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ getAssetInspectionsByCategory failed');
+      print('🧾 Error: $e');
+      print('🧵 StackTrace: $stackTrace');
       setState(() {
         error = 'Error loading templates: $e';
         isLoadingTemplates = false;

@@ -7,6 +7,7 @@ import '../../../../config/secrets.dart';
 class CompanyCustomerRepositoryImpl {
   final String companyCustomerEndpoint = '${ApiConfig.baseUrl}companycustomer/';
   final String customerEndpoint = '${ApiConfig.baseUrl}customer/';
+  final String countryEndpoint = '${ApiConfig.baseUrl}country/';
 
   // Auth token
 
@@ -97,6 +98,14 @@ class CompanyCustomerRepositoryImpl {
   Future<http.Response> getAllShowFields(String companyId) async {
     final url =
         Uri.parse('${companyCustomerEndpoint}getAllShowFields/$companyId');
+    return await http.get(url, headers: await getHeaders());
+  }
+
+  /// Unique field config for customer EXTRA fields.
+  /// Same shape as assets: `fieldName` + `isUnique`.
+  Future<http.Response> getUniqueFieldConfig(String companyId) async {
+    final url =
+        Uri.parse('${companyCustomerEndpoint}uniqueFieldConfig/$companyId');
     return await http.get(url, headers: await getHeaders());
   }
 
@@ -198,6 +207,24 @@ class CompanyCustomerRepositoryImpl {
     final url = "${companyCustomerEndpoint}statelist";
     var headers = await getHeaders();
     return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  Future<http.Response> getCountries() async {
+    final headers = await getHeaders();
+    var response = await http.get(Uri.parse(countryEndpoint), headers: headers);
+    if (response.statusCode != 200) {
+      response = await http.get(
+        Uri.parse('${countryEndpoint}countries'),
+        headers: headers,
+      );
+    }
+    return response;
+  }
+
+  Future<http.Response> getStatesByCountry(String country) async {
+    final encodedCountry = Uri.encodeComponent(country.trim());
+    final url = Uri.parse('${countryEndpoint}states/$encodedCountry');
+    return await http.get(url, headers: await getHeaders());
   }
 
   Future<http.Response> deleteLocation(String id) async {

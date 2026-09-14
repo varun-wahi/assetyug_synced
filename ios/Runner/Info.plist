@@ -50,6 +50,8 @@
 
 		    <!-- Camera Permissions -->
 
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We use your location when checking assets in or out.</string>
     <key>NSCameraUsageDescription</key>
 <string>We need access to your camera to take car photos.</string>
 <key>NSPhotoLibraryUsageDescription</key>

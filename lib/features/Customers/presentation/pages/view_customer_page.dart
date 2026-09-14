@@ -158,7 +158,8 @@ class _BuildCustomerDetailCardState extends State<BuildCustomerDetailCard> {
                 // CustomerWOsPage(data: data),
                 // CustomerInvoicesPage(data: data),
                 CustomersCustomPage(
-                  customerId: widget.customerData?['id'],
+                  customerId:
+                      widget.customerData?['id']?.toString() ?? '',
                 ),
               ],
             ),

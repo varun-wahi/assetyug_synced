@@ -7,6 +7,7 @@ class AssetInspectionInstanceModel {
   final int companyId;
   final String createdAt;
   final String updatedAt;
+  final String dueDate;
   final String actionPerformedBy;
   final String notes;
   final String status; // PENDING or COMPLETED
@@ -22,6 +23,7 @@ class AssetInspectionInstanceModel {
     required this.companyId,
     required this.createdAt,
     required this.updatedAt,
+    required this.dueDate,
     required this.actionPerformedBy,
     required this.notes,
     required this.status,
@@ -39,6 +41,7 @@ class AssetInspectionInstanceModel {
       companyId: json['companyId'] ?? 0,
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
+      dueDate: json['dueDate'] ?? '',
       actionPerformedBy: json['actionPerformedBy'] ?? '',
       notes: json['notes'] ?? '',
       status: json['status'] ?? 'PENDING',
@@ -66,6 +69,7 @@ class AssetInspectionInstanceModel {
       'companyId': companyId,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'dueDate': dueDate,
       'actionPerformedBy': actionPerformedBy,
       'notes': notes,
       'status': status,

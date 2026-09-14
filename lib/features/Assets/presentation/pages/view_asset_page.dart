@@ -50,27 +50,28 @@ class _ViewAssetPageState extends State<ViewAssetPage> {
         ),
         body: Center(
           child: FutureBuilder(
-          future: _assetsRepository.getAssetDetails(widget.assetObjectId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            } else {
-              final assetData = snapshot.data;
-              // print("ASSET DATA: ${assetData?.body}");
-              if (assetData != null) {
-                final assetMap =
-                    jsonDecode(assetData.body) as Map<String, dynamic>;
-                return BuildAssetDetailCard(assetData: assetMap);
+            future: _assetsRepository.getAssetDetails(widget.assetObjectId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              } else if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
               } else {
-                return const Text('Asset not found');
+                final assetData = snapshot.data;
+                // print("ASSET DATA: ${assetData?.body}");
+                if (assetData != null) {
+                  final assetMap =
+                      jsonDecode(assetData.body) as Map<String, dynamic>;
+                  return BuildAssetDetailCard(assetData: assetMap);
+                } else {
+                  return const Text('Asset not found');
+                }
               }
-            }
-          },
+            },
+          ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -159,8 +160,7 @@ class _BuildAssetDetailCardState extends State<BuildAssetDetailCard> {
                 ),
                 AssetFilesPage(objectId: data.id!),
                 AssetCustomPage(
-                  assetId: widget.assetData!['id'],
-                  // ✅
+                  assetId: widget.assetData?['id']?.toString() ?? '',
                 ),
 
                 // AssetWOsPage(objectId: data.id!),

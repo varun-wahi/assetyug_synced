@@ -19,19 +19,74 @@ class AssetCustomPage extends ConsumerStatefulWidget {
 }
 
 class _AssetCustomPageState extends ConsumerState<AssetCustomPage> {
+  /// Matches the "Custom" tab index in [BuildAssetDetailCard] / view_asset_page.
+  static const int _customTabIndex = 4;
+
+  TabController? _tabController;
+  bool _loading = false;
+  bool _fetching = false;
+
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(
-      () => ref
-          .read(assetCustomFieldsProvider.notifier)
-          .loadExtraFieldsForAsset(widget.assetId),
-    );
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = DefaultTabController.maybeOf(context);
+    if (controller == _tabController) return;
+
+    _tabController?.removeListener(_onTabChanged);
+    _tabController = controller;
+    _tabController?.addListener(_onTabChanged);
+
+    if (_tabController?.index == _customTabIndex) {
+      _reload();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AssetCustomPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assetId != widget.assetId) {
+      _reload();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    final controller = _tabController;
+    if (controller == null || controller.indexIsChanging) return;
+    if (controller.index == _customTabIndex) {
+      _reload();
+    }
+  }
+
+  Future<void> _reload() async {
+    if (_fetching || widget.assetId.isEmpty) return;
+    _fetching = true;
+    if (mounted) setState(() => _loading = true);
+
+    try {
+      ref.invalidate(assetExtraFieldsProvider(widget.assetId));
+      await ref
+          .read(assetExtraFieldsProvider(widget.assetId).notifier)
+          .loadExtraFieldsForAsset(widget.assetId);
+    } finally {
+      _fetching = false;
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final customFields = ref.watch(assetCustomFieldsProvider);
+    final customFields =
+        ref.watch(assetExtraFieldsProvider(widget.assetId));
+
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     if (customFields.isEmpty) {
       return const NoDataFoundPage();
@@ -42,8 +97,8 @@ class _AssetCustomPageState extends ConsumerState<AssetCustomPage> {
       itemCount: customFields.length,
       itemBuilder: (context, index) {
         final field = customFields[index];
-        final value = field is CustomFieldWithValue ? field.value : '—';
-        final isEmpty = value == '—' || value.trim().isEmpty;
+        final value = field is CustomFieldWithValue ? field.value : '';
+        final isEmpty = value.trim().isEmpty || value == '—';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: dPadding),
@@ -59,7 +114,6 @@ class _AssetCustomPageState extends ConsumerState<AssetCustomPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Type icon badge
                 Container(
                   width: 36,
                   height: 36,
@@ -74,7 +128,6 @@ class _AssetCustomPageState extends ConsumerState<AssetCustomPage> {
                   ),
                 ),
                 const SizedBox(width: dPadding),
-                // Label
                 Expanded(
                   flex: 2,
                   child: Text(
@@ -83,7 +136,6 @@ class _AssetCustomPageState extends ConsumerState<AssetCustomPage> {
                   ),
                 ),
                 const SizedBox(width: dPadding),
-                // Value chip
                 Container(
                   constraints: const BoxConstraints(maxWidth: 160),
                   padding: const EdgeInsets.symmetric(

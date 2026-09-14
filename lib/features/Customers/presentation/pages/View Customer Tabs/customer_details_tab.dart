@@ -78,6 +78,12 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         : "--"),
                 const DDivider(),
                 _buildDetailRow(
+                    "Country: ",
+                    widget.data.country?.isNotEmpty == true
+                        ? widget.data.country!
+                        : "--"),
+                const DDivider(),
+                _buildDetailRow(
                     "State: ",
                     widget.data.state!.isNotEmpty == true
                         ? widget.data.state!

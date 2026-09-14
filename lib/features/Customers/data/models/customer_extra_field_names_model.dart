@@ -4,38 +4,37 @@
 
 import 'dart:convert';
 
+CustomerExtraFieldNamesModel CustomerExtraFieldNamesModelFromJson(String str) =>
+    CustomerExtraFieldNamesModel.fromJson(json.decode(str));
 
-CustomerExtraFieldNamesModel CustomerExtraFieldNamesModelFromJson(String str) => CustomerExtraFieldNamesModel.fromJson(json.decode(str));
-
-String CustomerExtraFieldNamesModelToJson(CustomerExtraFieldNamesModel data) => json.encode(data.toJson());
+String CustomerExtraFieldNamesModelToJson(CustomerExtraFieldNamesModel data) =>
+    json.encode(data.toJson());
 
 class CustomerExtraFieldNamesModel {
-    final String? id;
-    final String name;
-    final String type;
-    final String companyId;
-    
+  final String? id;
+  final String name;
+  final String type;
+  final String companyId;
 
-    CustomerExtraFieldNamesModel({
-        this.id,
-        required this.name,
-        required this.type,
-        required this.companyId,
-    });
+  CustomerExtraFieldNamesModel({
+    this.id,
+    required this.name,
+    required this.type,
+    required this.companyId,
+  });
 
-    factory CustomerExtraFieldNamesModel.fromJson(Map<String, dynamic> json) => CustomerExtraFieldNamesModel(
-        id: json["id"],
-        name: json["name"],
-        type: json["type"],
-        companyId: json["companyId"],
-    );
+  factory CustomerExtraFieldNamesModel.fromJson(Map<String, dynamic> json) =>
+      CustomerExtraFieldNamesModel(
+        id: json["id"]?.toString(),
+        name: json["name"]?.toString() ?? '',
+        type: json["type"]?.toString() ?? '',
+        companyId: json["companyId"]?.toString() ?? '',
+      );
 
-    Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => {
         "id": id,
         "name": name,
         "type": type,
         "companyId": companyId,
-    };
+      };
 }
-
-

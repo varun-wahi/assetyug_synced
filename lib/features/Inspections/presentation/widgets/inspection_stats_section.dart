@@ -1,61 +1,113 @@
 import 'package:flutter/material.dart';
 import '../../data/models/inspection_models.dart';
 
-/// The block of summary cards at the top of the inspections list:
-/// the big navy "All inspections" card, the pending/ongoing pair,
-/// the green "Completed" card, and the "Inspections by employee" bars.
+/// Summary cards at the top of the inspections list. Status boxes are
+/// driven by the API `statusCounts` list and only shown when count > 0.
 class InspectionStatsSection extends StatelessWidget {
   final InspectionStats stats;
+  final String? selectedStatus;
+  final ValueChanged<String?>? onStatusSelected;
 
-  const InspectionStatsSection({super.key, required this.stats});
+  const InspectionStatsSection({
+    super.key,
+    required this.stats,
+    this.selectedStatus,
+    this.onStatusSelected,
+  });
+
+  bool _isSelected(String? statusLabel) {
+    final selected = (selectedStatus ?? '').trim().toLowerCase();
+    if (selected.isEmpty || selected == 'all') {
+      return statusLabel == null;
+    }
+    return selected == (statusLabel ?? '').trim().toLowerCase();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final visibleCounts = stats.visibleStatusCounts;
+    final rows = <List<InspectionStatusCount>>[];
+    for (var i = 0; i < visibleCounts.length; i += 2) {
+      rows.add(visibleCounts.sublist(
+        i,
+        i + 2 > visibleCounts.length ? visibleCounts.length : i + 2,
+      ));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _AllInspectionsCard(count: stats.total),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                icon: Icons.access_time_rounded,
-                iconColor: const Color(0xFF8A5A14),
-                backgroundColor: const Color(0xFFFDECC8),
-                count: stats.pending,
-                title: 'Pending',
-                subtitle: 'Awaiting action',
-                textColor: const Color(0xFF8A5A14),
-              ),
+        if (stats.total > 0) ...[
+          _AllInspectionsCard(
+            count: stats.total,
+            selected: _isSelected(null),
+            onTap: onStatusSelected == null
+                ? null
+                : () => onStatusSelected!(null),
+          ),
+          if (rows.isNotEmpty || stats.byEmployee.isNotEmpty)
+            const SizedBox(height: 12),
+        ],
+        for (var i = 0; i < rows.length; i++) ...[
+          _StatusCountRow(
+            items: rows[i],
+            selectedStatus: selectedStatus,
+            onStatusSelected: onStatusSelected,
+          ),
+          if (i != rows.length - 1 || stats.byEmployee.isNotEmpty)
+            const SizedBox(height: 12),
+        ],
+        if (stats.byEmployee.isNotEmpty)
+          _ByEmployeeCard(entries: stats.byEmployee),
+      ],
+    );
+  }
+}
+
+class _StatusCountRow extends StatelessWidget {
+  final List<InspectionStatusCount> items;
+  final String? selectedStatus;
+  final ValueChanged<String?>? onStatusSelected;
+
+  const _StatusCountRow({
+    required this.items,
+    this.selectedStatus,
+    this.onStatusSelected,
+  });
+
+  bool _isSelected(String label) {
+    final selected = (selectedStatus ?? '').trim().toLowerCase();
+    if (selected.isEmpty || selected == 'all') return false;
+    return selected == label.trim().toLowerCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.length == 1) {
+      return _StatCard(
+        item: items.first,
+        fullWidth: true,
+        selected: _isSelected(items.first.label),
+        onTap: onStatusSelected == null
+            ? null
+            : () => onStatusSelected!(items.first.label),
+      );
+    }
+
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          Expanded(
+            child: _StatCard(
+              item: items[i],
+              selected: _isSelected(items[i].label),
+              onTap: onStatusSelected == null
+                  ? null
+                  : () => onStatusSelected!(items[i].label),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.sync_rounded,
-                iconColor: const Color(0xFF1D4ED8),
-                backgroundColor: const Color(0xFFDCEAFE),
-                count: stats.ongoing,
-                title: 'Ongoing',
-                subtitle: 'In progress now',
-                textColor: const Color(0xFF1D4ED8),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _StatCard(
-          icon: Icons.check_rounded,
-          iconColor: const Color(0xFF3A6B23),
-          backgroundColor: const Color(0xFFDDEAD2),
-          count: stats.completed,
-          title: 'Completed',
-          subtitle: 'Finished inspections',
-          textColor: const Color(0xFF3A6B23),
-          fullWidth: true,
-        ),
-        const SizedBox(height: 12),
-        _ByEmployeeCard(entries: stats.byEmployee),
+          ),
+          if (i != items.length - 1) const SizedBox(width: 12),
+        ],
       ],
     );
   }
@@ -63,144 +115,167 @@ class InspectionStatsSection extends StatelessWidget {
 
 class _AllInspectionsCard extends StatelessWidget {
   final int count;
+  final bool selected;
+  final VoidCallback? onTap;
 
-  const _AllInspectionsCard({required this.count});
+  const _AllInspectionsCard({
+    required this.count,
+    this.selected = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B1E40),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1E40),
+            borderRadius: BorderRadius.circular(16),
+            border: selected
+                ? Border.all(color: const Color(0xFF60A5FA), width: 2)
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.assignment_turned_in_outlined,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.assignment_turned_in_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'All inspections',
+                style: TextStyle(
                   color: Colors.white,
-                  size: 20,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
-                '$count',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
+                'Across every asset',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'All inspections',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Across every asset',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 13,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color backgroundColor;
-  final Color textColor;
-  final int count;
-  final String title;
-  final String subtitle;
+  final InspectionStatusCount item;
   final bool fullWidth;
+  final bool selected;
+  final VoidCallback? onTap;
 
   const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.count,
-    required this.title,
-    required this.subtitle,
+    required this.item,
     this.fullWidth = false,
+    this.selected = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    final status = item.status;
+    final textColor = status.foregroundColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: iconColor, size: 22),
-              if (fullWidth)
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-            ],
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: status.backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? textColor : status.borderColor,
+              width: selected ? 2 : 1,
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(status.icon, color: textColor, size: 22),
+                  if (fullWidth)
+                    Text(
+                      '${item.count}',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
               ),
-              if (!fullWidth)
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                  if (!fullWidth)
+                    Text(
+                      '${item.count}',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                status.subtitle,
+                style:
+                    TextStyle(color: textColor.withOpacity(0.8), fontSize: 12),
+              ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -226,12 +301,11 @@ class _ByEmployeeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.people_outline,
-                  color: Color(0xFF374151), size: 20),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.people_outline, color: Color(0xFF374151), size: 20),
+              SizedBox(width: 8),
+              Text(
                 'Inspections by employee',
                 style: TextStyle(
                   fontSize: 15,
@@ -269,8 +343,6 @@ class _EmployeeBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // First bar (highest count in the mockup) is highlighted orange,
-    // the rest are blue — matching the screenshot's "Unassigned" emphasis.
     final barColor =
         isFirst ? const Color(0xFFF59E0B) : const Color(0xFF2563EB);
 

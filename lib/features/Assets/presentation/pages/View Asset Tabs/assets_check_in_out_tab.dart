@@ -63,8 +63,8 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
               padding: const EdgeInsets.symmetric(
                   vertical: 8.0, horizontal: dPadding),
               child: Shimmer.fromColors(
-                baseColor: tPrimary,
-                highlightColor: tPrimary.withAlpha(50),
+                baseColor: tGreyLight,
+                highlightColor: tGreyLight.withAlpha(50),
                 child: Container(
                   height: 150,
                   decoration: BoxDecoration(
@@ -97,7 +97,7 @@ class _AssetCheckInOutPageState extends State<AssetCheckInOutPage> {
                 horizontal: dPadding,
               ),
               decoration: BoxDecoration(
-                color: tPrimary,
+                color: detail.status == 'Checked In' ? tCheckInColor : tCheckOutColor,
                 borderRadius: BorderRadius.circular(dBorderRadius),
               ),
               child: Column(

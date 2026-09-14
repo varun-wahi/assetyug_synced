@@ -1,6 +1,7 @@
-import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+
+import 'form_field_decoration.dart';
 
 class AsyncDropdownField<T> extends StatefulWidget {
   final String label;
@@ -10,7 +11,9 @@ class AsyncDropdownField<T> extends StatefulWidget {
   final T? selectedItem;
   final String? hintText;
   final bool enabled;
+  final bool isMandatory;
   final bool Function(T, T)? compareFn;
+  final EdgeInsetsGeometry? padding;
 
   const AsyncDropdownField({
     super.key,
@@ -21,7 +24,9 @@ class AsyncDropdownField<T> extends StatefulWidget {
     this.selectedItem,
     this.hintText,
     this.enabled = true,
+    this.isMandatory = false,
     this.compareFn,
+    this.padding,
   });
 
   @override
@@ -31,6 +36,7 @@ class AsyncDropdownField<T> extends StatefulWidget {
 class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
   late final TextEditingController _searchController;
   List<T>? _cachedItems;
+  // ignore: unused_field - reserved for future loading UI
   bool _isLoading = false;
 
   @override
@@ -51,7 +57,7 @@ class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
       try {
         _cachedItems = await widget.asyncItemsFetcher();
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     }
 
@@ -59,7 +65,6 @@ class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
       return _cachedItems!;
     }
 
-    // Filter items based on display string
     return _cachedItems!.where((item) {
       final displayText = widget.displayString(item).toLowerCase();
       return displayText.contains(filter.toLowerCase());
@@ -69,26 +74,25 @@ class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      padding: widget.padding ?? FormFieldStyles.padding,
       child: DropdownSearch<T>(
         selectedItem: widget.selectedItem,
         items: (filter, loadProps) => _getItems(filter),
         itemAsString: widget.displayString,
         onChanged: widget.enabled ? widget.onChanged : null,
-        compareFn: widget.compareFn ?? (item1, item2) {
-          // Default comparison using display string
-          return widget.displayString(item1) == widget.displayString(item2);
-        },
+        compareFn: widget.compareFn ??
+            (item1, item2) {
+              return widget.displayString(item1) ==
+                  widget.displayString(item2);
+            },
         popupProps: PopupProps.menu(
           showSearchBox: true,
           searchFieldProps: TextFieldProps(
             controller: _searchController,
-            decoration:  InputDecoration(
+            style: FormFieldStyles.textStyle,
+            decoration: FormFieldStyles.decoration(
               hintText: 'Search...',
               prefixIcon: const Icon(Icons.search),
-              // border: OutlineInputBorder(),
-            border:  OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: tPrimary)),
-
             ),
           ),
           loadingBuilder: (context, _) => const Padding(
@@ -101,13 +105,13 @@ class _AsyncDropdownFieldState<T> extends State<AsyncDropdownField<T>> {
           ),
         ),
         decoratorProps: DropDownDecoratorProps(
-          decoration: InputDecoration(
-            labelText: widget.label,
+          baseStyle: FormFieldStyles.textStyle,
+          decoration: FormFieldStyles.decoration(
+            label: FormFieldStyles.mandatoryLabel(
+              widget.label,
+              isMandatory: widget.isMandatory,
+            ),
             hintText: widget.hintText,
-            border:  OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: tPrimary)),
-            
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             enabled: widget.enabled,
           ),
         ),

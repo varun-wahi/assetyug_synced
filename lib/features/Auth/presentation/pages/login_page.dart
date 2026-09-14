@@ -3,12 +3,13 @@ import 'package:asset_yug_debugging/features/Auth/data/repository/auth_token_rep
 import 'package:asset_yug_debugging/features/Auth/data/repository/firebase_authentication.dart';
 import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/pages/MainPage.dart';
+import 'package:asset_yug_debugging/features/More%20Options/presentation/pages/terms%20and%20privacy/privacy_policy_page.dart';
+import 'package:asset_yug_debugging/features/More%20Options/presentation/pages/terms%20and%20privacy/terms_of_use_page.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_snackbar.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:universal_io/io.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -239,7 +240,8 @@ class _LoginPageState extends State<LoginPage> {
 
     _box.put('auth_token', userData["token"]);
     _box.put('role', userData["role"]);
-    debugPrint('[LoginPage] Saved auth_token: ${userData["token"]} and role: ${userData["role"]}');
+    debugPrint(
+        '[LoginPage] Saved auth_token: ${userData["token"]} and role: ${userData["role"]}');
   }
 
   // Fetch user company details
@@ -257,7 +259,8 @@ class _LoginPageState extends State<LoginPage> {
 
     _box.put('companyId', companyDetails['id'].toString());
     _box.put('companyName', companyDetails['companyName']);
-    debugPrint('[LoginPage] Saved companyId: ${companyDetails['id']} and companyName: ${companyDetails['companyName']}');
+    debugPrint(
+        '[LoginPage] Saved companyId: ${companyDetails['id']} and companyName: ${companyDetails['companyName']}');
   }
 
   // Log mobile session
@@ -298,97 +301,137 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // SafeArea + SingleChildScrollView means the layout no longer relies on
+    // fixed fractions of MediaQuery height, so it won't overflow or clip on
+    // short/small phone screens (or when the keyboard opens for signup).
     return Scaffold(
-      backgroundColor: tBlack,
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background header
-          _buildHeader(),
-
-          // Main login card
-          _buildLoginCard(),
-        ],
+      backgroundColor: tWhite,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: dPadding),
+                    _buildLoginCard(),
+                    const SizedBox(height: dPadding * 2),
+                    _buildLegalLinks(),
+                    const SizedBox(height: dPadding),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
   // Build header section
   Widget _buildHeader() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.only(top: 10),
-        height: MediaQuery.sizeOf(context).height / 2.5,
-        decoration: const BoxDecoration(
-          color: tPrimary,
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(5),
-            bottomRight: Radius.circular(5),
-          ),
+    return Container(
+      width: double.infinity,
+      // The new app icon asset has its own white background baked in, so the
+      // header now uses a matching white background instead of tPrimary -
+      // otherwise the icon would show up inside a mismatched colored box.
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      decoration: const BoxDecoration(
+        color: tWhite,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(5),
+          bottomRight: Radius.circular(5),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            FaIcon(
-              FontAwesomeIcons.bitbucket,
-              size: 40,
-              color: tYellow,
-            ),
-            SizedBox(width: dPadding * 2),
-            Text(
-              "AssetYug",
-              style: TextStyle(
-                color: tWhite,
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+      ),
+      child: Center(
+        child: Image.asset(
+          'assets/icons/app_icon.png',
+          height: 200,
+          fit: BoxFit.contain,
         ),
       ),
     );
   }
 
+  Widget _buildLegalLinks() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TermsOfUsePage()),
+            );
+          },
+          child: const Text(
+            'Terms of Use',
+            style: TextStyle(fontSize: 14, color: tPrimary),
+          ),
+        ),
+        const Text(
+          '·',
+          style: TextStyle(color: Color(0xFF9CA3AF)),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+            );
+          },
+          child: const Text(
+            'Privacy Policy',
+            style: TextStyle(fontSize: 14, color: tPrimary),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Build main login card
   Widget _buildLoginCard() {
-    return Positioned(
-      top: MediaQuery.sizeOf(context).height / 3.2,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeIn,
-        padding: const EdgeInsets.all(dPadding * 3),
-        height: _isSignUpScreen ? 500 : 400,
-        width: MediaQuery.sizeOf(context).width - 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(21),
-          color: tWhite,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 15,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              // Tab selection
-              _buildTabSelection(),
-
-              // Form content
-              if (_isSignUpScreen) _buildSignupSection(),
-              if (!_isSignUpScreen) _buildSignInSection(),
-
-              // Submit button
-              _buildSubmitButton(),
-            ],
+    return Container(
+      // Fixed height removed - the card now sizes itself to its content
+      // (mainAxisSize.min below) so it never overflows on small screens,
+      // and the SingleChildScrollView in build() lets it scroll if the
+      // keyboard is open.
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(dPadding * 3),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(21),
+        color: tWhite,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 5,
           ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tab selection
+            _buildTabSelection(),
+
+            const SizedBox(height: 16),
+
+            // Form content
+            if (_isSignUpScreen) _buildSignupSection(),
+            if (!_isSignUpScreen) _buildSignInSection(),
+
+            const SizedBox(height: 16),
+
+            // Submit button
+            _buildSubmitButton(),
+          ],
         ),
       ),
     );
@@ -410,7 +453,7 @@ class _LoginPageState extends State<LoginPage> {
           _isSignUpScreen,
           () async {
             final signupUrl = Uri.parse(
-                'http://assetyugg.com.s3-website-us-east-1.amazonaws.com/register');
+                'http://assetyuggg.com.s3-website.us-east-2.amazonaws.com/register');
             try {
               if (await canLaunchUrl(signupUrl)) {
                 final launched =
@@ -420,7 +463,7 @@ class _LoginPageState extends State<LoginPage> {
                 }
               } else {
                 final launched = await launchUrl(signupUrl,
-                    mode: LaunchMode.externalApplication);
+                    mode: LaunchMode.inAppBrowserView);
                 if (!launched && mounted) {
                   _showErrorSnackBar("Could not open signup page");
                 }
@@ -485,6 +528,7 @@ class _LoginPageState extends State<LoginPage> {
   // Build sign in section
   Widget _buildSignInSection() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildTextField(
           icon: Icons.mail,
@@ -565,50 +609,48 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildSignupSection() {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: dPadding * 2),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildTextField(
-              icon: Icons.business,
-              hintText: "Company Name",
-              controller: _companyNameController,
-              isPassword: false,
-              isEmail: false,
-            ),
-            _buildTextField(
-              icon: Icons.mail,
-              hintText: "E-Mail",
-              controller: _emailController,
-              isPassword: false,
-              isEmail: true,
-            ),
-            _buildTextField(
-              icon: Icons.password,
-              hintText: "Password",
-              controller: _passwordController,
-              isPassword: true,
-              isEmail: false,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: 250,
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                  text: "By pressing 'Submit' you agree to our ",
-                  style: TextStyle(color: lighterGrey),
-                  children: [
-                    TextSpan(
-                      text: "terms & conditions",
-                      style: TextStyle(color: Colors.deepOrange, fontSize: 14),
-                    ),
-                  ],
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTextField(
+            icon: Icons.business,
+            hintText: "Company Name",
+            controller: _companyNameController,
+            isPassword: false,
+            isEmail: false,
+          ),
+          _buildTextField(
+            icon: Icons.mail,
+            hintText: "E-Mail",
+            controller: _emailController,
+            isPassword: false,
+            isEmail: true,
+          ),
+          _buildTextField(
+            icon: Icons.password,
+            hintText: "Password",
+            controller: _passwordController,
+            isPassword: true,
+            isEmail: false,
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: 250,
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: const TextSpan(
+                text: "By pressing 'Submit' you agree to our ",
+                style: TextStyle(color: lighterGrey),
+                children: [
+                  TextSpan(
+                    text: "terms & conditions",
+                    style: TextStyle(color: Colors.deepOrange, fontSize: 14),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

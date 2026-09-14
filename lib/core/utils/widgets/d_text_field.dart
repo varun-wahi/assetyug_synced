@@ -1,9 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-import '../constants/colors.dart';
-import '../constants/sizes.dart';
+import 'form_field_decoration.dart';
 
 class DTextField extends StatelessWidget {
   final Icon? icon;
@@ -14,63 +11,54 @@ class DTextField extends StatelessWidget {
   final TextAlign? textAlignment;
   final bool hasLabel;
   final int maxLines;
-  final double padding;
+  final EdgeInsetsGeometry? padding;
   final TextEditingController? controller;
   final bool isMandatory;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   const DTextField({
     super.key,
-    this.textInputType = TextInputType.text, //Default gap of 10.0
+    this.textInputType = TextInputType.text,
     this.icon,
-    required this.hintText, //default set to vertical
+    required this.hintText,
     this.enabled,
     this.text,
     this.hasLabel = false,
     this.maxLines = 1,
     this.isMandatory = false,
-    this.padding = 8.0,
+    this.padding,
     this.controller,
     this.textAlignment,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final showAsLabel = hasLabel || isMandatory;
+
     return Padding(
-      padding: EdgeInsets.all(padding),
+      padding: padding ?? FormFieldStyles.padding,
       child: TextFormField(
         controller: controller,
+        focusNode: focusNode,
+        autofocus: autofocus,
         maxLines: maxLines,
         keyboardType: textInputType,
         textAlign: textAlignment ?? TextAlign.start,
-        decoration: InputDecoration(
+        style: FormFieldStyles.textStyle,
+        cursorColor: FormFieldStyles.textStyle.color,
+        decoration: FormFieldStyles.decoration(
           enabled: enabled ?? true,
           prefixIcon: icon,
-          contentPadding: const EdgeInsets.all(dPadding * 2),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: textColor1),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: tPrimary),
-            borderRadius: BorderRadius.circular(dBorderRadius),
-          ),
-          label: hasLabel
-              ? Text(hintText)
-              : isMandatory // 👈 show asterisk
-                  ? RichText(
-                      text: TextSpan(
-                        text: hintText,
-                        style: const TextStyle(color: textColor1),
-                        children: const [
-                          TextSpan(
-                            text: ' *',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    )
-                  : null,
-          hintText: !hasLabel && !isMandatory ? hintText : null,
+          label: showAsLabel
+              ? FormFieldStyles.mandatoryLabel(
+                  hintText,
+                  isMandatory: isMandatory,
+                )
+              : null,
+          hintText: showAsLabel ? null : hintText,
         ),
       ),
     );

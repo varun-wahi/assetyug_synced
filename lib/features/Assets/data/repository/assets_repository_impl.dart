@@ -175,6 +175,13 @@ class AssetsRepositoryImpl {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
+  // Unique field config (EXTRA fields that must be unique across assets)
+  Future<http.Response> getUniqueFieldConfig(String companyId) async {
+    final url = "${assetEndpoint}uniqueFieldConfig/$companyId";
+    var headers = await getHeaders();
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
   // Add a new asset
   //*DONE
   Future<http.Response> addNewAsset(dynamic data) async {
@@ -303,17 +310,29 @@ class AssetsRepositoryImpl {
 // ]
 
 //GET
-// assets/getAllAssetInspectionByCategory/100004?category=Automobile
-// Get all asset inspections by category
+// assets/getAllActiveAssetInspectionByCategory/100004?category=Automobile
+// Get all active asset inspections by category
   Future<http.Response> getAssetInspectionsByCategory(
     String companyId,
     String category,
   ) async {
+    final encodedCategory = Uri.encodeComponent(category);
     final url =
-        "${assetEndpoint}getAllAssetInspectionByCategory/$companyId?category=$category";
+        "${assetEndpoint}getAllActiveAssetInspectionByCategory/$companyId?category=$encodedCategory";
     var headers = await getHeaders();
     final result = await http.get(Uri.parse(url), headers: headers);
     print("Asset Inspections By Category Response: ${result.body}");
+    return result;
+  }
+
+//GET
+// assets/getAllAssetInspection/100004
+// Get all asset inspections for a company
+  Future<http.Response> getAllAssetInspections(String companyId) async {
+    final url = "${assetEndpoint}getAllAssetInspection/$companyId";
+    var headers = await getHeaders();
+    final result = await http.get(Uri.parse(url), headers: headers);
+    print("All Asset Inspections Response: ${result.body}");
     return result;
   }
 // [
@@ -425,28 +444,20 @@ class AssetsRepositoryImpl {
     return await http.get(Uri.parse(url), headers: headers);
   }
 
-  // Advance filter
+  // Advance filter (optimized)
   //*MAIN
-  Future<http.Response> advanceFilter(dynamic data, int pageIndex, int pageSize,
-      String category, String? searchData,
-      {String isAsc = 'true'}) async {
-    final url =
-        // "http://assetyug-lb-632006544.us-east-1.elb.amazonaws.com:8080/assets/advanceFilter/0/5/cycle?category='Name'";
-
-        "${assetEndpoint}advanceFilter/$pageIndex/$pageSize?category=$category&search=$searchData&asc=$isAsc";
+  // POST /assets/advancedFilter/optimized
+  // Payload includes pagination, sort, and nested customFields.
+  Future<http.Response> advanceFilter(Map<String, dynamic> data) async {
+    final url = "${assetEndpoint}advancedFilter/optimized";
     var headers = await getHeaders();
+    final body = json.encode(data);
 
-    print("");
-
-    print("data: $data");
-    print("");
+    print("data: $body");
     print("url: $url");
-    print("");
-
     print("headers: $headers");
-    print("");
 
-    return await http.post(Uri.parse(url), body: data, headers: headers);
+    return await http.post(Uri.parse(url), body: body, headers: headers);
   }
 
   // Get Check In/Out List
@@ -566,6 +577,14 @@ class AssetsRepositoryImpl {
     final url = "${userEndpoint}getTechnicalUser/$companyId";
     var headers = await getHeaders();
     print("🔍 Fetching Technical Users: $url");
+    return await http.get(Uri.parse(url), headers: headers);
+  }
+
+  // GET users/getActiveUsers/{companyId}
+  Future<http.Response> getActiveUsers(String companyId) async {
+    final url = "${userEndpoint}getActiveUsers/$companyId";
+    var headers = await getHeaders();
+    print("🔍 Fetching Active Users: $url");
     return await http.get(Uri.parse(url), headers: headers);
   }
 

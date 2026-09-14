@@ -42,10 +42,13 @@ class InspectionListCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
+                  flex: 3,
                   child: Text(
                     inspection.assetName,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF111827),
                     ),
@@ -69,20 +72,5 @@ class InspectionListCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Border color of each card matches its status, like the screenshot
-/// (green border for completed, blue for ongoing, etc).
-extension _InspectionStatusBorder on InspectionStatus {
-  Color get borderColor {
-    switch (this) {
-      case InspectionStatus.pending:
-        return const Color(0xFFFBD38D);
-      case InspectionStatus.ongoing:
-        return const Color(0xFFBFDBFE);
-      case InspectionStatus.completed:
-        return const Color(0xFFBBD8A3);
-    }
   }
 }

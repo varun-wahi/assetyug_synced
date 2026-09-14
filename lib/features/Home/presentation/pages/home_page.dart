@@ -2,6 +2,9 @@ import 'package:asset_yug_debugging/config/theme/snackbar__types_enum.dart';
 import 'package:asset_yug_debugging/features/Auth/presentation/pages/login_page.dart';
 import 'package:asset_yug_debugging/features/Customers/presentation/pages/View%20Customer%20Tabs/add_customer_page.dart';
 import 'package:asset_yug_debugging/features/Home/presentation/pages/notifications_page.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/riverpod/notifications_provider.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/riverpod/subscription_provider.dart';
+import 'package:asset_yug_debugging/features/Home/presentation/widgets/trial_status_banner.dart';
 import 'package:asset_yug_debugging/features/Home/data/data_sources/quick_actions.dart';
 import 'package:asset_yug_debugging/features/Locations%20and%20Bins/presentation/pages/locations_and_bins_page.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
@@ -12,23 +15,24 @@ import 'package:asset_yug_debugging/core/utils/constants/colors.dart';
 import 'package:asset_yug_debugging/core/utils/constants/sizes.dart';
 import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../Auth/data/repository/firebase_authentication.dart';
+import '../../../Inspections/presentation/pages/create_inspection_page.dart';
 import '../widgets/home_checkedout_out_home.dart';
 import '../widgets/options_section.dart';
 import '../widgets/wo_tile_widget_home.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  int count = 12; //notification count
+class _HomePageState extends ConsumerState<HomePage> {
   static bool isLoading = true;
   String companyName = "";
   late Box box;
@@ -37,6 +41,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _fetchCompanyName();
+    Future.microtask(() {
+      ref.read(notificationsProvider.notifier).refresh();
+      ref.invalidate(subscriptionValidProvider);
+      ref.invalidate(trialStatusProvider);
+    });
   }
 
   Future<void> _fetchCompanyName() async {
@@ -149,30 +158,37 @@ class _HomePageState extends State<HomePage> {
         //NOTIFICATIONS BADGE
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: badges.Badge(
-            position: badges.BadgePosition.topEnd(top: 0, end: 9),
-            badgeAnimation: const badges.BadgeAnimation.slide(
-                // disappearanceFadeAnimationDuration: Duration(milliseconds: 200),
-                // curve: Curves.easeInCubic,
-                ),
-            badgeStyle: const badges.BadgeStyle(
-              badgeColor: tRed,
-            ),
-            badgeContent: Text(
-              count.toString(),
-              style: const TextStyle(color: Colors.white, fontSize: 9),
-            ),
-            child: IconButton(
+          child: Builder(builder: (context) {
+            final unreadCount = ref.watch(notificationsProvider).unreadCount;
+            return badges.Badge(
+              showBadge: unreadCount > 0,
+              position: badges.BadgePosition.topEnd(top: 0, end: 9),
+              badgeAnimation: const badges.BadgeAnimation.slide(),
+              badgeStyle: const badges.BadgeStyle(
+                badgeColor: tRed,
+              ),
+              badgeContent: Text(
+                unreadCount.toString(),
+                style: const TextStyle(color: Colors.white, fontSize: 9),
+              ),
+              child: IconButton(
                 icon: const Icon(
                   Icons.notifications,
                   size: 30,
                 ),
-                onPressed: () => Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const NotificationsPage(),
-                    ))),
-          ),
+                    ),
+                  );
+                  if (!mounted) return;
+                  ref.read(notificationsProvider.notifier).refresh();
+                },
+              ),
+            );
+          }),
         ),
 
         //TITLE
@@ -193,12 +209,15 @@ class _HomePageState extends State<HomePage> {
       ),
 
       //++++++++++ MAIN BODY ++++++++++++
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(dPadding * 2),
-          child: Column(
-            // crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Column(
+        children: [
+          const TrialStatusBanner(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(dPadding * 2),
+                child: Column(
+                  children: [
               //Greetings
               _buildGreetingsSection(),
               //quick actions
@@ -222,9 +241,12 @@ class _HomePageState extends State<HomePage> {
               //Checked Out Assets
 
               // const DGap(gap: dGap * 2),
-            ],
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -337,19 +359,42 @@ class _HomePageState extends State<HomePage> {
                   backgroundColor: tPrimary, // Background color
                   foregroundColor: tWhite, // Text color
                 ),
-                onPressed: () {
+                onPressed: () async {
                   if (index == 0) {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AddCustomerPage(),
                         ));
-                  } else if (index == 1) {
-                    Navigator.push(
+                  } 
+                  // else if (index == 1) {
+                  //   Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const LocationBinScreen(),
+                  //       ));
+                  // } 
+                  else if (index == 1) {
+                    final authBox = Hive.isBoxOpen('auth_data')
+                        ? Hive.box('auth_data')
+                        : await Hive.openBox('auth_data');
+                    final companyId = authBox.get('companyId')?.toString();
+                    if (!context.mounted) return;
+                    if (companyId == null || companyId.isEmpty) {
+                      dSnackBar(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => const LocationBinScreen(),
-                        ));
+                        'Company ID not found. Please log in again.',
+                        TypeSnackbar.error,
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CreateInspectionPage(companyId: companyId),
+                      ),
+                    );
                   } else {
                     dSnackBar(context, "Feature coming to mobile later.",
                         TypeSnackbar.info);

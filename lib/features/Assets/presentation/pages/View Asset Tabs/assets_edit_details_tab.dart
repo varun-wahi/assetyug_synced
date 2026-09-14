@@ -22,7 +22,10 @@ import 'package:shimmer/shimmer.dart';
 class AssetEditDetailsPage extends ConsumerStatefulWidget {
   final AssetsModel assetData;
 
-  const AssetEditDetailsPage({super.key, required this.assetData});
+  const AssetEditDetailsPage({
+    super.key,
+    required this.assetData,
+  });
 
   @override
   ConsumerState<AssetEditDetailsPage> createState() =>
@@ -44,18 +47,30 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
     try {
       final response =
           await AssetsRepositoryImpl().getCheckInOutList(widget.assetData.id!);
-      if (response.statusCode == 202) {
+      if (response.statusCode == 200 || response.statusCode == 202) {
         final List<dynamic> jsonData = json.decode(response.body);
         if (jsonData.isNotEmpty) {
-          final checkModel =
+          final details =
               AssetCheckInOutModel.fromJson(jsonData.last).detailsList;
-          if (checkModel.isNotEmpty) {
-            final last = checkModel.first;
+          if (details.isNotEmpty) {
+            // Prefer most recent by date
+            final sorted = [...details]
+              ..sort((a, b) {
+                final aDate = a.date ??
+                    a.updateTime ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                final bDate = b.date ??
+                    b.updateTime ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                return bDate.compareTo(aDate);
+              });
+            final last = sorted.first;
+
             setState(() {
               lastCheckEntry = {
                 "status": last.status,
                 "employee": last.employee,
-                "date": last.date,
+                "date": last.date ?? last.updateTime ?? DateTime.now(),
               };
             });
           }
@@ -147,7 +162,8 @@ class _AssetEditDetailsPageState extends ConsumerState<AssetEditDetailsPage> {
             value: asset.customer?.isNotEmpty == true ? asset.customer! : "--"),
         DDetailsRow(
             title: "Location",
-            value: asset.location.isNotEmpty
+            value: asset.location.isNotEmpty &&
+                    asset.location.toLowerCase() != 'unassigned'
                 ? asset.location
                 : "No location data"),
         DDetailsRow(

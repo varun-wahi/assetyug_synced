@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-                'assets/images/asset_yug_logo.png'), // Your splash image
+                'assets/icons/app_icon.png'), // Your splash image
             const SizedBox(height: 20),
             const CircularProgressIndicator(),
           ],

@@ -37,19 +37,32 @@ class AssetsModel {
       this.image,
       this.companyId = ''});
 
+  /// Treats null, blank, and the literal "null" as missing.
+  static String _orDefault(dynamic value, String fallback) {
+    if (value == null) return fallback;
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') return fallback;
+    return text;
+  }
+
   factory AssetsModel.fromJson(Map<String, dynamic> json) => AssetsModel(
-      id: json["id"],
-      email: json["email"] ?? 'defaultemail@company.com',
-      name: json["name"] ?? 'Unnamed Asset',
-      assetId: json["assetId"]?.toString() ?? '000', // Convert to String
-      serialNumber: json["serialNumber"] ?? 'Unknown Serial',
-      customer: json["customer"] ?? 'Unknown Customer',
-      customerId: json["customerId"] ?? 'Unknown Customer ID',
-      location: json["location"] ?? '',
-      status: json["status"] ?? '',
-      category: json["category"] ?? '',
-      image: json["image"],
-      companyId: json["companyId"].toString());
+        id: json["id"]?.toString(),
+        email: _orDefault(json["email"], 'defaultemail@company.com'),
+        name: _orDefault(json["name"], 'Unnamed Asset'),
+        assetId: _orDefault(json["assetId"], '000'),
+        serialNumber: _orDefault(json["serialNumber"], 'N/A'),
+        customer: _orDefault(json["customer"], 'Unassigned'),
+        customerId: _orDefault(json["customerId"], 'Unknown Customer ID'),
+        // Prefer human-readable locationName from optimized filter response
+        location: _orDefault(
+          json["locationName"] ?? json["location"],
+          'Unassigned',
+        ),
+        status: _orDefault(json["status"], 'Unassigned'),
+        category: _orDefault(json["category"], 'Unassigned'),
+        image: json["image"]?.toString(),
+        companyId: _orDefault(json["companyId"], ''),
+      );
 
   // Update toJson method as well
   Map<String, dynamic> toJson() => {

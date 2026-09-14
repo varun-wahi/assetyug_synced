@@ -208,7 +208,7 @@ class _BuildAssetOverviewContainerState
   // Horizontal shimmer placeholder mimicking the "Assets by Category" cards.
   Widget _buildAssetCategoryShimmer() {
     return SizedBox(
-      height: 70,
+      height: 88,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const NeverScrollableScrollPhysics(),
@@ -236,27 +236,32 @@ class _BuildAssetOverviewContainerState
     );
   }
 
+  static const double _customerListMaxHeight = 280;
+
   // Vertical shimmer placeholder mimicking the "Assets by Customer" rows.
   Widget _buildCustomerCategoryShimmer() {
-    return Column(
-      children: List.generate(5, (index) {
-        final isLast = index == 4;
-        return Padding(
-          padding: EdgeInsets.only(bottom: isLast ? 0 : dPadding),
-          child: Shimmer.fromColors(
-            baseColor: Colors.white,
-            highlightColor: Colors.grey.shade100,
-            child: Container(
-              width: double.infinity,
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(dBorderRadius),
+    return SizedBox(
+      height: _customerListMaxHeight,
+      child: Column(
+        children: List.generate(5, (index) {
+          final isLast = index == 4;
+          return Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : dPadding),
+            child: Shimmer.fromColors(
+              baseColor: Colors.white,
+              highlightColor: Colors.grey.shade100,
+              child: Container(
+                width: double.infinity,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(dBorderRadius),
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
@@ -309,9 +314,11 @@ class _BuildAssetOverviewContainerState
               return _buildSection(
                 "Assets by Category",
                 SizedBox(
-                  height: 70,
+                  height: 88,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    clipBehavior: Clip.none,
                     itemBuilder: (context, index) {
                       final item = categories[index];
                       final categoryName =
@@ -452,6 +459,7 @@ class _BuildAssetOverviewContainerState
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             count,
@@ -468,6 +476,14 @@ class _BuildAssetOverviewContainerState
         ],
       ),
     );
+  }
+
+  bool _isUnassignedCustomer(String name) {
+    final lower = name.trim().toLowerCase();
+    return lower.isEmpty ||
+        lower == 'unassigned' ||
+        lower == 'null' ||
+        lower == 'unknown';
   }
 
   Widget _buildCustomerCategorySection() {
@@ -498,6 +514,9 @@ class _BuildAssetOverviewContainerState
 
               if (decoded is Map) {
                 decoded.forEach((key, value) {
+                  final name = key.toString();
+                  if (_isUnassignedCustomer(name)) return;
+
                   int count = 0;
                   if (value is num) {
                     count = value.toInt();
@@ -506,12 +525,15 @@ class _BuildAssetOverviewContainerState
                   } else if (value is List) {
                     count = value.length;
                   }
-                  customerCounts.add(MapEntry(key.toString(), count));
+                  customerCounts.add(MapEntry(name, count));
                 });
               } else if (decoded is List) {
                 for (var item in decoded) {
                   if (item is Map) {
-                    final name = item['companyCustomerName'] ?? 'Unknown';
+                    final name =
+                        (item['companyCustomerName'] ?? 'Unknown').toString();
+                    if (_isUnassignedCustomer(name)) continue;
+
                     final countVal = item['assetCount'] ?? item['count'] ?? 0;
                     int count = 0;
                     if (countVal is num) {
@@ -519,14 +541,14 @@ class _BuildAssetOverviewContainerState
                     } else if (countVal is String) {
                       count = int.tryParse(countVal) ?? 0;
                     }
-                    customerCounts.add(MapEntry(name.toString(), count));
+                    customerCounts.add(MapEntry(name, count));
                   }
                 }
               }
 
               if (customerCounts.isEmpty) {
                 return _buildSection(
-                  "Assets by Customer (Top 0)",
+                  "Assets by Customer",
                   const Text(
                     "No customer asset data available",
                     style: TextStyle(color: Colors.grey),
@@ -534,21 +556,29 @@ class _BuildAssetOverviewContainerState
                 );
               }
 
-              // Show top 20
+              // Show top 20 inside a fixed-height scrollable area.
               final displayList = customerCounts.take(20).toList();
 
               return _buildSection(
                 "Assets by Customer",
-                // Vertical list instead of horizontal scroll: each customer
-                // is a full-width row, stacked top to bottom.
-                Column(
-                  children: List.generate(displayList.length, (index) {
-                    final entry = displayList[index];
-                    final companycustomername = entry.key;
-                    final isLast = index == displayList.length - 1;
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: isLast ? 0 : dPadding),
-                      child: GestureDetector(
+                
+                   Container(
+                    padding: EdgeInsets.symmetric(horizontal: dPadding, vertical: dPadding),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 238, 237, 237).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(dBorderRadius),
+      ),
+                  height: _customerListMaxHeight,
+                  width: double.infinity,
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: displayList.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: dPadding),
+                    itemBuilder: (context, index) {
+                      final entry = displayList[index];
+                      final companyCustomerName = entry.key;
+                      return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
@@ -557,10 +587,7 @@ class _BuildAssetOverviewContainerState
                                 predefinedFilters: {
                                   "status": "Active",
                                   "Checking Status": "All",
-                                  "customer":
-                                      companycustomername == "Unassigned"
-                                          ? ""
-                                          : companycustomername,
+                                  "customer": companyCustomerName,
                                 },
                               ),
                             ),
@@ -570,10 +597,6 @@ class _BuildAssetOverviewContainerState
                           width: double.infinity,
                           decoration: BoxDecoration(
                             color: tCardBackground,
-                            // border: Border.all(
-                            //     color: tBorderPalette[
-                            //         index % tBorderPalette.length],
-                            //     width: 0.6),
                             boxShadow: [
                               BoxShadow(
                                 color: tBorderPalette[
@@ -589,9 +612,9 @@ class _BuildAssetOverviewContainerState
                             "${entry.value}",
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    },
+                  ),
                 ),
               );
             } catch (e) {

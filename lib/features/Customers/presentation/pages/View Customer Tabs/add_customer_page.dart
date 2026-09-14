@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 
 import '../../../../../config/theme/snackbar__types_enum.dart';
 import '../../../../../core/utils/constants/colors.dart';
+import '../../../../../core/utils/constants/countries.dart';
 import '../../../../../core/utils/constants/sizes.dart';
 import '../../../../../core/utils/widgets/custom_fields_section.dart';
 import '../../../../../core/utils/widgets/d_dropdown.dart';
 import '../../../../../core/utils/widgets/d_gap.dart';
 import '../../../../../core/utils/widgets/d_snackbar.dart';
 import '../../../../../core/utils/widgets/my_elevated_button.dart';
+import '../../../../../core/utils/widgets/phone_number_field.dart';
 import '../../../../Assets/presentation/widgets/custom_text_field.dart';
 import '../../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../riverpod/customer_category_provider.dart';
@@ -38,7 +40,6 @@ class AddCustomerPage extends ConsumerStatefulWidget {
 class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   // Update to use ConsumerState
   final _nameField = TextEditingController();
-  final _phoneField = TextEditingController();
   final _emailField = TextEditingController();
   final _addressField = TextEditingController();
   final _cityField = TextEditingController();
@@ -49,6 +50,18 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
   List<DropdownMenuItem<String>> _stateItems = [];
   String? _selectedState;
+
+  // Country dropdown - drives which states get loaded and the phone
+  // field's default dial code.
+  final List<DropdownMenuItem<String>> _countryItems = kNorthAmericaCountries
+      .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name)))
+      .toList();
+  String? _selectedCountry = kDefaultCountryName;
+
+  // Phone number - kept as plain state (rather than a TextEditingController)
+  // since IntlPhoneField manages its own internal controller.
+  String _phoneNumber = '';
+  bool _phoneValid = true;
 
   String? _category;
   String? _status = "Active";
@@ -66,7 +79,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   @override
   void dispose() {
     _nameField.dispose();
-    _phoneField.dispose();
     _emailField.dispose();
     _addressField.dispose();
     _cityField.dispose();
@@ -95,13 +107,18 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     setState(() {
       companyId = id;
     });
+
+    // Force fresh network data every time this page is opened.
+    ref.invalidate(customerCategoriesProvider);
+    ref.invalidate(customerCustomFieldsProvider);
+
     await fetchDropdownData();
+    await _fetchStatesForCountry(_selectedCountry ?? kDefaultCountryName);
 
     if (companyId != null && mounted) {
-      ref.invalidate(customerCustomFieldsProvider);
       await ref
           .read(customerCustomFieldsProvider.notifier)
-          .loadCustomFields(companyId!);
+          .loadCustomFields(companyId!.toString());
     }
   }
 
@@ -120,7 +137,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     try {
       // final catRes =
       //     await _customerRepo.getActiveCustomerCategories(companyId!);
-      final stateRes = await _customerRepo.statelist();
 
       // if (catRes.statusCode == 200) {
       //   final List<dynamic> categoryList = jsonDecode(catRes.body);
@@ -133,6 +149,26 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       //     }).toList();
       //   });
       // }
+    } catch (e) {
+      dSnackBar(context, "Failed to load dropdowns: ${e.toString()}",
+          TypeSnackbar.error);
+    }
+  }
+
+  // Loads the state/province list for the selected country.
+  //
+  // NOTE: this assumes CompanyCustomerRepositoryImpl.statelist() is updated
+  // to accept a `country` argument (e.g. `Future<http.Response>
+  // statelist(String country)`) and hits a per-country states endpoint.
+  // Update the repository/API side to match this signature.
+  Future<void> _fetchStatesForCountry(String country) async {
+    setState(() {
+      _stateItems = [];
+      _selectedState = null;
+    });
+
+    try {
+      final stateRes = await _customerRepo.getStatesByCountry(country);
 
       if (stateRes.statusCode == 200) {
         final List<dynamic> stateList = jsonDecode(stateRes.body);
@@ -146,8 +182,10 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
         });
       }
     } catch (e) {
-      dSnackBar(context, "Failed to load dropdowns: ${e.toString()}",
-          TypeSnackbar.error);
+      if (mounted) {
+        dSnackBar(context, "Failed to load states: ${e.toString()}",
+            TypeSnackbar.error);
+      }
     }
   }
 
@@ -160,7 +198,10 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final WidgetRef ref = this.ref; // Get the `ref` inside the build method
+    // Keep the autoDispose provider alive while this page is open.
+    // TabBarView only builds the Custom Fields tab when selected, so without
+    // this watch the notifier is disposed mid-fetch.
+    ref.watch(customerCustomFieldsProvider);
 
     return DefaultTabController(
       length: 2,
@@ -239,7 +280,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           buildCustomTextField("Name", TextInputType.text, _nameField, true),
-          const DGap(),
           ref.watch(customerCategoriesProvider).when(
                 data: (categories) => DDropdown(
                   label: "Category",
@@ -258,7 +298,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
                 ),
                 error: (err, stack) => const Text("Error"),
               ),
-          const DGap(),
           DDropdown(
             label: "Status",
             items: const [
@@ -268,25 +307,42 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
             onChanged: (value) => _changeStatusValue(value),
             value: _status,
           ),
-          const DGap(),
-          buildCustomTextField("Phone", TextInputType.phone, _phoneField, false),
-          const DGap(),
+          // Country - selecting a different country reloads the states
+          // dropdown below and updates the phone field's default dial code.
+          DDropdown(
+            label: "Country",
+            items: _countryItems,
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _selectedCountry = value);
+              _fetchStatesForCountry(value);
+            },
+            value: _selectedCountry,
+          ),
+          PhoneNumberField(
+            // Rebuild when the address country changes so the dial code
+            // picker defaults to match (user can still override it).
+            key: ValueKey(_selectedCountry),
+            initialCountryCode: isoCodeForCountry(_selectedCountry),
+            enableCountryPicker: false,
+            onChanged: (number, valid) {
+              _phoneNumber = number;
+              _phoneValid = valid;
+            },
+          ),
           buildCustomTextField("Email", TextInputType.emailAddress,
               _emailField, false),
-          const DGap(),
-          buildCustomTextField("Address", TextInputType.text, _addressField, false),
-          const DGap(),
+          buildCustomTextField(
+              "Address", TextInputType.text, _addressField, false),
           buildCustomTextField("City", TextInputType.text, _cityField, false),
-          const DGap(),
           DDropdown(
             label: "State",
             items: _stateItems,
             onChanged: (value) => setState(() => _selectedState = value),
             value: _selectedState,
           ),
-          const DGap(),
-          buildCustomTextField("Zip Code", TextInputType.number,
-              _zipCodeField, false),
+          buildCustomTextField(
+              "Zip Code", TextInputType.number, _zipCodeField, false),
         ],
       ),
     );
@@ -296,7 +352,20 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(dPadding * 2),
       child: Consumer(builder: (context, ref, _) {
-        final customFields = ref.watch(customerCustomFieldsProvider);
+        // Only render fields explicitly marked as show.
+        final customFields = ref
+            .watch(customerCustomFieldsProvider)
+            .where((f) => f.show)
+            .toList();
+
+        // Drop controllers for fields that are no longer visible.
+        final visibleIds = customFields.map((f) => f.id).toSet();
+        _customFieldControllers.removeWhere((id, controller) {
+          if (visibleIds.contains(id)) return false;
+          controller.dispose();
+          return true;
+        });
+
         if (customFields.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: dPadding * 4),
@@ -330,7 +399,6 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
   }
 
   void _submitCustomerData(WidgetRef ref) async {
-    String phone = _phoneField.text.trim();
     String email = _emailField.text.trim();
 
     if (_nameField.text.isEmpty) {
@@ -341,14 +409,13 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       return;
     }
 
-    final phoneRegex = RegExp(r'^\d{10}$');
-    if (phone.isNotEmpty && !phoneRegex.hasMatch(phone)) {
+    if (_phoneNumber.isNotEmpty && !_phoneValid) {
       setState(() {
         loadingCustomerInsertion = false;
       });
       dSnackBar(
         context,
-        "Enter a valid 10-digit phone number or leave it blank",
+        "Enter a valid phone number or leave it blank",
         TypeSnackbar.error,
       );
       return;
@@ -368,7 +435,10 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       return;
     }
 
-    final customFields = ref.read(customerCustomFieldsProvider);
+    final customFields = ref
+        .read(customerCustomFieldsProvider)
+        .where((f) => f.show)
+        .toList();
     for (var field in customFields) {
       if (field.mandatory) {
         final value = _customFieldControllers[field.id]?.text ?? '';
@@ -380,23 +450,29 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
       }
     }
 
+    final customFieldValues = {
+      for (var field in customFields)
+        field.name: _customFieldControllers[field.id]?.text ?? '',
+    };
+
     final Map<String, dynamic> customerData = {
       'name': _nameField.text,
       'companyId': companyId,
       'category': _category,
       'status': _status,
-      'phone': _phoneField.text,
+      'phone': _phoneNumber,
       'email': _emailField.text,
       'address': _addressField.text,
       'apartment': null,
       'city': _cityField.text,
       'state': _selectedState,
+      'country': _selectedCountry,
       'zipCode': _zipCodeField.text,
       'Customer Location': _locationField.text,
 
-      // ✅ Append custom fields by name
-      for (var field in customFields)
-        field.name: _customFieldControllers[field.id]?.text ?? '',
+      // Top-level custom keys + nested extraFields (same pattern as assets).
+      ...customFieldValues,
+      'extraFields': customFieldValues,
     };
     try {
       http.Response response =
@@ -429,7 +505,11 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
           }
         }
       } else {
-        dSnackBar(context, "Failed to add customer", TypeSnackbar.error);
+        dSnackBar(
+          context,
+          _customerApiErrorMessage(response, "Failed to add customer"),
+          TypeSnackbar.error,
+        );
       }
     } catch (e) {
       dSnackBar(context, "Error: ${e.toString()}", TypeSnackbar.error);
@@ -440,23 +520,50 @@ class _AddCustomerPageState extends ConsumerState<AddCustomerPage> {
     });
   }
 
+  /// Handles UNIQUE_FIELD_VIOLATION (and generic message) when backend adds it.
+  String _customerApiErrorMessage(http.Response response, String fallback) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is! Map) return fallback;
+
+      if (body['error'] == 'UNIQUE_FIELD_VIOLATION') {
+        final fieldNames = body['fieldNames'];
+        final names = fieldNames is List
+            ? fieldNames.map((e) => e.toString()).join(', ')
+            : '';
+        if (names.isNotEmpty) {
+          return 'Unique field constraint violated for: $names';
+        }
+        return body['message']?.toString() ??
+            'Unique field constraint violated';
+      }
+
+      return body['message']?.toString() ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   void clearFields() {
     setState(() {
       _nameField.clear();
       _category = null;
       _status = null;
-      _phoneField.clear();
+      _phoneNumber = '';
+      _phoneValid = true;
       _emailField.clear();
       _addressField.clear();
       _cityField.clear();
       _stateField.clear();
       _zipCodeField.clear();
       _locationField.clear();
-
-      // ✅ Clear custom fields
-      for (var c in _customFieldControllers.values) {
-        c.clear();
-      }
+      _selectedCountry = kDefaultCountryName;
     });
+    _fetchStatesForCountry(kDefaultCountryName);
+
+    // ✅ Clear custom fields
+    for (var c in _customFieldControllers.values) {
+      c.clear();
+    }
   }
 }

@@ -9,7 +9,8 @@ class CustomFieldWidget extends StatelessWidget {
   final String fieldType;
   final TextEditingController controller;
   final bool showClearButton;
-  final bool isMandatory; // 👈 add thi
+  final bool isMandatory;
+  final bool isUnique;
 
   const CustomFieldWidget({
     super.key,
@@ -18,7 +19,13 @@ class CustomFieldWidget extends StatelessWidget {
     required this.controller,
     this.showClearButton = false,
     this.isMandatory = false,
+    this.isUnique = false,
   });
+
+  String get _hint {
+    if (isUnique) return '$fieldName (unique)';
+    return fieldName;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +55,7 @@ class CustomFieldWidget extends StatelessWidget {
             child: AbsorbPointer(
               child: DTextField(
                 icon: const Icon(Icons.calendar_today),
-                hintText: fieldName,
+                hintText: _hint,
                 isMandatory: isMandatory,
                 controller: controller,
                 textInputType: TextInputType.none,
@@ -71,7 +78,7 @@ class CustomFieldWidget extends StatelessWidget {
         Expanded(
           child: DTextField(
             icon: const Icon(Icons.tune),
-            hintText: fieldName,
+            hintText: _hint,
             isMandatory: isMandatory,
             controller: controller,
             textInputType: fieldType == "number"

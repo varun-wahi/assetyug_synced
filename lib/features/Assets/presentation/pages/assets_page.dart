@@ -16,6 +16,7 @@ import 'package:asset_yug_debugging/config/theme/text_styles.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_gap.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_searchbar.dart';
 import 'package:asset_yug_debugging/core/utils/widgets/d_selected_filter.dart';
+import 'package:asset_yug_debugging/core/utils/widgets/filter_badge_button.dart';
 import 'package:asset_yug_debugging/features/Main/presentation/riverpod/refresh_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -109,7 +110,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   bool isLoading = true;
   bool hasMore = true;
   int currentPage = 0;
-  static const int pageSize = 10; // Increased page size for better performance
+  static const int pageSize = 50;
   String sortingCategory = '';
   final ScrollController _scrollController = ScrollController();
   String? companyId;
@@ -131,8 +132,8 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   String? _assetCategory;
   String? _customer;
 
-  // Controllers for dynamic custom fields
-  final Map<String, TextEditingController> _customFieldControllers = {};
+  // Custom field filter values keyed by field name (API expects names)
+  final Map<String, String> _customFieldFilterValues = {};
 
   @override
   void initState() {
@@ -198,7 +199,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
     // ✅ Now companyId is guaranteed to be set
     if (companyId != null && mounted) {
-      ref
+      await ref
           .read(assetCustomFieldsProvider.notifier)
           .loadCustomFields(companyId.toString());
     }
@@ -211,6 +212,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       isLoading = true;
       currentPage = 0;
       assets.clear();
+      _assetCheckingStatusMap.clear();
       hasMore = true;
     });
     await _fetchAssetsPage();
@@ -241,43 +243,53 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       print("🔄 Fetching assets for page: $currentPage");
 
       final assetsRepo = AssetsRepositoryImpl();
-      final searchTerm = searchTextFieldController.text;
+      final searchTerm = searchTextFieldController.text.trim();
 
       if (companyId == null) {
         throw Exception("❌ Company ID not found");
       }
 
-      // Build base filter form
+      final locationText = locationController.text.trim();
+      final nameFilter = assetNameController.text.trim();
+      // Search bar maps to name when no explicit name filter is set
+      final resolvedName =
+          nameFilter.isNotEmpty ? nameFilter : searchTerm;
+
+      // Nested customFields keyed by field name (show fields only)
+      final customFieldsPayload = <String, String>{};
+      final customFields = ref
+          .read(assetCustomFieldsProvider)
+          .where((f) => f.show)
+          .toList();
+      for (var field in customFields) {
+        customFieldsPayload[field.name] =
+            _customFieldFilterValues[field.name] ?? '';
+      }
+
+      final sortField =
+          sortingCategory.isNotEmpty ? sortingCategory : 'updatedAt';
+      final sortDirection = 'DESC';
+
       final Map<String, dynamic> filterForm = {
         'assetId': assetIdController.text,
-        'name': assetNameController.text,
+        'name': resolvedName,
         'customer': customerController.text,
         'serialNumber': serialNumberController.text,
         'category': _assetCategory ?? '',
-        'location': locationController.text,
+        'location': locationText.isEmpty ? null : locationText,
         'status': _assetStatus ?? '',
-        'email': '',
+        'email': null,
         'companyId': companyId.toString(),
+        'sortDirection': sortDirection,
+        'sortField': sortField,
+        'pageNumber': currentPage,
+        'pageSize': pageSize,
+        'customFields': customFieldsPayload,
       };
-
-      // Append dynamic custom fields
-      final customFields = ref.read(assetCustomFieldsProvider);
-      for (var field in customFields) {
-        final controller = _customFieldControllers[field.id];
-        filterForm[field.name] = controller?.text ?? '';
-      }
 
       print("📤 Sending filterForm: ${jsonEncode(filterForm)}");
 
-      final response = await assetsRepo.advanceFilter(
-        json.encode(filterForm),
-        currentPage,
-        pageSize,
-        sortingCategory,
-        searchTerm.isEmpty ? '' : searchTerm,
-      );
-
-      print("Filters form: ${jsonEncode(filterForm)}");
+      final response = await assetsRepo.advanceFilter(filterForm);
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -286,8 +298,12 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
           throw Exception("Invalid response format: ${response.body}");
         }
 
-        final data = decoded['data'];
-        final totalRecords = decoded['totalRecords'] ?? 0;
+        // Optimized API: { assets, totalElements, hasNext, ... }
+        final data = decoded['assets'] ?? decoded['data'];
+        final totalRecords =
+            decoded['totalElements'] ?? decoded['totalRecords'] ?? 0;
+        final bool? pageHasNext =
+            decoded['hasNext'] is bool ? decoded['hasNext'] as bool : null;
 
         List<Map<String, dynamic>> newAssetsParsed = [];
 
@@ -296,7 +312,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
           for (var item in data) {
             try {
-              // Decode if item is a JSON string
               final parsedItem = item is String
                   ? json.decode(item) as Map<String, dynamic>
                   : item;
@@ -311,7 +326,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
             }
           }
         } else {
-          throw Exception("Unexpected 'data' format: ${data.runtimeType}");
+          throw Exception("Unexpected 'assets' format: ${data.runtimeType}");
         }
 
         final newAssets = newAssetsParsed.where((item) {
@@ -321,15 +336,25 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
         print("📥 New assets parsed: ${newAssets.length}");
 
+        // Prefer checkedInOutStatus from optimized response (no N+1 calls)
+        final statusEntries = <MapEntry<String, String>>[];
+        for (final item in newAssets) {
+          final id = item['id']?.toString();
+          if (id == null || id.isEmpty) continue;
+          final status = item['checkedInOutStatus']?.toString() ??
+              item['assetCheckInOut']?['status']?.toString();
+          if (status != null && status.isNotEmpty) {
+            statusEntries.add(MapEntry(id, status));
+          }
+        }
+
         setState(() {
           assets.addAll(newAssets);
+          _assetCheckingStatusMap.addEntries(statusEntries);
           isLoading = false;
-          hasMore = assets.length < totalRecords;
+          hasMore = pageHasNext ?? (assets.length < (totalRecords as num));
           currentPage += 1;
         });
-
-        // Load check-in/out statuses for newly fetched assets (batch)
-        _loadStatusesForAssets(newAssets);
       } else {
         throw Exception(
             "Failed to load assets. Status code: ${response.statusCode}");
@@ -352,9 +377,13 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
   Future<void> _loadStatusesForAssets(List<dynamic> assetsPage) async {
     if (assetsPage.isEmpty) return;
 
+    // Skip assets that already have status from the optimized filter response
     final ids = assetsPage
         .map((e) => e['id']?.toString())
-        .where((id) => id != null && id.isNotEmpty)
+        .where((id) =>
+            id != null &&
+            id.isNotEmpty &&
+            !_assetCheckingStatusMap.containsKey(id))
         .cast<String>()
         .toSet()
         .toList();
@@ -370,7 +399,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
         if (resp.statusCode == 200 || resp.statusCode == 202) {
           final List<dynamic> list = json.decode(resp.body);
           if (list.isNotEmpty) {
-            // Pick the most recent entry by parsing dates, fallback to last
             DateTime? latestDate;
             dynamic latestEntry;
             for (var entry in list) {
@@ -485,34 +513,61 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     final selectedFilters =
         ref.watch(assetFiltersProvider.notifier).selectedFilters;
     return SizedBox(
-      height: 70,
+      height: 72,
       child: Row(
         children: [
-          Expanded(
-            flex: 4,
-            child: _buildSelectedFilters(selectedFilters),
-          ),
-          Expanded(child: _buildRefreshButton()),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => _buildAdvancedFilters(),
-                  icon: const Icon(Icons.filter_alt, color: darkGrey),
-                ),
-                if (isCheckingStatusLoading)
-                  SizedBox(
-                    height: 16,
-                    width: 16,
+          Expanded(child: _buildSelectedFilters(selectedFilters)),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FilterBadgeButton(
+                onPressed: _buildAdvancedFilters,
+                activeFilterCount: _activeAdvancedFilterCount,
+              ),
+              if (isCheckingStatusLoading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: SizedBox(
+                    height: 14,
+                    width: 14,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  /// Advanced filters badge count (excludes default Active status / All checking).
+  int get _activeAdvancedFilterCount {
+    var count = 0;
+    if (assetIdController.text.trim().isNotEmpty) count++;
+    if (assetNameController.text.trim().isNotEmpty) count++;
+    if (customerController.text.trim().isNotEmpty) count++;
+    if (serialNumberController.text.trim().isNotEmpty) count++;
+    if ((_assetCategory ?? '').trim().isNotEmpty) count++;
+    if (locationController.text.trim().isNotEmpty) count++;
+
+    final status = (_assetStatus ?? '').trim();
+    if (status.isNotEmpty && status.toLowerCase() != 'active') count++;
+
+    final checking = ref
+        .read(assetFiltersProvider.notifier)
+        .selectedFilters['Checking Status']
+        ?.toString();
+    if (checking != null &&
+        checking.trim().isNotEmpty &&
+        checking.trim().toLowerCase() != 'all') {
+      count++;
+    }
+
+    count += _customFieldFilterValues.values
+        .where((value) => value.trim().isNotEmpty)
+        .length;
+    return count;
   }
 
   Widget _buildSelectedFilters(Map<String, dynamic> selectedFilters) {
@@ -541,16 +596,6 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
     );
   }
 
-  Widget _buildRefreshButton() {
-    return IconButton(
-      onPressed: () {
-        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
-        _fetchAssets();
-      },
-      icon: const Icon(Icons.refresh, color: darkGrey),
-    );
-  }
-
   void _buildAdvancedFilters() {
     showModalBottomSheet(
       showDragHandle: true,
@@ -573,6 +618,14 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                       .read(assetFiltersProvider.notifier)
                       .selectedFilters['Checking Status'] ??
                   'All',
+              customFieldValues: {
+                for (final field in ref.read(assetCustomFieldsProvider))
+                  field.id: _customFieldFilterValues[field.name] ?? '',
+              },
+              customFieldNames: {
+                for (final field in ref.read(assetCustomFieldsProvider))
+                  field.id: field.name,
+              },
             ),
             onApplyFilters: (filterData) {
               setState(() {
@@ -584,6 +637,13 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                     filterData.category.isEmpty ? null : filterData.category;
                 locationController.text = filterData.location;
                 _assetStatus = filterData.status;
+                _customFieldFilterValues
+                  ..clear()
+                  ..addAll({
+                    for (final entry in filterData.customFieldValues.entries)
+                      if (filterData.customFieldNames[entry.key] != null)
+                        filterData.customFieldNames[entry.key]!: entry.value,
+                  });
               });
               ref.read(assetFiltersProvider.notifier).updateFilter(
                 {filterData.checkingStatus: filterData.checkingStatus},
@@ -603,6 +663,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
                 locationController.clear();
                 _assetStatus = '';
                 _customer = null;
+                _customFieldFilterValues.clear();
               });
               _fetchAssets();
               Navigator.pop(context);
@@ -637,48 +698,76 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
       return status == checkingFilter;
     }).toList();
 
-    if (filteredAssets.isEmpty && !isLoading) {
-      return const NoDataFoundPage();
+    Future<void> onRefresh() async {
+      ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
+      await _fetchAssets();
     }
 
-    return ListView.separated(
-      controller: _scrollController,
-      padding: EdgeInsets.zero,
-      itemCount: filteredAssets.length + (hasMore ? 1 : 0),
-      separatorBuilder: (context, index) => const DGap(gap: 8),
-      scrollDirection: Axis.vertical,
-      itemBuilder: (context, index) {
-        if (index < filteredAssets.length) {
-          var assetData = AssetsModel.fromJson(filteredAssets[index]);
-          return assetsDetailsCard(data: assetData, ref: ref);
-        } else {
-          // Show shimmer placeholders while loading more assets
-          return Column(
-            children: List.generate(
-              4,
-              (i) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Shimmer.fromColors(
-                  baseColor: Colors.white,
-                  highlightColor: Colors.grey.shade100,
-                  child: Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(dBorderRadius),
+    if (filteredAssets.isEmpty && !isLoading) {
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            NoDataFoundPage(),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: filteredAssets.length + (hasMore ? 1 : 0),
+        separatorBuilder: (context, index) => const DGap(gap: 8),
+        scrollDirection: Axis.vertical,
+        itemBuilder: (context, index) {
+          if (index < filteredAssets.length) {
+            var assetData = AssetsModel.fromJson(filteredAssets[index]);
+            final knownStatus =
+                _assetCheckingStatusMap[assetData.id] ??
+                    filteredAssets[index]['checkedInOutStatus']?.toString();
+            return assetsDetailsCard(
+              data: assetData,
+              ref: ref,
+              initialCheckingStatus: knownStatus,
+            );
+          } else {
+            // Show shimmer placeholders while loading more assets
+            return Column(
+              children: List.generate(
+                4,
+                (i) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Shimmer.fromColors(
+                    baseColor: Colors.white,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(dBorderRadius),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        }
-      },
+            );
+          }
+        },
+      ),
     );
   }
 
-  Widget assetsDetailsCard(
-      {required AssetsModel data, required WidgetRef ref}) {
+  Widget assetsDetailsCard({
+    required AssetsModel data,
+    required WidgetRef ref,
+    String? initialCheckingStatus,
+  }) {
     return GestureDetector(
       onTap: () async {
         Navigator.of(context).push(MaterialPageRoute(
@@ -756,6 +845,7 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
               AssetStatusButton(
                 data: data,
                 ref: ref,
+                initialCheckingStatus: initialCheckingStatus,
                 onStatusChanged: (newStatus) {
                   final assetId = data.id;
                   if (assetId == null) return;
@@ -802,7 +892,8 @@ class _AssetsSearchAndListState extends ConsumerState<AssetsSearchAndList> {
 
                       // Local state update
                       setState(() {
-                        assets.remove(data);
+                        assets.removeWhere(
+                            (item) => item['id']?.toString() == data.id);
                       });
 
                       // Trigger refreshProvider

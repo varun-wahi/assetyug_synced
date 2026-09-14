@@ -247,35 +247,48 @@ class _StepsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < steps.length; i++)
-            Container(
+    final maxHeight =
+        (MediaQuery.sizeOf(context).height * 0.32).clamp(160.0, 280.0);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemCount: steps.length,
+          separatorBuilder: (_, __) => const Divider(
+            height: 1,
+            thickness: 1,
+            color: Color(0xFFE5E7EB),
+          ),
+          itemBuilder: (context, i) {
+            return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              decoration: BoxDecoration(
-                border: i == steps.length - 1
-                    ? null
-                    : const Border(
-                        bottom: BorderSide(color: Color(0xFFE5E7EB))),
-              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${i + 1}. ${steps[i].label}',
-                    style:
-                        const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      '${i + 1}. ${steps[i].label}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF111827)),
+                    ),
                   ),
-                  _StepValue(step: steps[i]),
+                  Expanded(child: _StepValue(step: steps[i])),
                 ],
               ),
-            ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -291,17 +304,23 @@ class _StepValue extends StatelessWidget {
     switch (step.type) {
       case InspectionStepType.checkbox:
         final checked = step.value.toLowerCase() == 'true';
-        return Icon(
-          checked ? Icons.check_box : Icons.check_box_outline_blank,
-          color: checked ? const Color(0xFF1D4ED8) : const Color(0xFF9CA3AF),
-          size: 22,
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Icon(
+            checked ? Icons.check_box : Icons.check_box_outline_blank,
+            color: checked ? const Color(0xFF1D4ED8) : const Color(0xFF9CA3AF),
+            size: 22,
+          ),
         );
       case InspectionStepType.number:
       case InspectionStepType.text:
         return Text(
-          step.value,
+          step.value?.isEmpty ?? true ? '--' : step.value,
+          maxLines: 1,
+          textAlign: TextAlign.end,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
+            overflow: TextOverflow.ellipsis,
             fontWeight: FontWeight.w600,
             color: Color(0xFF111827),
           ),

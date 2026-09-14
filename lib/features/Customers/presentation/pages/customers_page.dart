@@ -10,6 +10,7 @@ import '../../../../core/utils/constants/sizes.dart';
 import '../../../../core/utils/widgets/d_searchbar.dart';
 import '../../../../core/utils/widgets/d_selected_filter.dart';
 import '../../../../core/utils/widgets/d_snackbar.dart';
+import '../../../../core/utils/widgets/filter_badge_button.dart';
 import '../../../../core/utils/widgets/no_data_found.dart';
 import '../../../Main/presentation/riverpod/refresh_provider.dart';
 import '../../data/models/customers_model.dart';
@@ -222,12 +223,12 @@ Future<void> _loadMoreCustomers() async {
   Widget _buildFiltersSection() {
     return Container(
       padding: const EdgeInsets.all(dPadding),
-      height: 70,
+      height: 72,
       child: Row(
         children: [
-          Expanded(flex: 4, child: _buildSelectedFilters()),
-          Expanded(child: _buildRefreshButton()),
-          Expanded(child: _buildFilterButton()),
+          Expanded(child: _buildSelectedFilters()),
+          const SizedBox(width: 8),
+          _buildFilterButton(),
         ],
       ),
     );
@@ -253,20 +254,10 @@ Future<void> _loadMoreCustomers() async {
     );
   }
 
-  Widget _buildRefreshButton() {
-    return IconButton(
-      onPressed: () {
-        ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
-        _loadCustomers();
-      },
-      icon: const Icon(Icons.refresh, color: darkGrey),
-    );
-  }
-
   Widget _buildFilterButton() {
-    return IconButton(
+    return FilterBadgeButton(
       onPressed: _showAdvancedFilters,
-      icon: const Icon(Icons.filter_alt, color: darkGrey),
+      activeFilterCount: _filterData.activeFilterCount,
     );
   }
 
@@ -300,58 +291,80 @@ Future<void> _loadMoreCustomers() async {
   }
 
 Widget _buildCustomersList() {
+  Future<void> onRefresh() async {
+    ref.read(refreshProvider.notifier).state = !ref.read(refreshProvider);
+    await _loadCustomers();
+  }
+
   // 1) No items at all?
   if (_customerState.customers.isEmpty) {
     // • still loading? → show a centered spinner
     if (_customerState.isLoading) {
-       return SingleChildScrollView(
-         child: Column(
-                children: List.generate(
-                6,
-                (i) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Shimmer.fromColors(
-                  baseColor: Colors.white,
-                  highlightColor: Colors.grey.shade100,
-                  child: Container(
-                    height: 100,
-                    decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(dBorderRadius),
+       return RefreshIndicator(
+         onRefresh: onRefresh,
+         child: SingleChildScrollView(
+           physics: const AlwaysScrollableScrollPhysics(),
+           child: Column(
+                  children: List.generate(
+                  6,
+                  (i) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Shimmer.fromColors(
+                    baseColor: Colors.white,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      height: 100,
+                      decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(dBorderRadius),
+                      ),
+                    ),
                     ),
                   ),
                   ),
                 ),
-                ),
-              ),
+         ),
        );
     }
     // • done loading (but zero results)? → show “no data”
-    return const NoDataFoundPage();
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 120),
+          NoDataFoundPage(),
+        ],
+      ),
+    );
   }
 
   // 2) We have at least one item: now we _can_ show a loader at the bottom if hasMore
-  return ListView.separated(
-    controller: _scrollController,
-    itemCount: _customerState.customers.length + (_customerState.hasMore ? 1 : 0),
-    separatorBuilder: (_, __) => const SizedBox(height: dGap),
-    itemBuilder: (context, index) {
-      if (index < _customerState.customers.length) {
-        // safe to index into your list
-        final raw = _customerState.customers[index];
-        final customerData = CustomersModel.fromJson(raw);
-        return CustomerDetailsCard(
-          data: customerData,
-          onCustomerDeleted: _onCustomerDeleted,
-        );
-      }
+  return RefreshIndicator(
+    onRefresh: onRefresh,
+    child: ListView.separated(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: _customerState.customers.length + (_customerState.hasMore ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: dGap),
+      itemBuilder: (context, index) {
+        if (index < _customerState.customers.length) {
+          // safe to index into your list
+          final raw = _customerState.customers[index];
+          final customerData = CustomersModel.fromJson(raw);
+          return CustomerDetailsCard(
+            data: customerData,
+            onCustomerDeleted: _onCustomerDeleted,
+          );
+        }
 
-      // index == customers.length && hasMore == true → loader cell
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    },
+        // index == customers.length && hasMore == true → loader cell
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      },
+    ),
   );
 }
 }

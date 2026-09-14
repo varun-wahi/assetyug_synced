@@ -6,6 +6,11 @@ class AssetCheckingDetailsModel {
   final String? employee;
   final String? notes;
   final String? location;
+  final String? userLocation;
+  final String? userLatitude;
+  final String? userLongitude;
+  final String? ipAddress;
+  final DateTime? updateTime;
 
   AssetCheckingDetailsModel({
     this.status,
@@ -13,15 +18,25 @@ class AssetCheckingDetailsModel {
     this.employee,
     this.notes,
     this.location,
+    this.userLocation,
+    this.userLatitude,
+    this.userLongitude,
+    this.ipAddress,
+    this.updateTime,
   });
 
   factory AssetCheckingDetailsModel.fromJson(Map<String, dynamic> json) {
     return AssetCheckingDetailsModel(
-      status: json['status'] as String?,
+      status: json['status']?.toString(),
       date: _parseDate(json['date']),
-      employee: json['employee'] as String?,
-      notes: json['notes'] as String?,
-      location: json['location'] as String?,
+      employee: json['employee']?.toString(),
+      notes: json['notes']?.toString(),
+      location: json['location']?.toString(),
+      userLocation: json['userLocation']?.toString(),
+      userLatitude: json['userLatitude']?.toString(),
+      userLongitude: json['userLongitude']?.toString(),
+      ipAddress: json['ipAddress']?.toString(),
+      updateTime: _parseDate(json['updateTime']),
     );
   }
 
@@ -31,12 +46,21 @@ class AssetCheckingDetailsModel {
         "employee": employee,
         "notes": notes,
         "location": location,
+        "userLocation": userLocation,
+        "userLatitude": userLatitude,
+        "userLongitude": userLongitude,
+        "ipAddress": ipAddress,
+        "updateTime": updateTime?.toIso8601String(),
       };
 
   static DateTime? _parseDate(dynamic dateData) {
     if (dateData == null) return null;
-    if (dateData is List && dateData.length == 3) {
-      return DateTime(dateData[0], dateData[1], dateData[2]);
+    if (dateData is List && dateData.length >= 3) {
+      return DateTime(
+        dateData[0] as int,
+        dateData[1] as int,
+        dateData[2] as int,
+      );
     } else if (dateData is String) {
       return DateTime.tryParse(dateData);
     }

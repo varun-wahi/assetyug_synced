@@ -285,6 +285,24 @@ class CustomerFilterData {
     return form;
   }
 
+  /// Count of applied advanced filters for the Filters button badge.
+  /// Default status "Active" is not counted.
+  int get activeFilterCount {
+    var count = 0;
+    if (name.trim().isNotEmpty) count++;
+    if (address.trim().isNotEmpty) count++;
+    if (phone.trim().isNotEmpty) count++;
+    if ((category ?? '').trim().isNotEmpty) count++;
+    final statusValue = (status ?? '').trim();
+    if (statusValue.isNotEmpty && statusValue.toLowerCase() != 'active') {
+      count++;
+    }
+    count += customFieldValues.values
+        .where((value) => value.trim().isNotEmpty)
+        .length;
+    return count;
+  }
+
   CustomerFilterData copyWith({
     String? name,
     String? address,
